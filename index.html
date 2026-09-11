@@ -64,7 +64,7 @@
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
 <div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V36 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V47 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">
@@ -86,7 +86,6 @@
 <span class="stat"><span class="stat-label">魂力</span> <span id="s-soulpower" class="stat-value">-</span></span>
 <span class="stat"><span class="stat-label">阶段</span> <span id="s-stage" class="stat-value">-</span></span>
 <span class="stat"><span class="stat-label">时间</span> <span id="s-time" class="stat-value">-</span></span>
-<span class="stat hidden" id="token-stat"><span class="stat-label">Token</span> <span id="s-token" class="stat-value">0</span></span>
 </div>
 <div id="scene-banner" class="hidden"></div>
 <div id="chat-box"><div class="msg-sys">准备觉醒武魂...</div></div>
@@ -149,10 +148,6 @@
 <div class="setting-row">
 <div class="setting-label"><div class="setting-title">场景氛围边框</div><div class="setting-desc">聊天框边框颜色随剧情场景变化</div></div>
 <label class="switch"><input type="checkbox" id="setSceneBg" onchange="toggleSetting('useSceneBg',this.checked)"><span class="slider"></span></label>
-</div>
-<div class="setting-row">
-<div class="setting-label"><div class="setting-title">显示 Token 消耗</div><div class="setting-desc">在状态栏显示本次会话累计 token</div></div>
-<label class="switch"><input type="checkbox" id="setTokenStats" onchange="toggleSetting('useTokenStats',this.checked)"><span class="slider"></span></label>
 </div>
 <div class="setting-row">
 <div class="setting-label"><div class="setting-title">叙事风格</div><div class="setting-desc">调整 AI 的文采和节奏</div></div>
@@ -220,6 +215,22 @@
 <script src="rpg.js"></script>
 <script src="rogue.js"></script>
 <script>
+// —— 音效初始化：首次用户交互时激活 AudioContext（修复刷新后无声） ——
+(function(){
+  let done = false;
+  function init(){
+    if(done) return;
+    done = true;
+    if(typeof soundEnsure === 'function') soundEnsure();
+    ['click','touchstart','keydown','pointerdown'].forEach(function(evt){
+      document.removeEventListener(evt, init);
+    });
+  }
+  ['click','touchstart','keydown','pointerdown'].forEach(function(evt){
+    document.addEventListener(evt, init, {passive:true});
+  });
+})();
+
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   navigator.serviceWorker.register('./sw.js').then(function(reg){
     setInterval(function(){ reg.update(); }, 10 * 60 * 1000);

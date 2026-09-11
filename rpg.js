@@ -649,10 +649,7 @@ if(update.time){CORE.time=update.time;chatBox.innerHTML+=`<div class="msg-time">
 if(update.weather){CORE.weather=update.weather;}
 if(update.time || update.weather){
   // 时间或天气变化，刷新场景标签
-  const sceneInfo = _currentSceneKey ? detectSceneFull(_currentSceneKey) : null;
   if(_currentSceneKey){
-    // 重新用当前场景信息刷新标签
-    const cb = document.getElementById('chat-box');
     const type = _currentSceneKey;
     const found = SCENE_TYPES.find(t => t.type === type) || SCENE_PLACES.find(p => p.type === type);
     if(found) updateSceneBanner({name:found.name, type:found.type, emoji:found.emoji});
@@ -691,7 +688,7 @@ if(archivedNPCs.length>0){
 }
 if(CORE.summary)s+=`前情：${CORE.summary}\n`;
 if(Object.keys(MEDIA.worldbook).length>0){
-  const recentText = PLOT.history.slice(-4).map(m=>stripStatus(m.content)).join('\n');
+  const recentText = PLOT.history.slice(-3).map(m=>stripStatus(m.content)).join('\n');
   const loreText = triggerLorebook(playerInput || '', recentText, 5);
   if(loreText) s += loreText + '\n';
 }
@@ -713,6 +710,18 @@ aiMsgDiv.textContent='...';
 chatBox.appendChild(aiMsgDiv);
 chatBox.scrollTop=chatBox.scrollHeight;
 
+// 追踪用户是否主动上滚（一旦上滚，流式期间不再强制跟随）
+let userPinnedUp = false;
+let lastTop = chatBox.scrollTop;
+function onStreamScroll(){
+  const cur = chatBox.scrollTop;
+  const atBottom = chatBox.scrollHeight - cur - chatBox.clientHeight < 40;
+  if(cur < lastTop - 5 && !atBottom){ userPinnedUp = true; }
+  else if(atBottom){ userPinnedUp = false; }
+  lastTop = cur;
+}
+chatBox.addEventListener('scroll', onStreamScroll);
+
 const tw = { pending: '', shown: 0, timer: null, done: false };
 function twTick(){
   tw.timer = null;
@@ -721,9 +730,8 @@ function twTick(){
   if(tw.shown >= tw.pending.length) return;
   const ch = tw.pending[tw.shown];
   tw.shown++;
-  const stick = isNearBottom();
   aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending.slice(0, tw.shown)));
-  if(stick) chatBox.scrollTop = chatBox.scrollHeight;
+  if(!userPinnedUp) chatBox.scrollTop = chatBox.scrollHeight;
   if(typeof soundType==='function') soundType();
   let delay = 22;
   if('，。？！；、'.includes(ch)) delay = 100;
@@ -744,15 +752,15 @@ const fullReply=await callDeepSeekStream(messages,(delta,full)=>{
 });
 tw.done = true;
 if(tw.timer){ clearTimeout(tw.timer); tw.timer = null; }
-const stick = isNearBottom();
 tw.shown = tw.pending.length;
 aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending)) || '...';
-if(stick) chatBox.scrollTop = chatBox.scrollHeight;
 aiMsgDiv.classList.remove('streaming');
+chatBox.removeEventListener('scroll', onStreamScroll);
 applyScene(displayContent);
 return fullReply;
 }catch(e){
 if(tw.timer) clearTimeout(tw.timer);
+chatBox.removeEventListener('scroll', onStreamScroll);
 aiMsgDiv.classList.remove('streaming');
 aiMsgDiv.textContent='生成失败：'+e.message;
 throw e;
@@ -775,7 +783,7 @@ chatBox.innerHTML+=`<div class="msg-debug">调试已应用</div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
 }
 function handleLoreTest(testInput){
-  const recentText = PLOT.history.slice(-4).map(m=>stripStatus(m.content)).join('\n');
+  const recentText = PLOT.history.slice(-3).map(m=>stripStatus(m.content)).join('\n');
   const result = triggerLorebook(testInput || '', recentText, 5);
   if(!result){
     chatBox.innerHTML += `<div class="msg-debug">未命中任何资料条目。试试：/测 我去史莱克学院</div>`;
@@ -840,9 +848,7 @@ ${FIXED_WORLD}
 这是魂导器文明时代，不是古代！避免使用：官道、驿站、客栈、铜板、银两、镖局、江湖、衙门。
 应使用：公路/大道、补给站/旅馆、魂导酒店、魂币（金/银/铜）、佣兵行会、城卫队、市政厅。
 短途走路，城际应提到魂导列车、魂导飞艇。
-
-【日常道具参考】
-照明：魂导灯、萤石灯；交通：魂导车、魂导列车、魂导飞艇、马车（乡下）；通讯：魂导通讯器、信件、口信；货币：金/银/铜魂币；武器：魂导枪械（日月帝国）、冷兵器（魂师以武魂为主）。
+日常道具备选：魂导灯/萤石灯（照明），魂导车/魂导列车/魂导飞艇（交通），魂导通讯器（通讯）。
 
 【叙事要求 - 严格遵守】
 - 日常 100-200 字，关键剧情 250-350 字，禁止超过 400 字
@@ -857,9 +863,9 @@ ${FIXED_WORLD}
 - 场景描写、普通动作：不加标记
 
 【状态更新 - 极重要】
-在叙事末尾必须写一段"【状态更新】"块，格式（每行一个关键词开头）：
+叙事末尾写一段"【状态更新】"块，每行一个关键词开头，只在有变化时写该行：
 年龄：13
-魂力 +5        或  魂力 提升至13
+魂力 +5  或  魂力 提升至13
 时间：xxx
 天气：晴/阴/雨/雪/雾/雷/风
 获得物品：物品名×数量（描述）
@@ -877,15 +883,17 @@ ${FIXED_WORLD}
 归档时期：时期名
 
 ⚠️ 时间：每轮必写。
-⚠️ 天气：只在天气变化时写，没变化就省略整行。
-⚠️ 其他字段：只在有变化时才写！无变化就省略整行，绝对不要写"无"。
-⚠️ 只有写进【状态更新】的属性才会更新，叙事里提到"魂力提升"不算数。
-⚠️ 参考：主角是${CORE.age||'未知'}岁，当前魂力${CORE.soulPower}级。若剧情没有明确修炼/战斗/时间跨越，不要随意提升魂力。
-⚠️ 卖出/交易/使用物品时，必须同时写两行：
-   消耗物品：卖出物×数量
-   获得物品：金魂币/银魂币/铜魂币×数量
-   例：卖掉皮护腕换银魂币 → 两行："消耗物品：皮护腕×1" 和 "获得物品：银魂币×3"
-⚠️ 人物魂力变化时，用新魂力重新写完整人物行（六段式），系统会用新值覆盖。
+⚠️ 天气：只在变化时写。
+⚠️ 其他字段：只在有变化时写，无变化省略整行，绝不写"无"。
+⚠️ 只有写进【状态更新】的属性才会更新，叙事里提"魂力提升"不算。
+⚠️ 参考：主角是${CORE.age||'未知'}岁，当前魂力${CORE.soulPower}级。剧情没有明确修炼/战斗/时间跨越，不要随意提升魂力。
+⚠️ 卖/交易/使用物品时写两行：消耗物品：X×N + 获得物品：魂币×N。
+⚠️ 人物魂力变化时，用新魂力重写完整人物行（六段式）。
+⚠️ 人物行六段：【姓名 / 性别 / 武魂 / 魂力 / 关系 / 描述】。
+   - 第1段人名（2-4字），第3段武魂名，绝不能填人名！
+   - ❌ 错误：人物：觉醒师/男/林远/30级/觉醒引导者/…
+   - ✅ 正确：人物：林远/男/青风狼/30级/觉醒引导者/…
+   - 无武魂信息填"未知"，不要编造或把名字塞进来。
 
 【人物档案规则 - 极重要】
 人物分"现役"与"归档"两种：
@@ -923,7 +931,7 @@ const proactiveBlock = SETTINGS.npcProactive !== false ? `
 ` : '';
 const fullPrompt = systemPrompt + '\n\n' + styleBlock + '\n' + proactiveBlock;
 const messages=[{role:"system",content:fullPrompt}];
-const recent=PLOT.history.slice(-4);
+const recent=PLOT.history.slice(-3);
 recent.forEach(m=>messages.push({role:m.role,content:stripStatus(m.content)}));
 messages.push({role:"user",content:isContinue?'（继续）':action});
 const reply=await streamAndProcess(messages);
@@ -935,7 +943,7 @@ PLOT.history.push({role:"assistant",content:reply});
 if(PLOT.history.length>30)PLOT.history=PLOT.history.slice(-30);
 PLOT.turn++;PLOT.summaryCounter++;
 updateStatus();
-if(PLOT.summaryCounter>=4)generateSummary();
+if(PLOT.summaryCounter>=3)generateSummary();
 }catch(e){
 console.error(e);
 chatBox.innerHTML+=`<div class="msg-lose">生成失败：${escapeHtml(e.message)}</div>`;
@@ -984,17 +992,14 @@ function resetTokenStats(){
 // ============================================================
 //  摘要 + 章节生成
 // ============================================================
-// ============================================================
-//  摘要 + 章节生成
-// ============================================================
 async function generateSummary(force=false){
-if(!force&&PLOT.summaryCounter<4)return;
+if(!force&&PLOT.summaryCounter<3)return;
 if(PLOT.history.length<4)return;
 const recent=PLOT.history.slice(-8);
 const historyText=recent.map(m=>`${m.role==='user'?'玩家':'叙事者'}：${stripStatus(m.content)}`).join('\n');
 const oldSummary=CORE.summary||'';
 const oldLen=oldSummary.length;
-const START=200,STEP=20,MAX=800;
+const START=200,STEP=20,MAX=500;
 const targetLen=oldLen===0?START:Math.min(oldLen+STEP,MAX);
 const prompt=`把「旧摘要」和「新对话」融合成一份新摘要。
 目标长度约${targetLen}字，第三人称，保留有后续影响的内容（人物、地点、目标、承诺、身份、物品、能力），丢弃琐事。
@@ -1083,7 +1088,7 @@ ${customSoul?'指定武魂：'+customSoul:'请为角色设计一个独特武魂�
 1. 用"你"生动描述觉醒场景（400-600字）
 2. 初始魂力${CORE.soulPower}级
 3. 生成3-5个先天特质
-4. 末尾必须写【状态更新】块，含：年龄：6，时间：觉醒武魂当天·上午，天气：（根据场景合理选择晴天/阴天/雨天等），获得特质：xxx(先天)，人物：觉醒师/男/xxx/30级/觉醒引导者/描述
+4. 末尾必须写【状态更新】块，含：年龄：6，时间：觉醒武魂当天·上午，天气：（根据场景合理选择晴天/阴天/雨天等），获得特质：xxx(先天)，人物：<觉醒师姓名，如"陈默">/男/<觉醒师的武魂名，如"青风狼"，不是人名！>/30级/觉醒引导者/天斗帝国魂师协会派驻觉醒师
 
 【文本分层标记】
 - 对话用 “……” 或 「……」

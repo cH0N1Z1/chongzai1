@@ -140,7 +140,7 @@ function triggerLorebook(playerInput, recentHistory, maxEntries){
 // ============================================================
 //  设置
 // ============================================================
-const SETTINGS={useIcons:true,useRingsVisual:true,useSceneBg:true,useTokenStats:false,chatTheme:'default',minimalMode:false,soundOn:true,soundVolume:0.2,narrativeStyle:'standard',npcProactive:true,fontScale:1};
+const SETTINGS={useIcons:true,useRingsVisual:true,useSceneBg:true,chatTheme:'default',minimalMode:false,soundOn:true,soundVolume:0.2,narrativeStyle:'standard',npcProactive:true,fontScale:1};
 const TOKEN_STATS={input:0,output:0,session:0};
 function loadLifetimeTokens(){
   try{
@@ -160,7 +160,6 @@ try{const raw=localStorage.getItem('douro2Settings');if(raw)Object.assign(SETTIN
 const elIcons=document.getElementById('setIcons');
 const elRings=document.getElementById('setRingsVisual');
 const elScene=document.getElementById('setSceneBg');
-const elToken=document.getElementById('setTokenStats');
 const themeSelect=document.getElementById('setChatTheme');
 const minSwitch=document.getElementById('setMinimal');
 const sndSwitch=document.getElementById('setSound');
@@ -171,7 +170,6 @@ const fontRange=document.getElementById('setFontScale');
 if(elIcons)elIcons.checked=SETTINGS.useIcons;
 if(elRings)elRings.checked=SETTINGS.useRingsVisual;
 if(elScene)elScene.checked=SETTINGS.useSceneBg;
-if(elToken)elToken.checked=SETTINGS.useTokenStats;
 if(themeSelect)themeSelect.value=SETTINGS.chatTheme||'default';
 if(minSwitch)minSwitch.checked=!!SETTINGS.minimalMode;
 if(sndSwitch)sndSwitch.checked=SETTINGS.soundOn!==false;
@@ -184,7 +182,6 @@ if(typeof soundSetVolume==='function') soundSetVolume(SETTINGS.soundVolume||0.2)
 applyFontScale();
 document.body.classList.toggle('minimal-mode',!!SETTINGS.minimalMode);
 applyThemeClass();
-updateTokenDisplay();
 }
 
 function toggleNarrativeStyle(v){
@@ -235,13 +232,10 @@ else{SETTINGS.useIcons=true;SETTINGS.useRingsVisual=true;SETTINGS.useSceneBg=tru
 const elIcons=document.getElementById('setIcons');
 const elRings=document.getElementById('setRingsVisual');
 const elScene=document.getElementById('setSceneBg');
-const elToken=document.getElementById('setTokenStats');
 if(elIcons)elIcons.checked=SETTINGS.useIcons;
 if(elRings)elRings.checked=SETTINGS.useRingsVisual;
 if(elScene)elScene.checked=SETTINGS.useSceneBg;
-if(elToken)elToken.checked=SETTINGS.useTokenStats;
 document.body.classList.toggle('minimal-mode', on);
-updateTokenDisplay();
 saveSettings();
 if(typeof updateStatus==='function')updateStatus();
 if(!SETTINGS.useSceneBg){
@@ -249,14 +243,8 @@ if(!SETTINGS.useSceneBg){
   if(cb)cb.className=cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ');
 }
 }
-function updateTokenDisplay(){
-const el=document.getElementById('s-token');
-const box=document.getElementById('token-stat');
-if(!el||!box)return;
-if(!SETTINGS.useTokenStats){box.classList.add('hidden');return}
-box.classList.remove('hidden');
-el.textContent=TOKEN_STATS.session;
-}
+// 状态栏已不再显示 Token，此函数仅保留以兼容旧调用
+function updateTokenDisplay(){}
 function openSettings(){loadSettings();openModal('settingsModal')}
 function openMore(){openModal('moreModal')}
 
@@ -344,7 +332,6 @@ try {
           LIFETIME.output+=json.usage.completion_tokens||0;
           LIFETIME.session+=json.usage.total_tokens||0;
           saveLifetimeTokens(LIFETIME);
-          updateTokenDisplay();
         }
         const delta=json.choices?.[0]?.delta?.content||"";
         if(delta){fullContent+=delta;onChunk(delta,fullContent)}
