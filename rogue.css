@@ -1,0 +1,244 @@
+/* ============================================================
+   rogue.css - 魂兽猎杀模式样式
+   ============================================================ */
+
+#rogue-area {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 10px;
+}
+
+#rogue-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+/* 头部 */
+.rogue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 10px 14px;
+}
+.rogue-title { font-weight: bold; color: #f0f6fc; font-size: 16px; }
+.rogue-exit-btn { padding: 4px 12px; font-size: 18px; line-height: 1; margin: 0; width: auto; }
+
+/* 状态栏 */
+.rogue-status {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rogue-bar {
+  position: relative;
+  height: 22px;
+  background: #0d1117;
+  border-radius: 11px;
+  overflow: hidden;
+  border: 1px solid #30363d;
+}
+.rogue-bar-fill {
+  height: 100%;
+  transition: width .35s ease;
+}
+.rogue-hp-player { background: linear-gradient(90deg, #16a34a, #4ade80); }
+.rogue-hp-enemy { background: linear-gradient(90deg, #dc2626, #f87171); }
+.rogue-bar-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #fff;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+.rogue-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 13px;
+  color: #c9d1d9;
+}
+
+/* 大厅 */
+.rogue-lobby {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 16px;
+  padding: 22px;
+  text-align: center;
+}
+.rogue-lobby h2 { color: #f0f6fc; margin-bottom: 6px; }
+.rogue-sub { color: #8b949e; font-size: 13px; margin-bottom: 16px; }
+.rogue-meta {
+  display: flex;
+  justify-content: space-around;
+  background: #0d1117;
+  border-radius: 10px;
+  padding: 12px 0;
+  margin-bottom: 18px;
+}
+.rogue-meta > div { display: flex; flex-direction: column; gap: 4px; }
+.rogue-meta-label { font-size: 12px; color: #8b949e; }
+.rogue-meta-value { font-size: 18px; font-weight: bold; color: #f0f6fc; }
+.rogue-rules {
+  text-align: left;
+  margin-top: 20px;
+  padding: 14px;
+  background: #0d1117;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+.rogue-rules h4 { color: #f0f6fc; margin-bottom: 8px; font-size: 14px; }
+.rogue-rules ul { padding-left: 18px; line-height: 1.8; }
+
+/* 战斗 */
+.rogue-battle, .rogue-event, .rogue-dead, .rogue-win {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.rogue-enemy-name {
+  font-size: 16px;
+  color: #f0f6fc;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.rogue-el {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #1f2937;
+  border-radius: 10px;
+  color: #9ca3af;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.rogue-log {
+  background: #0d1117;
+  border-radius: 10px;
+  padding: 10px 14px;
+  max-height: 130px;
+  overflow-y: auto;
+  font-size: 13px;
+  color: #c9d1d9;
+  line-height: 1.6;
+}
+.rogue-log-line { padding: 2px 0; border-bottom: 1px dashed #1f2937; }
+.rogue-log-line:last-child { border-bottom: none; }
+
+.rogue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rogue-btn {
+  flex: 1 1 calc(50% - 4px);
+  padding: 12px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  color: #e5e7eb;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.rogue-btn:hover { background: #30363d; }
+.rogue-btn:active { transform: scale(.97); }
+.rogue-btn small { font-size: 11px; color: #8b949e; }
+.rogue-btn-skill { border-color: #6b21a8; background: #2a1a3a; }
+.rogue-btn-skill:hover { background: #3d1e4d; }
+.rogue-btn-potion { border-color: #16a34a; background: #14281a; }
+.rogue-btn-potion:hover { background: #1d3a26; }
+.rogue-btn-flee { border-color: #6b7280; }
+
+.rogue-btn-primary {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: #238636;
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+  font-family: inherit;
+}
+.rogue-btn-primary:hover { background: #2ea043; }
+.rogue-btn-ghost {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #30363d;
+  border-radius: 30px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 8px;
+  font-family: inherit;
+}
+.rogue-btn-ghost:hover { border-color: #58a6ff; color: #58a6ff; }
+
+.rogue-event h3, .rogue-dead h3, .rogue-win h3 {
+  color: #f0f6fc;
+  margin-bottom: 4px;
+}
+.rogue-event p, .rogue-dead p, .rogue-win p {
+  color: #c9d1d9;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 可爱主题适配 */
+body.theme-cute #rogue-area { background: #1a0f1a; }
+body.theme-cute .rogue-header,
+body.theme-cute .rogue-status,
+body.theme-cute .rogue-lobby,
+body.theme-cute .rogue-battle,
+body.theme-cute .rogue-event,
+body.theme-cute .rogue-dead,
+body.theme-cute .rogue-win {
+  background: #2a162a;
+  border-color: #ff8da1;
+}
+body.theme-cute .rogue-title,
+body.theme-cute .rogue-lobby h2,
+body.theme-cute .rogue-enemy-name,
+body.theme-cute .rogue-event h3,
+body.theme-cute .rogue-dead h3,
+body.theme-cute .rogue-win h3 { color: #ffb6c1; }
+body.theme-cute .rogue-btn { background: #3d1e3d; border-color: #ff8da1; color: #ffb6c1; }
+body.theme-cute .rogue-btn:hover { background: #ff8da1; color: #1a0f1a; }
+body.theme-cute .rogue-btn-primary { background: #ff8da1; color: #1a0f1a; }
+body.theme-cute .rogue-btn-primary:hover { background: #ffb6c1; }
+body.theme-cute .rogue-btn-ghost { border-color: #ff8da1; color: #ffb6c1; }
+body.theme-cute .rogue-btn-ghost:hover { border-color: #ffb6c1; color: #ffb6c1; }
+body.theme-cute .rogue-log { background: #1a0f1a; }

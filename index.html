@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex,nofollow,noarchive">
 <title>绝世唐门</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="rogue.css">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#161b22">
 </head>
@@ -18,12 +19,13 @@
 <div class="mode-tag">测试版</div>
 <div class="mode-desc">扮演一名魂师，在斗罗大陆展开冒险</div>
 </button>
-<button class="mode-btn disabled" onclick="selectMode('sim')">
-<div class="mode-title">模拟器模式</div>
-<div class="mode-tag">未开放</div>
-<div class="mode-desc">模拟经营魂师学院，敬请期待</div>
+<button class="mode-btn" onclick="rogueEnter()">
+<div class="mode-title">魂兽猎杀</div>
+<div class="mode-tag">Roguelike · 离线</div>
+<div class="mode-desc">深入魂兽森林，逐层猎杀魂兽搜集材料，一命通关</div>
 </button>
 </div>
+
 <div id="config-panel" class="hidden">
 <h2 style="margin:0 0 5px">绝世唐门</h2>
 <p style="font-size:14px;color:#9ca3af;margin:0 0 10px">状态行识别 · 调试命令 · 可开关图标</p>
@@ -63,7 +65,7 @@
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
 <div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 v27 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 v28 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">
@@ -172,7 +174,12 @@
 </div>
 </div>
 
-<script src="game.js"></script>
+<!-- 肉鸽模式容器 -->
+<div id="rogue-area" class="hidden"></div>
+
+<script src="shared.js"></script>
+<script src="rpg.js"></script>
+<script src="rogue.js"></script>
 <script>
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(function(reg){
