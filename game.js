@@ -17,78 +17,17 @@ consume:'<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 
 };
 
 // ============================================================
-//  素材库
+//  素材库（仅保留世界观资料加载）
 // ============================================================
-const MEDIA={images:{},worldbook:{},npcAvatars:{}};
-function saveMedia(){try{localStorage.setItem('douro2Media',JSON.stringify(MEDIA))}catch(e){console.warn('素材库存储失败',e)}}
-function loadMedia(){try{const raw=localStorage.getItem('douro2Media');if(raw){const d=JSON.parse(raw);if(d.images)MEDIA.images=d.images;if(d.worldbook)MEDIA.worldbook=d.worldbook;if(d.npcAvatars)MEDIA.npcAvatars=d.npcAvatars}}catch(e){}}
-async function loadDefaultMedia(){
-try{
-const r=await fetch('./media.json');
-if(!r.ok)return;
-const def=await r.json();
-if(def.images){for(const k in def.images){if(!MEDIA.images[k])MEDIA.images[k]=def.images[k]}}
+const MEDIA={worldbook:{}};
+function loadDefaultMedia(){
+fetch('./media.json').then(r=>r.json()).then(def=>{
 if(def.worldbook){for(const k in def.worldbook){if(!MEDIA.worldbook[k])MEDIA.worldbook[k]=def.worldbook[k]}}
-if(def.npcAvatars){for(const k in def.npcAvatars){if(!MEDIA.npcAvatars[k])MEDIA.npcAvatars[k]=def.npcAvatars[k]}}
-saveMedia();
-}catch(e){console.warn('默认素材加载失败',e)}
-}
-let currentLibTab='images';
-function openLibrary(){loadMedia();switchLibTab(currentLibTab);openModal('libraryModal')}
-function switchLibTab(tab){
-currentLibTab=tab;
-document.querySelectorAll('.lib-tab').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));
-renderLibList();
-}
-function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-function renderLibList(){
-const c=document.getElementById('libContent');
-const data=MEDIA[currentLibTab]||{};
-const keys=Object.keys(data);
-if(keys.length===0){c.innerHTML='<div style="text-align:center;color:#8b949e;padding:20px;">暂无条目</div>';return}
-let html='';
-keys.forEach(k=>{
-const v=data[k];
-const preview=currentLibTab==='images'?`<img src="${escapeHtml(v)}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.style.display='none'">`:'';
-const display=v.length>60?v.substring(0,60)+'...':v;
-html+=`<div class="expandable-item" style="display:flex;align-items:center;gap:8px;cursor:default;">${preview}<div style="flex:1;min-width:0;"><div style="font-weight:600;color:#f0f6fc;font-size:13px;">${escapeHtml(k)}</div><div style="font-size:11px;color:#8b949e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(display)}</div></div><span class="del-item" data-key="${escapeHtml(k)}">✕</span></div>`;
-});
-c.innerHTML=html;
-c.querySelectorAll('.del-item').forEach(el=>{
-el.onclick=()=>removeLibEntry(el.dataset.key);
-});
-}
-function addLibEntry(){
-const k=document.getElementById('libNewKey').value.trim();
-const v=document.getElementById('libNewValue').value.trim();
-if(!k||!v){alert('请填写关键词和内容');return}
-MEDIA[currentLibTab][k]=v;
-saveMedia();
-renderLibList();
-document.getElementById('libNewKey').value='';
-document.getElementById('libNewValue').value='';
-}
-function removeLibEntry(k){
-if(!confirm('删除「'+k+'」？'))return;
-delete MEDIA[currentLibTab][k];
-saveMedia();
-renderLibList();
-}
-function matchImages(text){
-const found=[];
-for(const kw in MEDIA.images){
-if(text.includes(kw))found.push({kw,url:MEDIA.images[kw]});
-if(found.length>=2)break;
-}
-return found;
-}
-function openImageView(url){
-document.getElementById('imageViewContent').innerHTML='<img src="'+escapeHtml(url)+'" style="width:100%;border-radius:10px;">';
-openModal('imageViewModal');
+}).catch(e=>console.warn('默认素材加载失败',e));
 }
 
 // ============================================================
-//  摘要编辑 + 头像管理
+//  摘要编辑
 // ============================================================
 function openSummaryEditor(){
 document.getElementById('summaryTextarea').value=CORE.summary||'';
@@ -102,75 +41,44 @@ closeModal('summaryModal');
 chatBox.innerHTML+=`<div class="msg-sys">已更新剧情摘要（${t.length}字）</div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
 }
-function openAvatarManager(){
-loadMedia();
-renderAvatarManager();
-openModal('avatarModal');
-}
-function renderAvatarManager(){
-const pa=document.getElementById('avatarPreview');
-if(pa)pa.innerHTML=CORE.avatar?`<img src="${CORE.avatar}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">`:'<div style="width:80px;height:80px;border-radius:50%;background:#1f2937;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:12px;">未上传</div>';
-const pp=document.getElementById('portraitPreview');
-if(pp)pp.innerHTML=CORE.portrait?`<img src="${CORE.portrait}" style="max-width:100%;max-height:120px;border-radius:8px;">`:'<div style="padding:20px;text-align:center;color:#6b7280;font-size:12px;background:#0d1117;border-radius:8px;">未上传立绘</div>';
-const npcList=document.getElementById('npcAvatarList');
-if(!npcList)return;
-if(CORE.npcs.length===0){npcList.innerHTML='<div style="color:#8b949e;padding:10px;text-align:center;font-size:13px;">暂无人物</div>';return}
-let html='';
-CORE.npcs.forEach(npc=>{
-const custom=MEDIA.npcAvatars[npc.name];
-const av=custom?`<img src="${custom}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">`:`<div style="width:40px;height:40px;border-radius:50%;background:#374151;display:flex;align-items:center;justify-content:center;font-size:14px;">${escapeHtml(npc.name.charAt(0))}</div>`;
-html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1f2937;">${av}<div style="flex:1;font-size:13px;color:#f0f6fc;">${escapeHtml(npc.name)}</div><button data-action="upload" data-name="${escapeHtml(npc.name)}" style="padding:4px 10px;font-size:11px;border-radius:16px;border:none;background:#4a5568;color:#fff;cursor:pointer;">上传</button>${custom?`<button data-action="remove" data-name="${escapeHtml(npc.name)}" style="padding:4px 10px;font-size:11px;border-radius:16px;border:none;background:#dc2626;color:#fff;cursor:pointer;">清除</button>`:''}</div>`;
-});
-npcList.innerHTML=html;
-npcList.querySelectorAll('button[data-action]').forEach(btn=>{
-const name=btn.dataset.name;
-btn.onclick=()=>{
-if(btn.dataset.action==='upload')uploadNPCAvatar(name);
-else if(btn.dataset.action==='remove')removeNPCAvatar(name);
-};
-});
-}
-function pickImage(maxSize,callback){
-const input=document.createElement('input');
-input.type='file';
-input.accept='image/*';
-input.onchange=e=>{
-const file=e.target.files&&e.target.files[0];
-if(!file)return;
-if(file.size>maxSize){
-if(!confirm(`图片超过${Math.round(maxSize/1024)}KB，继续使用可能导致存储空间不足，是否仍要用？`))return;
-}
-const r=new FileReader();
-r.onload=ev=>callback(ev.target.result);
-r.readAsDataURL(file);
-};
-input.click();
-}
-function uploadAvatar(){pickImage(200*1024,d=>{CORE.avatar=d;saveToPhone();renderAvatarManager();updateStatus()})}
-function uploadPortrait(){pickImage(800*1024,d=>{CORE.portrait=d;saveToPhone();renderAvatarManager()})}
-function uploadNPCAvatar(name){pickImage(200*1024,d=>{MEDIA.npcAvatars[name]=d;saveMedia();renderAvatarManager()})}
-function removeNPCAvatar(name){if(!confirm('清除「'+name+'」的头像？'))return;delete MEDIA.npcAvatars[name];saveMedia();renderAvatarManager()}
 
 // ============================================================
 //  设置
 // ============================================================
-const SETTINGS={useAvatar:false,useIcons:true,useRingsVisual:true,useSceneBg:true,useTokenStats:false};
+const SETTINGS={useIcons:true,useRingsVisual:true,useSceneBg:true,useTokenStats:false,chatTheme:'default'};
 const TOKEN_STATS={input:0,output:0,session:0};
 function saveSettings(){try{localStorage.setItem('douro2Settings',JSON.stringify(SETTINGS))}catch(e){}}
-function loadSettings(){try{const raw=localStorage.getItem('douro2Settings');if(raw)Object.assign(SETTINGS,JSON.parse(raw))}catch(e){}document.getElementById('setAvatar').checked=SETTINGS.useAvatar;document.getElementById('setIcons').checked=SETTINGS.useIcons;document.getElementById('setRingsVisual').checked=SETTINGS.useRingsVisual;document.getElementById('setSceneBg').checked=SETTINGS.useSceneBg;if(document.getElementById('setTokenStats'))document.getElementById('setTokenStats').checked=SETTINGS.useTokenStats;updateTokenDisplay()}
-function toggleSetting(key,value){SETTINGS[key]=value;saveSettings();updateStatus();if(key==='useSceneBg'&&!value){const cb=document.getElementById('chat-box');cb.className=cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ')}}
-function toggleMinimalMode(on){if(on){SETTINGS.useAvatar=false;SETTINGS.useIcons=false;SETTINGS.useRingsVisual=false;SETTINGS.useSceneBg=false}else{SETTINGS.useAvatar=true;SETTINGS.useIcons=true;SETTINGS.useRingsVisual=true;SETTINGS.useSceneBg=true}document.getElementById('setAvatar').checked=SETTINGS.useAvatar;document.getElementById('setIcons').checked=SETTINGS.useIcons;document.getElementById('setRingsVisual').checked=SETTINGS.useRingsVisual;document.getElementById('setSceneBg').checked=SETTINGS.useSceneBg;if(document.getElementById('setTokenStats'))document.getElementById('setTokenStats').checked=SETTINGS.useTokenStats;updateTokenDisplay();saveSettings();updateStatus();if(!SETTINGS.useSceneBg){const cb=document.getElementById('chat-box');cb.className=cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ')}}
+function loadSettings(){
+try{const raw=localStorage.getItem('douro2Settings');if(raw)Object.assign(SETTINGS,JSON.parse(raw))}catch(e){}
+document.getElementById('setIcons').checked=SETTINGS.useIcons;
+document.getElementById('setRingsVisual').checked=SETTINGS.useRingsVisual;
+document.getElementById('setSceneBg').checked=SETTINGS.useSceneBg;
+if(document.getElementById('setTokenStats'))document.getElementById('setTokenStats').checked=SETTINGS.useTokenStats;
+const themeSelect = document.getElementById('setChatTheme');
+if(themeSelect) themeSelect.value = SETTINGS.chatTheme || 'default';
+applyThemeClass();
+updateTokenDisplay();
+}
+function toggleSetting(key,value){
+SETTINGS[key]=value;saveSettings();updateStatus();
+if(key==='useSceneBg'&&!value){const cb=document.getElementById('chat-box');cb.className=cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ')}
+if(key==='chatTheme'){applyThemeClass()}
+}
+function applyThemeClass(){
+document.body.className = document.body.className.split(' ').filter(c => c !== 'theme-cute').join(' ');
+if(SETTINGS.chatTheme === 'cute') document.body.classList.add('theme-cute');
+}
+function toggleMinimalMode(on){if(on){SETTINGS.useIcons=false;SETTINGS.useRingsVisual=false;SETTINGS.useSceneBg=false}else{SETTINGS.useIcons=true;SETTINGS.useRingsVisual=true;SETTINGS.useSceneBg=true}document.getElementById('setIcons').checked=SETTINGS.useIcons;document.getElementById('setRingsVisual').checked=SETTINGS.useRingsVisual;document.getElementById('setSceneBg').checked=SETTINGS.useSceneBg;if(document.getElementById('setTokenStats'))document.getElementById('setTokenStats').checked=SETTINGS.useTokenStats;updateTokenDisplay();saveSettings();updateStatus();if(!SETTINGS.useSceneBg){const cb=document.getElementById('chat-box');cb.className=cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ')}}
 function updateTokenDisplay(){const el=document.getElementById('s-token');const box=document.getElementById('token-stat');if(!el||!box)return;if(!SETTINGS.useTokenStats){box.classList.add('hidden');return}box.classList.remove('hidden');el.textContent=TOKEN_STATS.session}
 function openSettings(){loadSettings();openModal('settingsModal')}
+function openMore(){openModal('moreModal')}
 function icon(name,color){if(!SETTINGS.useIcons)return '';const svg=SVG_ICONS[name]||'';if(!svg)return '';if(color)return svg.replace('class="icon"',`class="icon" style="color:${color};"`);return svg}
+
 function avatarHTML(name){
 if(!name)name='?';
-if(MEDIA.npcAvatars&&MEDIA.npcAvatars[name])return `<img class="avatar-img" src="${MEDIA.npcAvatars[name]}" alt="${escapeHtml(name)}">`;
 const first=name.charAt(0);
 let hash=0;for(let i=0;i<name.length;i++)hash=(hash*31+name.charCodeAt(i))%360;
-if(!SETTINGS.useAvatar){return `<div class="avatar-initial" style="background:linear-gradient(135deg,hsl(${hash},60%,45%),hsl(${(hash+40)%360},60%,35%));">${escapeHtml(first)}</div>`}
-const seed=encodeURIComponent(name);
-return `<img class="avatar-img" src="https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9" alt="${escapeHtml(name)}" onerror="this.outerHTML='<div class=\\'avatar-initial\\' style=\\'background:linear-gradient(135deg,hsl(${hash},60%,45%),hsl(${(hash+40)%360},60%,35%));\\'>${escapeHtml(first)}</div>'">`;
+return `<div class="avatar-initial" style="background:linear-gradient(135deg,hsl(${hash},60%,45%),hsl(${(hash+40)%360},60%,35%));">${escapeHtml(first)}</div>`;
 }
 function getRingColorHex(name){if(name.includes('百万年'))return '#fbbf24';if(name.includes('十万年'))return '#ef4444';if(name.includes('万年'))return '#4b5563';if(name.includes('千年'))return '#a855f7';if(name.includes('百年'))return '#facc15';return '#f0f0f0'}
 function renderRingsVisual(rings){if(rings.length===0)return '<div style="text-align:center;padding:24px;color:#8b949e;">暂无魂环</div>';const total=Math.min(rings.length,9);const cx=100,cy=100;let svg=`<svg viewBox="0 0 200 200">`;for(let i=0;i<total;i++){const r=92-i*9;const color=getRingColorHex(rings[i].name);const isGold=rings[i].name.includes('百万年');svg+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="5" opacity="0.95"${isGold?' filter="url(#goldGlow)"':''}/>`}svg+=`<defs><filter id="goldGlow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;svg+=`<circle cx="${cx}" cy="${cy}" r="22" fill="#161b22" stroke="#30363d"/>`;svg+=`<text x="${cx}" y="${cy+5}" text-anchor="middle" fill="#f0f6fc" font-size="14" font-weight="bold">${total}环</text></svg>`;let legend='<div class="rings-legend">';rings.forEach((r,i)=>{const color=getRingColorHex(r.name);legend+=`<span class="rings-legend-item" style="color:${color};">第${i+1}环 · ${escapeHtml(r.name)}${r.count>1?'×'+r.count:''}</span>`});legend+='</div>';return `<div class="rings-visual-container">${svg}${legend}</div>`}
@@ -187,7 +95,7 @@ const FIXED_WORLD=`斗罗大陆 · 绝世唐门时代（一万年后）。
 货币：金/银/铜魂币（1金=10银=100铜）。
 具体设定见资料库，优先参考资料库。`;
 
-const CORE={name:'',age:0,roleDesc:'',avatar:'',portrait:'',innatePower:5,martialSoul:'未觉醒',soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天'};
+const CORE={name:'',gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天'};
 const PLOT={history:[],turn:0,isFirst:true,summaryCounter:0};
 let isGenerating=false;
 
@@ -213,9 +121,9 @@ function loadSave(){
 try{const savedKey=localStorage.getItem('douro2ApiKey');if(savedKey)document.getElementById('apiKey').value=savedKey;
 const raw=localStorage.getItem('douro2Save');
 if(raw){const data=JSON.parse(raw);Object.assign(CORE,data.core);
+if(!CORE.gender)CORE.gender='女';
 if(!CORE.age)CORE.age=0;
-if(!CORE.avatar)CORE.avatar='';
-if(!CORE.portrait)CORE.portrait='';
+if(!CORE.martialSoulDesc)CORE.martialSoulDesc='';
 if(CORE.rings.length>0&&typeof CORE.rings[0]==='string')CORE.rings=CORE.rings.map(r=>({name:r,count:1,desc:''}));
 if(CORE.skills.length>0&&typeof CORE.skills[0]==='string')CORE.skills=CORE.skills.map(s=>({name:s,desc:''}));
 if(CORE.inventory.length>0&&typeof CORE.inventory[0]==='string')CORE.inventory=CORE.inventory.map(i=>({name:i,count:1,desc:''}));
@@ -232,8 +140,7 @@ function selectMode(mode){if(mode!=='rpg'){alert('模拟器模式尚未开放，
 
 async function initApp(){
 loadSettings();
-loadMedia();
-await loadDefaultMedia();
+loadDefaultMedia();
 let hasSave=loadSave();
 if(hasSave&&CORE.name&&CORE.martialSoul!=='未觉醒'){
 document.getElementById('continueBtn').classList.remove('hidden');
@@ -250,19 +157,41 @@ document.getElementById('innatePower').value=CORE.innatePower||5;
 function updateStatus(){
 const avatarEl=document.getElementById('s-avatar');
 if(avatarEl){
-if(CORE.avatar){
-avatarEl.innerHTML=`<img src="${CORE.avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;display:block;">`;
-}else{
 avatarEl.innerHTML=`<div style="width:28px;height:28px;border-radius:50%;background:#374151;display:flex;align-items:center;justify-content:center;font-size:12px;color:#9ca3af;">${escapeHtml((CORE.name||'?').charAt(0))}</div>`;
 }
-}
-document.getElementById('s-name').innerHTML=icon('name','#8b949e')+escapeHtml(CORE.name||"未命名");
+const nameColor = CORE.gender === '女' ? '#f472b6' : (CORE.gender === '男' ? '#60a5fa' : '#f0f6fc');
+document.getElementById('s-name').innerHTML=icon('name','#8b949e')+`<span style="color:${nameColor}">${escapeHtml(CORE.name||"未命名")}</span>`;
+
 if(document.getElementById('s-age'))document.getElementById('s-age').innerHTML=icon('age','#8b949e')+escapeHtml((CORE.age||'?')+'岁');
-document.getElementById('s-soul').innerHTML=icon('soul','#f0883e')+escapeHtml(CORE.martialSoul||"未觉醒");
+
+const soulText = CORE.martialSoul || "未觉醒";
+const shortSoul = soulText.length > 8 ? soulText.substring(0, 8) + '...' : soulText;
+const soulEl = document.getElementById('s-soul');
+soulEl.innerHTML = icon('soul','#f0883e') + escapeHtml(shortSoul);
+if (soulText.length > 8) {
+    soulEl.classList.add('soul-clickable');
+    soulEl.onclick = showSoulDesc;
+} else {
+    soulEl.classList.remove('soul-clickable');
+    soulEl.onclick = null;
+}
+
 document.getElementById('s-soulpower').innerHTML=icon('power','#f0f6fc')+(CORE.soulPower||0);
 document.getElementById('s-stage').innerHTML=icon('stage','#8b949e')+getStage(CORE.soulPower);
 document.getElementById('s-time').innerHTML=icon('time','#8b949e')+escapeHtml(CORE.time||"未知");
 saveToPhone();
+}
+
+function showSoulDesc() {
+    const soulText = CORE.martialSoul || "未觉醒";
+    let html = `<div style="font-size:16px;font-weight:bold;color:#f0883e;margin-bottom:8px;">${escapeHtml(soulText)}</div>`;
+    if (CORE.martialSoulDesc) {
+        html += `<div style="font-size:14px;line-height:1.6;">${escapeHtml(CORE.martialSoulDesc)}</div>`;
+    } else {
+        html += `<div style="font-size:14px;color:#8b949e;">暂无详细描述</div>`;
+    }
+    document.getElementById('soulDescContent').innerHTML = html;
+    openModal('soulModal');
 }
 
 function openModal(id){document.getElementById(id).classList.add('active')}
@@ -413,9 +342,10 @@ updateStatus();
 
 function buildCoreSummary(){
 let s='';
-s+=`主角：${CORE.name}，${CORE.age||'?'}岁。\n`;
+s+=`主角：${CORE.name}（${CORE.gender}），${CORE.age||'?'}岁。\n`;
 s+=`设定：${CORE.roleDesc}\n`;
 s+=`武魂：${CORE.martialSoul}（先天魂力${CORE.innatePower}级，速度系数×${getSpeedFactor().toFixed(2)}）\n`;
+if(CORE.martialSoulDesc) s+=`武魂描述：${CORE.martialSoulDesc}\n`;
 s+=`魂力：${CORE.soulPower}级（${getStage(CORE.soulPower)}）\n`;
 s+=`时间：${CORE.time}\n`;
 s+=`魂环：${CORE.rings.map(r=>r.name).join('、')||'无'}\n`;
@@ -454,23 +384,6 @@ aiMsgDiv.classList.remove('streaming');
 aiMsgDiv.textContent=displayContent||'...';
 chatBox.scrollTop=chatBox.scrollHeight;
 applyScene(displayContent);
-const imgs=matchImages(displayContent);
-if(imgs.length>0){
-imgs.forEach(item=>{
-const d=document.createElement('div');
-d.className='msg-image';
-const img=document.createElement('img');
-img.src=item.url;
-img.onclick=()=>openImageView(item.url);
-d.appendChild(img);
-const cap=document.createElement('div');
-cap.className='msg-image-caption';
-cap.textContent=item.kw;
-d.appendChild(cap);
-chatBox.appendChild(d);
-});
-chatBox.scrollTop=chatBox.scrollHeight;
-}
 return fullReply;
 }catch(e){
 aiMsgDiv.classList.remove('streaming');
@@ -535,6 +448,13 @@ ${coreSummary}
 
 【世界观】
 ${FIXED_WORLD}
+
+【性别设定 - 极重要】
+主角性别为：${CORE.gender}。
+请根据主角的性别调整称呼、外貌描写、心理活动和社交互动。例如：
+- 女性角色要注意少女的细腻情感、时代背景下的社交规范，以及女性魂师在战斗中的独特风格。
+- 男性角色则要体现少年的阳刚之气、担当与热血。
+- 避免出现与主角性别不符的描写。
 
 【时代词汇规范 - 极重要】
 这是魂导器文明时代，不是古代！避免使用以下古代词汇：
@@ -634,10 +554,11 @@ saveToPhone();
 async function generateCharacter(){
 const name=document.getElementById('roleName').value.trim();
 if(!name){alert("请先填写角色名");return}
+const gender=document.querySelector('input[name="roleGender"]:checked').value;
 const innate=parseInt(document.getElementById('innatePower').value)||5;
 const apiKey=document.getElementById('apiKey').value.trim();
 if(!apiKey){alert("请先填写API Key");return}
-const prompt=`为斗罗大陆2绝世唐门时代角色"${name}"生成一份角色设定，先天魂力${innate}级。包含：性别、年龄、外貌、性格、出身背景、一个小癖好。约100-150字。直接输出描述。`;
+const prompt=`为斗罗大陆2绝世唐门时代角色"${name}"（${gender}）生成一份角色设定，先天魂力${innate}级。包含：年龄、外貌、性格、出身背景、一个小癖好。约100-150字。直接输出描述。`;
 try{
 const reply=await callDeepSeekStream([{role:"user",content:prompt}],()=>{});
 document.getElementById('roleDesc').value=reply.trim();
@@ -647,10 +568,12 @@ document.getElementById('roleDesc').value=reply.trim();
 async function awakenSoul(){
 if(isGenerating)return;
 const name=document.getElementById('roleName').value.trim();
+const gender=document.querySelector('input[name="roleGender"]:checked').value;
 const roleDesc=document.getElementById('roleDesc').value.trim();
 const innate=parseInt(document.getElementById('innatePower').value)||1;
 if(!name){alert("请填写角色名");return}
 CORE.name=name;
+CORE.gender=gender;
 CORE.age=6;
 CORE.roleDesc=roleDesc||"无详细设定";
 CORE.innatePower=Math.min(Math.max(innate,1),10);
@@ -663,7 +586,7 @@ let customSoul='';
 if(soulChoice==='custom')customSoul=document.getElementById('customSoul').value.trim()||'未知武魂';
 const systemPrompt=`你是斗罗大陆2（绝世唐门时代）的武魂觉醒仪式引导者。玩家就是主角"你"，用第二人称"你"叙述。
 
-【角色】${name}，6岁
+【角色】${name}，${gender}，6岁
 【设定】${CORE.roleDesc}
 【先天魂力】${innate}级（初始魂力=${CORE.soulPower}级）
 【世界观】${FIXED_WORLD}
@@ -675,6 +598,11 @@ ${customSoul?'指定武魂：'+customSoul:'请为角色设计一个独特武魂�
 3. 生成3-5个先天特质
 4. 末尾必须写【状态更新】块，含：年龄：6，时间：觉醒武魂当天·上午，获得特质：xxx(先天)，人物：觉醒师/男/xxx/觉醒引导者/描述
 
+【武魂格式 - 极重要】
+请在叙事中明确写出：
+武魂：xxx
+武魂描述：xxx（简短描述这个武魂的外观、来历、特性等）
+
 【选项】
 在【状态更新】后，用【选项】给出2-3个觉醒后的行动选项，每项用"•"开头。
 
@@ -684,9 +612,19 @@ try{
 const reply=await streamAndProcess([{role:"user",content:systemPrompt}]);
 const update=parseStatusUpdate(reply);
 update.soulPowerBase=0;update.soulPowerAbsolute=null;
-let soul=customSoul;
-if(!soul){const m=reply.match(/武魂[：:]\s*([^\n，,。]+)/);soul=m?m[1].trim():'未知武魂'}
-CORE.martialSoul=soul;
+
+let soulName = customSoul;
+let soulDesc = '';
+if(!soulName){
+    const nameMatch = reply.match(/武魂[：:]\s*([^\n]+?)(?=武魂描述|【|$)/);
+    if(nameMatch) soulName = nameMatch[1].trim().replace(/[。，,.]$/,'');
+    const descMatch = reply.match(/武魂描述[：:]\s*([^\n]+)/);
+    if(descMatch) soulDesc = descMatch[1].trim();
+    if(!soulName) soulName = '未知武魂';
+}
+CORE.martialSoul = soulName;
+CORE.martialSoulDesc = soulDesc;
+
 applyUpdate(update);
 CORE.soulPower=CORE.innatePower;
 PLOT.history=[];PLOT.turn=0;PLOT.isFirst=false;PLOT.summaryCounter=0;
