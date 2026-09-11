@@ -313,7 +313,7 @@ function parseSeg(seg){let name=seg,count=1,desc='';const descM=seg.match(/^(.+?
 function addItem(name,count,desc){const existing=CORE.inventory.find(i=>i.name===name);if(existing){existing.count+=count;if(desc&&!existing.desc)existing.desc=desc}else CORE.inventory.push({name,count,desc:desc||''});chatBox.innerHTML+=`<div class="msg-gain">${icon('item','#4ade80')}获得：${escapeHtml(name)}${count>1?` ×${count}`:''}</div>`}
 function consumeItem(name,count){let idx=CORE.inventory.findIndex(i=>i.name===name);if(idx===-1){const cleanName=name.replace(/\s+/g,'');idx=CORE.inventory.findIndex(i=>{const itemClean=i.name.replace(/\s+/g,'');return itemClean===cleanName||itemClean.includes(cleanName)||cleanName.includes(itemClean)})}if(idx===-1)return false;if(CORE.inventory[idx].count<count)count=CORE.inventory[idx].count;CORE.inventory[idx].count-=count;const itemName=CORE.inventory[idx].name;if(CORE.inventory[idx].count<=0)CORE.inventory.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">${icon('consume','#f87171')}消耗：${escapeHtml(itemName)} ×${count}</div>`;return true}
 function deleteItem(name){const idx=CORE.inventory.findIndex(i=>i.name===name);if(idx!==-1){const n=CORE.inventory[idx].name;CORE.inventory.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除物品：${escapeHtml(n)}</div>`}}
-function addRing(name,desc){const existing=CORE.rings.find(r=>r.name===name);if(existing)existing.count=(existing.count||1)+1;else CORE.rings.push({name,count:1,desc:desc||''});chatBox.innerHTML+=`<div class="msg-ring">${icon('ring','#c084fc')}魂环：${escapeHtml(name)}</div>`}
+function addRing(name,desc){const existing=CORE.rings.find(r=>r.name===name);if(existing)existing.count=(existing.count||1)+1;else CORE.rings.push({name,count:1,desc:desc||''});chatBox.innerHTML+=`<div class="msg-ring">${icon('ring','#c084fc')}魂环：${escapeHtml(name)}</div>`;triggerBtnDot('openRings')}
 function deleteRing(name){const idx=CORE.rings.findIndex(r=>r.name===name);if(idx!==-1){CORE.rings.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除魂环：${escapeHtml(name)}</div>`}}
 function addSkill(name,desc){if(CORE.skills.find(s=>s.name===name))return;CORE.skills.push({name,desc:desc||''});chatBox.innerHTML+=`<div class="msg-skill">${icon('skill','#60a5fa')}魂技：${escapeHtml(name)}</div>`}
 function deleteSkill(name){const idx=CORE.skills.findIndex(s=>s.name===name);if(idx!==-1){CORE.skills.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除魂技：${escapeHtml(name)}</div>`}}
@@ -342,6 +342,30 @@ function addNPC(name,gender,soul,soulPower,relation,desc){
     if(CORE.npcs.length>50)CORE.npcs.shift();
     chatBox.innerHTML+=`<div class="msg-npc">${icon('npc','#38bdf8')}新人物：${escapeHtml(name)}（${escapeHtml(gender||'?')}·${escapeHtml(soul||'?')}）</div>`;
   }
+function addNPC(name,gender,soul,soulPower,relation,desc){
+  const existing=CORE.npcs.find(n=>n.name===name);
+  if(existing){
+    existing.gender=gender||existing.gender;
+    existing.soul=soul||existing.soul;
+    if(soulPower&&!isPlaceholder(soulPower))existing.soulPower=soulPower;
+    existing.relation=relation||existing.relation;
+    if(desc)existing.desc=desc;
+    if(existing.status==='archived'){
+      existing.status='active';
+      existing.era=CORE.era;
+      existing.archTime='';
+      existing.snapshot=null;
+      chatBox.innerHTML+=`<div class="msg-npc">${icon('npc','#38bdf8')}故人重逢：${escapeHtml(name)}</div>`;
+    }else{
+      chatBox.innerHTML+=`<div class="msg-npc">${icon('npc','#38bdf8')}人物更新：${escapeHtml(name)}</div>`;
+    }
+  }else{
+    CORE.npcs.push({name,gender:gender||'未知',soul:soul||'未知',soulPower:(soulPower&&!isPlaceholder(soulPower))?soulPower:'',relation:relation||'中立',desc:desc||'',era:CORE.era,status:'active',archTime:'',snapshot:null});
+    if(CORE.npcs.length>50)CORE.npcs.shift();
+    chatBox.innerHTML+=`<div class="msg-npc">${icon('npc','#38bdf8')}新人物：${escapeHtml(name)}（${escapeHtml(gender||'?')}·${escapeHtml(soul||'?')}）</div>`;
+  }
+  triggerBtnGlow('openNPCs');
+}
 }
 function deleteNPC(name){const idx=CORE.npcs.findIndex(n=>n.name===name);if(idx!==-1){CORE.npcs.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除人物：${escapeHtml(name)}</div>`}}
 function setEra(eraName){
@@ -361,7 +385,53 @@ function archiveEra(eraName){
   });
   if(count>0)chatBox.innerHTML+=`<div class="msg-sys">时期归档：${escapeHtml(eraName)} · ${count}人定格于「${escapeHtml(CORE.time)}」</div>`;
 }
+// ============================================================
+//  沉浸感辅助
+// ============================================================
+function triggerStatPowerPulse(){
+  document.querySelectorAll('#status-bar .stat').forEach(el=>{
+    if(el.textContent.includes('魂力')){
+      el.classList.remove('stat-power-pulse');
+      void el.offsetWidth;
+      el.classList.add('stat-power-pulse');
+      setTimeout(()=>el.classList.remove('stat-power-pulse'), 1500);
+    }
+  });
+}
+function triggerStageUpgrade(oldStage,newStage){
+  const sb=document.getElementById('status-bar');
+  if(sb){
+    sb.classList.remove('stage-upgrade');
+    void sb.offsetWidth;
+    sb.classList.add('stage-upgrade');
+    setTimeout(()=>sb.classList.remove('stage-upgrade'), 1700);
+  }
+  const banner=document.createElement('div');
+  banner.className='stage-banner';
+  banner.textContent=`晋阶 · ${newStage}`;
+  document.body.appendChild(banner);
+  setTimeout(()=>banner.remove(), 2300);
+}
+function triggerBtnDot(onclickName){
+  const btn=document.querySelector(`#top-bar .ctrl-btn[onclick="${onclickName}()"]`);
+  if(!btn) return;
+  btn.classList.add('has-dot','btn-shake');
+  setTimeout(()=>btn.classList.remove('btn-shake'), 500);
+  const clear=()=>{ btn.classList.remove('has-dot'); btn.removeEventListener('click', clear); };
+  btn.addEventListener('click', clear);
+}
+function triggerBtnGlow(onclickName){
+  const btn=document.querySelector(`#top-bar .ctrl-btn[onclick="${onclickName}()"]`);
+  if(!btn) return;
+  btn.classList.remove('btn-glow');
+  void btn.offsetWidth;
+  btn.classList.add('btn-glow');
+  setTimeout(()=>btn.classList.remove('btn-glow'), 3200);
+}
 
+// ============================================================
+//  状态更新解析
+// ============================================================
 // ============================================================
 //  状态更新解析
 // ============================================================
@@ -426,6 +496,8 @@ if(CORE.soulPower!==oldSP){
   let txt=`魂力 ${oldSP} → ${CORE.soulPower}（${diff>0?'+':''}${diff}）`;
   if(newStage!==oldStage)txt+=` · 晋阶 ${oldStage} → ${newStage}`;
   chatBox.innerHTML+=`<div class="msg-power">${icon('power','#fbbf24')}${escapeHtml(txt)}</div>`;
+  triggerStatPowerPulse();
+  if(newStage!==oldStage) triggerStageUpgrade(oldStage,newStage);
 }
 if(update.era)setEra(update.era);
 if(update.archiveEra)archiveEra(update.archiveEra);
@@ -444,7 +516,7 @@ if(update.time){CORE.time=update.time;chatBox.innerHTML+=`<div class="msg-time">
 updateStatus();
 }
 
-function buildCoreSummary(){
+function buildCoreSummary(playerInput){
 let s='';
 s+=`主角：${CORE.name}（${CORE.gender}），${CORE.age||'?'}岁。\n`;
 s+=`设定：${CORE.roleDesc}\n`;
@@ -490,20 +562,46 @@ aiMsgDiv.className='msg-ai streaming';
 aiMsgDiv.textContent='...';
 chatBox.appendChild(aiMsgDiv);
 chatBox.scrollTop=chatBox.scrollHeight;
-let displayContent="";let lastScroll=0;
+
+// 打字机状态
+const tw = { pending: '', shown: 0, timer: null, done: false };
+function twTick(){
+  tw.timer = null;
+  if(!aiMsgDiv.parentNode) return;
+  if(tw.shown >= tw.pending.length){ if(!tw.done) return; }
+  if(tw.shown >= tw.pending.length) return;
+  const ch = tw.pending[tw.shown];
+  tw.shown++;
+  aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending.slice(0, tw.shown)));
+  chatBox.scrollTop = chatBox.scrollHeight;
+  let delay = 22;
+  if('，。？！；、'.includes(ch)) delay = 100;
+  else if(ch === '\n') delay = 180;
+  tw.timer = setTimeout(twTick, delay);
+}
+function twPush(newText){
+  if(newText.length < tw.shown) tw.shown = newText.length;
+  tw.pending = newText;
+  if(!tw.timer && tw.shown < tw.pending.length) twTick();
+}
+
+let displayContent="";
 try{
 const fullReply=await callDeepSeekStream(messages,(delta,full)=>{
-displayContent=stripStatus(full);
-aiMsgDiv.textContent=displayContent||'...';
-const now=Date.now();
-if(now-lastScroll>80){chatBox.scrollTop=chatBox.scrollHeight;lastScroll=now}
+  displayContent = stripStatus(full);
+  twPush(displayContent);
 });
+// 流结束，快速吐完
+tw.done = true;
+if(tw.timer){ clearTimeout(tw.timer); tw.timer = null; }
+tw.shown = tw.pending.length;
+aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending)) || '...';
 aiMsgDiv.classList.remove('streaming');
-aiMsgDiv.textContent=displayContent||'...';
 chatBox.scrollTop=chatBox.scrollHeight;
 applyScene(displayContent);
 return fullReply;
 }catch(e){
+if(tw.timer) clearTimeout(tw.timer);
 aiMsgDiv.classList.remove('streaming');
 aiMsgDiv.textContent='生成失败：'+e.message;
 throw e;
@@ -563,7 +661,7 @@ chatBox.scrollTop=chatBox.scrollHeight;
 if(PLOT.isFirst){await awakenSoul();return}
 isGenerating=true;sendBtn.disabled=true;userInput.disabled=true;
 try{
-const coreSummary=buildCoreSummary();
+const coreSummary=buildCoreSummary(action);
 const isContinue=action==='继续';
 const systemPrompt=`你是一部斗罗大陆2（绝世唐门时代）背景的小说叙事者，玩家就是主角"你"。用第二人称"你"叙述。
 
@@ -589,6 +687,12 @@ ${FIXED_WORLD}
 - 场景/对话/感官点到为止，不写华丽排比
 - 用"你"指代玩家，禁止用"他/她/角色名"指代玩家
 - ${isContinue?'玩家选择"继续"，自然推进剧情，可让NPC主动说话，不要替玩家做重大决定。':'根据玩家输入推进剧情。'}
+
+【文本分层标记 - 必须遵守】
+- 角色对话：用中文引号 “……” 或 「……」
+- 心理活动：用括号 （……）
+- 关键动作/戏剧性瞬间：用星号 *……* 包裹（每段最多 1 处）
+- 场景描写、普通动作：不加标记
 
 【状态更新 - 极重要】
 在叙事末尾必须写一段"【状态更新】"块，格式（每行一个关键词开头）：
@@ -742,6 +846,11 @@ ${customSoul?'指定武魂：'+customSoul:'请为角色设计一个独特武魂�
 2. 初始魂力${CORE.soulPower}级
 3. 生成3-5个先天特质
 4. 末尾必须写【状态更新】块，含：年龄：6，时间：觉醒武魂当天·上午，获得特质：xxx(先天)，人物：觉醒师/男/xxx/30级/觉醒引导者/描述
+
+【文本分层标记】
+- 对话用 “……” 或 「……」
+- 心理活动用 （……）
+- 关键动作用 *……* 包裹
 
 【武魂格式 - 极重要】
 请在叙事中明确写出：

@@ -260,18 +260,26 @@ body.theme-cute:not(.minimal-mode) .modal-box {
 body.theme-cute:not(.minimal-mode) .modal-box::before {
   content: '';
   position: absolute;
-  inset: -10px;
-  padding: 10px;
+  inset: -7px;
   border-radius: 28px;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M0 8 a4 4 0 0 1 8 0 a4 4 0 0 1 8 0' fill='none' stroke='%23ffb6c1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M0 8 a4 4 0 0 1 8 0 a4 4 0 0 1 8 0' fill='none' stroke='%23ffb6c1' stroke-width='2' stroke-linecap='round'/></svg>");
   background-size: 16px 16px;
   background-repeat: repeat;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
   pointer-events: none;
-  opacity: 0.9;
+  z-index: 0;
+}
+body.theme-cute:not(.minimal-mode) .modal-box::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 20px;
+  background: #2a162a;
+  pointer-events: none;
+  z-index: 1;
+}
+body.theme-cute:not(.minimal-mode) .modal-box > * {
+  position: relative;
+  z-index: 2;
 }
 body.theme-cute:not(.minimal-mode) .modal-box h3::before { content: '🌸 '; }
 body.theme-cute:not(.minimal-mode) .modal-box h3::after  { content: ' 🌸'; }
@@ -365,3 +373,114 @@ body.minimal-mode .modal-box h3::before,
 body.minimal-mode .modal-box h3::after,
 body.minimal-mode #status-bar .stat::after { content: none !important; }
 body.minimal-mode .option-btn { padding-left: 14px; }
+/* ============================================================
+   沉浸感 · 模块 1：文本分层
+   ============================================================ */
+.msg-ai .hl-speak { color: #7dd3fc; padding: 0 2px; }
+.msg-ai .hl-inner { color: #a78bfa; font-style: italic; }
+.msg-ai .hl-action { color: #fbbf24; font-style: italic; font-weight: 600; letter-spacing: 0.5px; }
+body.theme-cute .msg-ai .hl-speak { color: #b6e3ff; }
+body.theme-cute .msg-ai .hl-inner { color: #d4b3ff; }
+body.theme-cute .msg-ai .hl-action { color: #ffd970; }
+body.minimal-mode .msg-ai .hl-speak,
+body.minimal-mode .msg-ai .hl-inner,
+body.minimal-mode .msg-ai .hl-action { color: inherit; font-style: inherit; font-weight: inherit; }
+
+/* ============================================================
+   沉浸感 · 模块 2：状态反馈动效
+   ============================================================ */
+
+/* 消息行滑入 */
+@keyframes msgSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.msg-ring, .msg-skill, .msg-trait, .msg-npc, .msg-power {
+  animation: msgSlideIn 0.35s ease-out;
+}
+
+/* 获得物品：绿色闪光 */
+@keyframes gainFlash {
+  0% { box-shadow: 0 0 0 0 rgba(74,222,128,0.8); }
+  50% { box-shadow: 0 0 16px 4px rgba(74,222,128,0.5); }
+  100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+}
+.msg-gain { animation: msgSlideIn 0.35s ease-out, gainFlash 0.7s ease; }
+
+/* 魂力变化：金色脉冲 */
+@keyframes powerPulse {
+  0% { transform: scale(0.6); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+.msg-power { animation: powerPulse 0.7s ease-out; }
+
+/* 状态栏魂力标签脉冲 */
+@keyframes statPowerPulse {
+  0%, 100% { background: #0d1117; }
+  50% { background: #3a2a05; box-shadow: 0 0 10px 3px rgba(251,191,36,0.5); }
+}
+.stat-power-pulse { animation: statPowerPulse 1.2s ease; }
+
+/* 状态栏金色波纹（晋阶） */
+@keyframes stageUpgrade {
+  0% { box-shadow: 0 0 0 0 rgba(251,191,36,0.9); border-color: #fbbf24; }
+  50% { box-shadow: 0 0 30px 8px rgba(251,191,36,0.6); border-color: #fbbf24; }
+  100% { box-shadow: none; border-color: #30363d; }
+}
+#status-bar.stage-upgrade { animation: stageUpgrade 1.6s ease-out; }
+
+/* 晋阶中央大提示 */
+.stage-banner {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.6);
+  z-index: 1000;
+  padding: 18px 36px;
+  background: linear-gradient(135deg, rgba(251,191,36,0.95), rgba(245,158,11,0.9));
+  color: #1a1300;
+  font-size: 22px; font-weight: bold; letter-spacing: 2px;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(251,191,36,0.8), 0 0 80px rgba(251,191,36,0.5);
+  pointer-events: none;
+  animation: stageBanner 2.2s ease-out forwards;
+  white-space: nowrap;
+}
+@keyframes stageBanner {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  25%, 80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -80%) scale(0.95); }
+}
+
+/* 顶部按钮红点 */
+.ctrl-btn { position: relative; }
+.ctrl-btn.has-dot::after {
+  content: '';
+  position: absolute;
+  top: 1px; right: 1px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #f87171;
+  box-shadow: 0 0 6px rgba(248,113,113,0.9);
+  animation: dotPulse 1.4s ease infinite;
+}
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+}
+
+/* 顶部按钮抖动 */
+@keyframes btnShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+.ctrl-btn.btn-shake { animation: btnShake 0.4s ease; }
+
+/* 顶部按钮蓝光呼吸 */
+@keyframes btnGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(56,189,248,0); }
+  50% { box-shadow: 0 0 12px 3px rgba(56,189,248,0.7); }
+}
+.ctrl-btn.btn-glow { animation: btnGlow 1.5s ease 2; }

@@ -37,6 +37,14 @@ function chineseToNumber(s){
   }
   return result+section+number;
 }
+function formatNarrative(escapedText){
+  return escapedText
+    .replace(/\*([^*\n]+)\*/g, '<span class="hl-action">$1</span>')
+    .replace(/（([^（）\n]+)）/g, '<span class="hl-inner">（$1）</span>')
+    .replace(/“([^”\n]+)”/g, '<span class="hl-speak">“$1”</span>')
+    .replace(/「([^「」\n]+)」/g, '<span class="hl-speak">「$1」</span>');
+}
+
 function smartSplit(text){
   const result=[];let current='';let depth=0;
   for(let i=0;i<text.length;i++){
@@ -78,13 +86,71 @@ function icon(name,color){
 }
 
 // ============================================================
-//  素材库
+//  素材库 + 动态世界书
 // ============================================================
 const MEDIA={worldbook:{}};
 function loadDefaultMedia(){
 fetch('./media.json').then(r=>r.json()).then(def=>{
 if(def.worldbook){for(const k in def.worldbook){if(!MEDIA.worldbook[k])MEDIA.worldbook[k]=def.worldbook[k]}}
 }).catch(e=>console.warn('默认素材加载失败',e));
+}
+
+// 归一化：兼容旧格式（纯字符串）和新格式（对象）
+function normalizeWorldbookEntry(key, value){
+  if(typeof value === 'string'){
+    return {
+      key: key,
+      content: value,
+      keywords: [key],
+      priority: 5,
+      type: 'selective'
+    };
+  }
+  return {
+    key: key,
+    content: value.content || '',
+    keywords: Array.isArray(value.keywords) ? value.keywords : [key],
+    priority: typeof value.priority === 'number' ? value.priority : 5,
+    type: value.type === 'constant' ? 'constant' : 'selective'
+  };
+}
+
+// 动态触发：根据玩家输入 + 最近对话，返回格式化后的资料片段
+function triggerLorebook(playerInput, recentHistory, maxEntries){
+  maxEntries = maxEntries || 5;
+  const inputText = String(playerInput || '') + '\n' + String(recentHistory || '');
+  if(!inputText.trim()) return '';
+  const hits = [];
+
+  for(const key in MEDIA.worldbook){
+    const entry = normalizeWorldbookEntry(key, MEDIA.worldbook[key]);
+    if(!entry.content) continue;
+
+    // 常驻条目：永远注入，优先级拉满
+    if(entry.type === 'constant'){
+      hits.push({ entry, score: 999 + entry.priority });
+      continue;
+    }
+
+    // 触发条目：数命中几个关键词
+    let matched = 0;
+    for(const kw of entry.keywords){
+      if(kw && inputText.includes(kw)) matched++;
+    }
+    if(matched > 0){
+      hits.push({ entry, score: matched * 10 + entry.priority });
+    }
+  }
+
+  hits.sort((a, b) => b.score - a.score);
+  const selected = hits.slice(0, maxEntries);
+  if(selected.length === 0) return '';
+
+  let s = '【资料库 · 命中】\n';
+  for(const h of selected){
+    s += `【${h.entry.key}】${h.entry.content}\n`;
+  }
+  return s;
 }
 
 // ============================================================
