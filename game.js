@@ -519,7 +519,11 @@ if(PLOT.history.length>30)PLOT.history=PLOT.history.slice(-30);
 PLOT.turn++;PLOT.summaryCounter++;
 updateStatus();
 if(PLOT.summaryCounter>=4)generateSummary();
-}catch(e){console.error(e)}
+}catch(e){
+console.error(e);
+chatBox.innerHTML+=`<div class="msg-lose">生成失败：${escapeHtml(e.message)}</div>`;
+chatBox.scrollTop=chatBox.scrollHeight;
+}
 finally{isGenerating=false;sendBtn.disabled=false;userInput.disabled=false;userInput.focus()}
 }
 
@@ -631,7 +635,11 @@ PLOT.history=[];PLOT.turn=0;PLOT.isFirst=false;PLOT.summaryCounter=0;
 PLOT.history.push({role:"assistant",content:reply});
 updateStatus();saveToPhone();
 appendOptions(extractOptions(reply));
-}catch(e){console.error(e)}
+}catch(e){
+console.error(e);
+chatBox.innerHTML+=`<div class="msg-lose">觉醒失败：${escapeHtml(e.message)}</div>`;
+chatBox.scrollTop=chatBox.scrollHeight;
+}
 finally{isGenerating=false;sendBtn.disabled=false;userInput.disabled=false;userInput.focus()}
 }
 
