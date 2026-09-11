@@ -584,7 +584,14 @@ const name=document.getElementById('roleName').value.trim();
 const gender=document.querySelector('input[name="roleGender"]:checked').value;
 const roleDesc=document.getElementById('roleDesc').value.trim();
 const innate=parseInt(document.getElementById('innatePower').value)||1;
-if(!name){alert("请填写角色名");return}
+
+// 【修复】用聊天框替代 alert，防止手机 PWA 卡死
+if(!name){
+    chatBox.innerHTML+=`<div class="msg-lose">请填写角色名！请回到主界面配置面板填写。</div>`;
+    chatBox.scrollTop=chatBox.scrollHeight;
+    return;
+}
+
 CORE.name=name;
 CORE.gender=gender;
 CORE.age=6;
@@ -655,6 +662,14 @@ finally{isGenerating=false;sendBtn.disabled=false;userInput.disabled=false;userI
 function startNewGame(){
 const key=document.getElementById('apiKey').value.trim();
 if(!key){alert("请填入 DeepSeek API Key");return}
+
+// 【修复】检查角色名，避免卡死
+const roleName = document.getElementById('roleName').value.trim();
+if(!roleName){
+    chatBox.innerHTML+=`<div class="msg-lose">请先在配置面板填写角色名，再开始游戏。</div>`;
+    chatBox.scrollTop=chatBox.scrollHeight;
+    return;
+}
 
 // 修复：只有存在有效存档时才弹窗
 const hasValidSave = localStorage.getItem('douro2Save') && CORE.name && CORE.martialSoul !== '未觉醒';
