@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>绝世唐门</title>
+<title>豆虫模拟器</title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="rogue.css">
 <link rel="manifest" href="manifest.json">
@@ -12,7 +12,7 @@
 </head>
 <body>
 <div id="mode-select">
-<h2 style="text-align:center;margin-bottom:8px">绝世唐门</h2>
+<h2 style="text-align:center;margin-bottom:8px">豆虫模拟器</h2>
 <p style="text-align:center;font-size:14px;color:#9ca3af;margin-bottom:20px">选择游戏模式</p>
 <button class="mode-btn" onclick="selectMode('rpg')">
 <div class="mode-title">角色扮演模式</div>
@@ -27,8 +27,7 @@
 </div>
 
 <div id="config-panel" class="hidden">
-<h2 style="margin:0 0 5px">绝世唐门</h2>
-<p style="font-size:14px;color:#9ca3af;margin:0 0 10px">状态行识别 · 调试命令 · 可开关图标</p>
+<h2 style="margin:0 0 16px;text-align:center;font-size:22px;letter-spacing:1px;">豆虫模拟器</h2>
 <div id="saveInfoBox" class="save-info hidden"></div>
 <label>头像（可选）</label>
 <div style="display:flex;align-items:center;gap:10px;margin:0 0 10px;">
@@ -65,7 +64,7 @@
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
 <div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V30 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V34 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">
@@ -89,6 +88,7 @@
 <span class="stat"><span class="stat-label">时间</span> <span id="s-time" class="stat-value">-</span></span>
 <span class="stat hidden" id="token-stat"><span class="stat-label">Token</span> <span id="s-token" class="stat-value">0</span></span>
 </div>
+<div id="scene-banner" class="hidden"></div>
 <div id="chat-box"><div class="msg-sys">准备觉醒武魂...</div></div>
 <div id="options-area"></div>
 <div id="input-row">
@@ -181,7 +181,7 @@
 <script src="rpg.js"></script>
 <script src="rogue.js"></script>
 <script>
-if('serviceWorker' in navigator){
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   navigator.serviceWorker.register('./sw.js').then(function(reg){
     setInterval(function(){ reg.update(); }, 10 * 60 * 1000);
     reg.update();

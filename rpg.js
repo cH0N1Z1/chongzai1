@@ -113,10 +113,98 @@ return `<div class="rings-visual-container">${svg}${legend}</div>`;
 }
 
 // ============================================================
-//  场景氛围
+//  场景氛围（模块 12 升级版）
 // ============================================================
-function detectScene(text){if(!SETTINGS.useSceneBg)return null;if(/星斗大森林|森林|树林|密林|林中/.test(text))return 'forest';if(/史莱克|学院|教室|课堂|训练场/.test(text))return 'academy';if(/皇宫|帝国|王城|宫廷|御书房/.test(text))return 'palace';if(/夜晚|月色|深夜|星空|月光/.test(text))return 'night';if(/战斗|厮杀|危险|袭击|混战/.test(text))return 'battle';if(/洞穴|地下|遗迹|古墓|深处/.test(text))return 'cave';if(/海洋|湖边|水边|河流|湖畔|海面/.test(text))return 'water';if(/城|镇|街|铺|市集|街道/.test(text))return 'city';return null}
-function applyScene(text){const cb=document.getElementById('chat-box');cb.className=cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ');if(!SETTINGS.useSceneBg)return;const scene=detectScene(text);if(scene)cb.classList.add('scene-'+scene)}
+const SCENE_PLACES = [
+  {re:/星斗大森林/, name:'星斗大森林', type:'forest', emoji:'🌲'},
+  {re:/海神湖|海神岛/, name:'海神湖', type:'water', emoji:'💧'},
+  {re:/史莱克学院/, name:'史莱克学院', type:'academy', emoji:'🏛'},
+  {re:/史莱克城/, name:'史莱克城', type:'city', emoji:'🏙'},
+  {re:/索托城/, name:'索托城', type:'city', emoji:'🏙'},
+  {re:/天斗城/, name:'天斗城', type:'city', emoji:'🏙'},
+  {re:/星罗城/, name:'星罗城', type:'city', emoji:'🏙'},
+  {re:/昊天堡/, name:'昊天堡', type:'palace', emoji:'🏰'},
+  {re:/唐门/, name:'唐门', type:'palace', emoji:'🏯'},
+  {re:/白虎公爵府/, name:'白虎公爵府', type:'palace', emoji:'🏰'},
+  {re:/日月帝国/, name:'日月帝国', type:'city', emoji:'🏙'},
+];
+const SCENE_TYPES = [
+  {re:/森林|树林|密林|林中|林间/, name:'森林', type:'forest', emoji:'🌲'},
+  {re:/学院|教室|课堂|训练场|操场/, name:'学院', type:'academy', emoji:'🏛'},
+  {re:/皇宫|宫廷|御书房|大殿|王宫/, name:'宫殿', type:'palace', emoji:'👑'},
+  {re:/夜晚|月色|深夜|星空|月光|夜幕/, name:'夜色', type:'night', emoji:'🌙'},
+  {re:/战斗|厮杀|危险|袭击|混战|对决/, name:'战斗', type:'battle', emoji:'⚔'},
+  {re:/洞穴|地下|遗迹|古墓|深处|地宫/, name:'遗迹', type:'cave', emoji:'🕳'},
+  {re:/海洋|湖边|水边|河流|湖畔|海面|江边/, name:'水畔', type:'water', emoji:'💧'},
+  {re:/城|镇|街|铺|市集|街道|广场/, name:'城镇', type:'city', emoji:'🏙'},
+];
+
+function detectTimeOfDay(timeStr){
+  if(!timeStr) return '';
+  if(/清晨|黎明|天亮|早上|早晨/.test(timeStr)) return '清晨';
+  if(/上午/.test(timeStr)) return '上午';
+  if(/中午|正午/.test(timeStr)) return '正午';
+  if(/下午|午后/.test(timeStr)) return '午后';
+  if(/黄昏|傍晚|日落/.test(timeStr)) return '黄昏';
+  if(/深夜|午夜|凌晨/.test(timeStr)) return '深夜';
+  if(/夜晚|夜里|晚上/.test(timeStr)) return '夜晚';
+  return '';
+}
+
+function detectSceneFull(text){
+  if(!SETTINGS.useSceneBg) return null;
+  for(const p of SCENE_PLACES){
+    if(p.re.test(text)) return { name:p.name, type:p.type, emoji:p.emoji };
+  }
+  for(const t of SCENE_TYPES){
+    if(t.re.test(text)) return { name:t.name, type:t.type, emoji:t.emoji };
+  }
+  return null;
+}
+
+let _currentSceneKey = '';
+function updateSceneBanner(sceneInfo){
+  const el = document.getElementById('scene-banner');
+  if(!el) return;
+  if(!sceneInfo){
+    el.classList.add('hidden');
+    document.body.removeAttribute('data-scene');
+    return;
+  }
+  const timePart = detectTimeOfDay(CORE.time);
+  el.textContent = sceneInfo.emoji + ' ' + sceneInfo.name + (timePart ? ' · ' + timePart : '');
+  el.classList.remove('hidden');
+  el.classList.remove('scene-banner-fade');
+  void el.offsetWidth;
+  el.classList.add('scene-banner-fade');
+  document.body.setAttribute('data-scene', sceneInfo.type);
+}
+
+function applyScene(text){
+  const cb = document.getElementById('chat-box');
+  if(!SETTINGS.useSceneBg){
+    cb.className = cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ');
+    _currentSceneKey = '';
+    updateSceneBanner(null);
+    return;
+  }
+  const sceneInfo = detectSceneFull(text);
+  if(!sceneInfo) return;  // 没检测到新场景就保持原样
+  const key = sceneInfo.type;
+  if(key === _currentSceneKey) return;
+  _currentSceneKey = key;
+  cb.className = cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ');
+  cb.classList.add('scene-' + sceneInfo.type);
+  updateSceneBanner(sceneInfo);
+}
+
+// 清空场景（新游戏时用）
+function resetScene(){
+  const cb = document.getElementById('chat-box');
+  if(cb) cb.className = cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ');
+  _currentSceneKey = '';
+  updateSceneBanner(null);
+}
 
 // ============================================================
 //  存档
@@ -261,7 +349,7 @@ function openNPCs(){
 function removeNPCItem(idx){CORE.npcs.splice(idx,1);updateStatus();openNPCs()}
 
 // ============================================================
-//  选项渲染
+//  选项渲染（模块 13 升级版）
 // ============================================================
 function extractOptions(text){
 const opts=[];
@@ -277,22 +365,36 @@ if(opts.length>=3)break;
 }
 return opts.slice(0,3);
 }
+
+function classifyOption(text){
+  const t = String(text||'').trim();
+  if(/^(攻击|战斗|出手|拔|挥|击|挑战|应战|偷袭|反手|抢先|冲上去|打|轰|砸|催动|施展)/.test(t)) return {icon:'⚔️', label:'战斗'};
+  if(/^(说|问|回答|交谈|询问|告诉|开口|聊|喊|招呼|打招呼|回头|低声|高声|回应)/.test(t)) return {icon:'💬', label:'对话'};
+  if(/^(想|回忆|思考|审视|琢磨|推测|沉思|观察|打量|注意|冷静|深吸|凝神|回忆)/.test(t)) return {icon:'💭', label:'思考'};
+  if(/^(用|使|吃|喝|拿|取|掏出|动用|服用|吞下|拉开|点燃)/.test(t)) return {icon:'🎒', label:'使用'};
+  if(/^(去|走|进入|前往|探索|查看|搜寻|寻找|翻找|推门|离开|赶到|溜出|跟随|转身)/.test(t)) return {icon:'🔍', label:'探索'};
+  return {icon:'✨', label:'行动'};
+}
+
 function appendOptions(aiOptions){
 optionsArea.innerHTML='';
 const container=document.createElement('div');
 container.className='options-container';
 if(aiOptions&&aiOptions.length>0){
 aiOptions.forEach(text=>{
+const cls = classifyOption(text);
 const btn=document.createElement('button');
 btn.className='option-btn';
-btn.textContent=text;
+btn.dataset.type = cls.label;
+btn.innerHTML = `<span class="opt-icon">${cls.icon}</span><span class="opt-text">${escapeHtml(text)}</span>`;
 btn.onclick=()=>{if(isGenerating)return;sendAction(text)};
 container.appendChild(btn);
 });
 }else{
 const btn=document.createElement('button');
 btn.className='option-btn';
-btn.textContent='继续剧情';
+btn.dataset.type = '行动';
+btn.innerHTML = `<span class="opt-icon">▶️</span><span class="opt-text">继续剧情</span>`;
 btn.onclick=()=>{if(isGenerating)return;sendAction('继续')};
 container.appendChild(btn);
 }
@@ -342,30 +444,7 @@ function addNPC(name,gender,soul,soulPower,relation,desc){
     if(CORE.npcs.length>50)CORE.npcs.shift();
     chatBox.innerHTML+=`<div class="msg-npc">${icon('npc','#38bdf8')}新人物：${escapeHtml(name)}（${escapeHtml(gender||'?')}·${escapeHtml(soul||'?')}）</div>`;
   }
-function addNPC(name,gender,soul,soulPower,relation,desc){
-  const existing=CORE.npcs.find(n=>n.name===name);
-  if(existing){
-    existing.gender=gender||existing.gender;
-    existing.soul=soul||existing.soul;
-    if(soulPower&&!isPlaceholder(soulPower))existing.soulPower=soulPower;
-    existing.relation=relation||existing.relation;
-    if(desc)existing.desc=desc;
-    if(existing.status==='archived'){
-      existing.status='active';
-      existing.era=CORE.era;
-      existing.archTime='';
-      existing.snapshot=null;
-      chatBox.innerHTML+=`<div class="msg-npc">${icon('npc','#38bdf8')}故人重逢：${escapeHtml(name)}</div>`;
-    }else{
-      chatBox.innerHTML+=`<div class="msg-npc">${icon('npc','#38bdf8')}人物更新：${escapeHtml(name)}</div>`;
-    }
-  }else{
-    CORE.npcs.push({name,gender:gender||'未知',soul:soul||'未知',soulPower:(soulPower&&!isPlaceholder(soulPower))?soulPower:'',relation:relation||'中立',desc:desc||'',era:CORE.era,status:'active',archTime:'',snapshot:null});
-    if(CORE.npcs.length>50)CORE.npcs.shift();
-    chatBox.innerHTML+=`<div class="msg-npc">${icon('npc','#38bdf8')}新人物：${escapeHtml(name)}（${escapeHtml(gender||'?')}·${escapeHtml(soul||'?')}）</div>`;
-  }
   triggerBtnGlow('openNPCs');
-}
 }
 function deleteNPC(name){const idx=CORE.npcs.findIndex(n=>n.name===name);if(idx!==-1){CORE.npcs.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除人物：${escapeHtml(name)}</div>`}}
 function setEra(eraName){
@@ -385,6 +464,7 @@ function archiveEra(eraName){
   });
   if(count>0)chatBox.innerHTML+=`<div class="msg-sys">时期归档：${escapeHtml(eraName)} · ${count}人定格于「${escapeHtml(CORE.time)}」</div>`;
 }
+
 // ============================================================
 //  沉浸感辅助
 // ============================================================
@@ -429,9 +509,6 @@ function triggerBtnGlow(onclickName){
   setTimeout(()=>btn.classList.remove('btn-glow'), 3200);
 }
 
-// ============================================================
-//  状态更新解析
-// ============================================================
 // ============================================================
 //  状态更新解析
 // ============================================================
@@ -516,6 +593,9 @@ if(update.time){CORE.time=update.time;chatBox.innerHTML+=`<div class="msg-time">
 updateStatus();
 }
 
+// ============================================================
+//  主角档案（含动态世界书接线）
+// ============================================================
 function buildCoreSummary(playerInput){
 let s='';
 s+=`主角：${CORE.name}（${CORE.gender}），${CORE.age||'?'}岁。\n`;
@@ -541,14 +621,12 @@ if(archivedNPCs.length>0){
   s+='\n';
 }
 if(CORE.summary)s+=`前情：${CORE.summary}\n`;
+
+// 动态世界书注入
 if(Object.keys(MEDIA.worldbook).length>0){
-const recentText=(CORE.summary||'')+(PLOT.history.slice(-3).map(m=>m.content).join(''));
-const related=[];
-for(const kw in MEDIA.worldbook){
-if(recentText.includes(kw))related.push(`【${kw}】${MEDIA.worldbook[kw]}`);
-if(related.length>=3)break;
-}
-if(related.length>0)s+=`【资料库】\n${related.join('\n')}\n`;
+  const recentText = PLOT.history.slice(-4).map(m=>stripStatus(m.content)).join('\n');
+  const loreText = triggerLorebook(playerInput || '', recentText, 5);
+  if(loreText) s += loreText + '\n';
 }
 return s;
 }
@@ -556,6 +634,11 @@ return s;
 // ============================================================
 //  流式处理
 // ============================================================
+function isNearBottom(threshold){
+  threshold = threshold || 100;
+  return chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < threshold;
+}
+
 async function streamAndProcess(messages){
 const aiMsgDiv=document.createElement('div');
 aiMsgDiv.className='msg-ai streaming';
@@ -563,7 +646,6 @@ aiMsgDiv.textContent='...';
 chatBox.appendChild(aiMsgDiv);
 chatBox.scrollTop=chatBox.scrollHeight;
 
-// 打字机状态
 const tw = { pending: '', shown: 0, timer: null, done: false };
 function twTick(){
   tw.timer = null;
@@ -572,8 +654,9 @@ function twTick(){
   if(tw.shown >= tw.pending.length) return;
   const ch = tw.pending[tw.shown];
   tw.shown++;
+  const stick = isNearBottom();
   aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending.slice(0, tw.shown)));
-  chatBox.scrollTop = chatBox.scrollHeight;
+  if(stick) chatBox.scrollTop = chatBox.scrollHeight;
   let delay = 22;
   if('，。？！；、'.includes(ch)) delay = 100;
   else if(ch === '\n') delay = 180;
@@ -591,13 +674,13 @@ const fullReply=await callDeepSeekStream(messages,(delta,full)=>{
   displayContent = stripStatus(full);
   twPush(displayContent);
 });
-// 流结束，快速吐完
 tw.done = true;
 if(tw.timer){ clearTimeout(tw.timer); tw.timer = null; }
+const stick = isNearBottom();
 tw.shown = tw.pending.length;
 aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending)) || '...';
+if(stick) chatBox.scrollTop = chatBox.scrollHeight;
 aiMsgDiv.classList.remove('streaming');
-chatBox.scrollTop=chatBox.scrollHeight;
 applyScene(displayContent);
 return fullReply;
 }catch(e){
@@ -622,6 +705,18 @@ if(!hasAny){chatBox.innerHTML+=`<div class="msg-debug">无法识别，请用：/
 applyUpdate(update);
 chatBox.innerHTML+=`<div class="msg-debug">调试已应用</div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+// 世界书测试命令
+function handleLoreTest(testInput){
+  const recentText = PLOT.history.slice(-4).map(m=>stripStatus(m.content)).join('\n');
+  const result = triggerLorebook(testInput || '', recentText, 5);
+  if(!result){
+    chatBox.innerHTML += `<div class="msg-debug">未命中任何资料条目。试试：/测 我去史莱克学院</div>`;
+  }else{
+    chatBox.innerHTML += `<div class="msg-debug" style="text-align:left;white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+  }
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 function normalizeDebugText(text){
@@ -656,6 +751,7 @@ let action=forcedAction||input.value.trim();
 if(!action)return;
 if(!forcedAction)input.value='';
 if(action.startsWith('/调试')){chatBox.innerHTML+=userMsgHtml(action,true);chatBox.scrollTop=chatBox.scrollHeight;handleDebugCommand(action.replace(/^\/调试\s*/,''));userInput.focus();return}
+if(action.startsWith('/测')){chatBox.innerHTML+=userMsgHtml(action,true);chatBox.scrollTop=chatBox.scrollHeight;handleLoreTest(action.replace(/^\/测\s*/,''));userInput.focus();return}
 chatBox.innerHTML+=userMsgHtml(action,false);
 chatBox.scrollTop=chatBox.scrollHeight;
 if(PLOT.isFirst){await awakenSoul();return}
@@ -915,6 +1011,8 @@ localStorage.removeItem('douro2Save');
 const _keepAvatar = CORE.avatar || '';
 Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始'});
 Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
+
+resetScene();
 
 document.getElementById('config-inputs').classList.remove('hidden');
 configPanel.style.display='none';
