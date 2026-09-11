@@ -1,4 +1,4 @@
-const C='douro-v30';
+const C='douro-v31';
 const ASSETS=['./','./index.html','./style.css','./game.js','./manifest.json','./icon-192.png','./icon-512.png','./media.json'];
 
 self.addEventListener('install', e => {

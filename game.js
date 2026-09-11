@@ -139,6 +139,7 @@ function goHome(){if(isGenerating){alert("正在生成，请等待完成");retur
 function selectMode(mode){if(mode!=='rpg'){alert('模拟器模式尚未开放，敬请期待');return}document.getElementById('mode-select').classList.add('hidden');document.getElementById('config-panel').classList.remove('hidden');initApp().catch(e=>console.error(e))}
 
 async function initApp(){
+isGenerating = false;
 loadSettings();
 loadDefaultMedia();
 let hasSave=loadSave();
@@ -706,6 +707,7 @@ finally{isGenerating=false;sendBtn.disabled=false;userInput.disabled=false;userI
 }
 
 function startNewGame(){
+isGenerating = false;
 const key=document.getElementById('apiKey').value.trim();
 if(!key){alert("请填入 DeepSeek API Key");return}
 
@@ -734,6 +736,7 @@ setTimeout(()=>sendAction("觉醒武魂"),400);
 }
 
 function continueGame(){
+isGenerating = false;
 const key=document.getElementById('apiKey').value.trim();
 if(!key){alert("请填入 DeepSeek API Key");return}
 configPanel.style.display='none';
