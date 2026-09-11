@@ -464,11 +464,104 @@ function stripStatus(text){let result=text.replace(/【状态更新】[\s\S]*?(?
 function parseSeg(seg){let name=seg,count=1,desc='';const descM=seg.match(/^(.+?)[（(](.+?)[）)]\s*$/);if(descM){name=descM[1].trim();desc=descM[2].trim()}const cntM=name.match(/[×xX*](\d+)\s*(个|枚|颗|件|本|张|块|份)?\s*$/);if(cntM){count=parseInt(cntM[1])||1;name=name.replace(/[×xX*]\d+\s*(个|枚|颗|件|本|张|块|份)?\s*$/,'').trim()}const cnM=name.match(/^(.+?)([一二三四五六七八九十百千万]+)(个|枚|颗|件|本|张|块|份)\s*$/);if(cnM){count=chineseToNumber(cnM[2]);name=cnM[1].trim()}return{name,count,desc}}
 
 // ============================================================
-//  属性操作
+//  属性操作（物品名归一化 + 宽容查找）
 // ============================================================
-function addItem(name,count,desc){const existing=CORE.inventory.find(i=>i.name===name);if(existing){existing.count+=count;if(desc&&!existing.desc)existing.desc=desc}else CORE.inventory.push({name,count,desc:desc||''});chatBox.innerHTML+=`<div class="msg-gain">${icon('item','#4ade80')}获得：${escapeHtml(name)}${count>1?` ×${count}`:''}</div>`;if(typeof soundDing==='function')soundDing(880,0.35)}
-function consumeItem(name,count){let idx=CORE.inventory.findIndex(i=>i.name===name);if(idx===-1){const cleanName=name.replace(/\s+/g,'');idx=CORE.inventory.findIndex(i=>{const itemClean=i.name.replace(/\s+/g,'');return itemClean===cleanName||itemClean.includes(cleanName)||cleanName.includes(itemClean)})}if(idx===-1)return false;if(CORE.inventory[idx].count<count)count=CORE.inventory[idx].count;CORE.inventory[idx].count-=count;const itemName=CORE.inventory[idx].name;if(CORE.inventory[idx].count<=0)CORE.inventory.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">${icon('consume','#f87171')}消耗：${escapeHtml(itemName)} ×${count}</div>`;if(typeof soundDing==='function')soundDing(560,0.25,0.35);return true}
-function deleteItem(name){const idx=CORE.inventory.findIndex(i=>i.name===name);if(idx!==-1){const n=CORE.inventory[idx].name;CORE.inventory.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除物品：${escapeHtml(n)}</div>`}}
+const ITEM_ALIASES = {
+  '金币':'金魂币', '金魂币':'金魂币',
+  '银币':'银魂币', '银魂币':'银魂币',
+  '铜币':'铜魂币', '铜魂币':'铜魂币',
+  '药水':'治疗药水', '红药':'治疗药水',
+  '回血药':'治疗药水',
+};
+function normalizeItemName(name){
+  if(!name) return '';
+  let n = String(name).trim();
+  n = n.replace(/[（(].*?[）)]/g,'').trim();
+  // 剥前导量词："一把短剑" → "短剑"，"3个苹果" → "苹果"
+  n = n.replace(/^(?:[一二两三四五六七八九十百千万零]+|\d+)\s*[把柄枚个颗件本张块份瓶袋支根条片滴粒包头只匹种盒罐筒台架串束株壶缸]\s*/,'');
+  if(ITEM_ALIASES[n]) return ITEM_ALIASES[n];
+  return n;
+}
+function longestCommonSubstr(a,b){
+  if(!a||!b) return 0;
+  const m=a.length,n=b.length;let max=0;
+  const dp=new Array(n+1).fill(0);
+  for(let i=1;i<=m;i++){
+    let prev=0;
+    for(let j=1;j<=n;j++){
+      const tmp=dp[j];
+      dp[j]=(a[i-1]===b[j-1])?prev+1:0;
+      if(dp[j]>max)max=dp[j];
+      prev=tmp;
+    }
+  }
+  return max;
+}
+function findInventoryIndex(name){
+  if(!name) return -1;
+  const raw = String(name).trim();
+  const target = normalizeItemName(raw);
+  if(!target) return -1;
+  // 1. 完全相等
+  let idx = CORE.inventory.findIndex(i => i.name === raw);
+  if(idx !== -1) return idx;
+  // 2. 归一化后相等
+  idx = CORE.inventory.findIndex(i => normalizeItemName(i.name) === target);
+  if(idx !== -1) return idx;
+  // 3. 包含（取最精确的）
+  const cands = [];
+  CORE.inventory.forEach((i,ii)=>{
+    const n = normalizeItemName(i.name);
+    if(!n) return;
+    if(n.includes(target) || target.includes(n)) cands.push({idx:ii, len:n.length});
+  });
+  if(cands.length){ cands.sort((a,b)=>b.len-a.len); return cands[0].idx; }
+  // 4. 最长公共子串 >= 2
+  let best=-1, bestLen=0;
+  CORE.inventory.forEach((i,ii)=>{
+    const n = normalizeItemName(i.name);
+    const l = longestCommonSubstr(n, target);
+    if(l>=2 && l>bestLen){ best=ii; bestLen=l; }
+  });
+  return best;
+}
+
+function addItem(name,count,desc){
+  const clean = normalizeItemName(name) || String(name||'').trim();
+  const idx = findInventoryIndex(name);
+  if(idx !== -1){
+    CORE.inventory[idx].count += count;
+    if(desc && !CORE.inventory[idx].desc) CORE.inventory[idx].desc = desc;
+  } else {
+    CORE.inventory.push({name: clean, count, desc: desc||''});
+  }
+  chatBox.innerHTML+=`<div class="msg-gain">${icon('item','#4ade80')}获得：${escapeHtml(clean)}${count>1?` ×${count}`:''}</div>`;
+  if(typeof soundDing==='function')soundDing(880,0.35);
+}
+function consumeItem(name,count){
+  const idx = findInventoryIndex(name);
+  if(idx === -1){
+    chatBox.innerHTML+=`<div class="msg-lose" style="opacity:0.6;font-size:12px;">⚠️ 背包找不到「${escapeHtml(name)}」，跳过本次消耗</div>`;
+    return false;
+  }
+  if(CORE.inventory[idx].count < count) count = CORE.inventory[idx].count;
+  CORE.inventory[idx].count -= count;
+  const itemName = CORE.inventory[idx].name;
+  if(CORE.inventory[idx].count <= 0) CORE.inventory.splice(idx,1);
+  chatBox.innerHTML+=`<div class="msg-lose">${icon('consume','#f87171')}消耗：${escapeHtml(itemName)} ×${count}</div>`;
+  if(typeof soundDing==='function')soundDing(560,0.25,0.35);
+  return true;
+}
+function deleteItem(name){
+  const idx = findInventoryIndex(name);
+  if(idx === -1){
+    chatBox.innerHTML+=`<div class="msg-lose" style="opacity:0.6;font-size:12px;">⚠️ 背包找不到「${escapeHtml(name)}」，无法删除</div>`;
+    return;
+  }
+  const n = CORE.inventory[idx].name;
+  CORE.inventory.splice(idx,1);
+  chatBox.innerHTML+=`<div class="msg-lose">已移除物品：${escapeHtml(n)}</div>`;
+}
 function addRing(name,desc){const existing=CORE.rings.find(r=>r.name===name);if(existing)existing.count=(existing.count||1)+1;else CORE.rings.push({name,count:1,desc:desc||''});chatBox.innerHTML+=`<div class="msg-ring">${icon('ring','#c084fc')}魂环：${escapeHtml(name)}</div>`;triggerBtnDot('openRings');if(typeof soundDing==='function')soundDing(988,0.45,0.5)}
 function deleteRing(name){const idx=CORE.rings.findIndex(r=>r.name===name);if(idx!==-1){CORE.rings.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除魂环：${escapeHtml(name)}</div>`}}
 function addSkill(name,desc){if(CORE.skills.find(s=>s.name===name))return;CORE.skills.push({name,desc:desc||''});chatBox.innerHTML+=`<div class="msg-skill">${icon('skill','#60a5fa')}魂技：${escapeHtml(name)}</div>`;if(typeof soundDing==='function')soundDing(784,0.4,0.45)}
@@ -709,13 +802,6 @@ function sniffNarrativeUpdates(fullReply, update){
       const cm = ctx.match(colorRe);
       if(!cm) continue;
       const yearStr = m[1];
-      let yearName = '';
-      if(/百万/.test(ctx)) yearName = '百万年';
-      else if(/十万/.test(ctx)) yearName = '十万年';
-      else if(/万年/.test(ctx) || parseInt(yearStr) >= 10000) yearName = '万年';
-      else if(/千年/.test(ctx) || parseInt(yearStr) >= 1000) yearName = '千年';
-      else if(/百年/.test(ctx) || parseInt(yearStr) >= 100) yearName = '百年';
-      else yearName = '十年';
       const colorName = cm[1];
       const ringName = `${yearStr}年${colorName}`;
       const exists = CORE.rings.some(r => r.name.includes(yearStr) || r.name.includes(colorName));
@@ -736,6 +822,33 @@ function sniffNarrativeUpdates(fullReply, update){
         update.soulPowerAbsolute = v;
         chatBox.innerHTML += `<div class="msg-sys" style="font-size:12px;color:#a78bfa;">⚠️ 正文检测到魂力提升但状态块未写，已自动补录：${CORE.soulPower} → ${v}</div>`;
         break;
+      }
+    }
+  }
+
+  // ---- 物品获得嗅探（保守，只在状态块没写物品时补一条） ----
+  if(update.items.length === 0){
+    const gainRe = /(?:你|主角)(?:捡起|捡到|拾起|拾取|得到|获得|拿走|入手|收下|收起|收入囊中)(?:了)?(?:[一二两三四五六七八九十百千万]+|\d+)?\s*[把柄枚个颗件本张块份瓶袋支根条片滴粒包株壶缸]?\s*([^\s，。！？,.!?、；;""]{2,8})/;
+    const gm = gainRe.exec(narrative);
+    if(gm){
+      const nm = gm[1].trim();
+      const skipWords = /^(他|她|它|我|目光|视线|神|头|身|手|脚|心|气|力量|魂力|警觉|寒意|意识|自由|主动|教训|便宜|消息|信息|风声|传言|好处|坏处|机会|线索)$/;
+      if(nm.length >= 2 && nm.length <= 8 && !skipWords.test(nm) && findInventoryIndex(nm) === -1){
+        update.items.push({name: nm, count: 1, desc: '（叙事嗅探）'});
+        chatBox.innerHTML += `<div class="msg-sys" style="font-size:12px;color:#a78bfa;">⚠️ 正文检测到获得物品但状态块未写，已自动补录：${escapeHtml(nm)}×1</div>`;
+      }
+    }
+  }
+
+  // ---- 物品消耗嗅探（保守，只在状态块没写消耗时补一条） ----
+  if(update.consumed.length === 0){
+    const useRe = /(?:你|主角)(?:吃下|喝下|服下|吞下|饮下|用掉|耗费|花费|花掉|消耗|使用了)(?:了)?(?:[一二两三四五六七八九十百千万]+|\d+)?\s*[把柄枚个颗件本张块份瓶袋支根条片滴粒包株壶缸]?\s*([^\s，。！？,.!?、；;""]{2,8})/;
+    const um = useRe.exec(narrative);
+    if(um){
+      const nm = um[1].trim();
+      if(nm.length >= 2 && nm.length <= 8 && findInventoryIndex(nm) !== -1){
+        update.consumed.push({name: nm, count: 1});
+        chatBox.innerHTML += `<div class="msg-sys" style="font-size:12px;color:#a78bfa;">⚠️ 正文检测到消耗物品但状态块未写，已自动补扣：${escapeHtml(nm)}×1</div>`;
       }
     }
   }
@@ -974,7 +1087,14 @@ ${FIXED_WORLD}
    ✅ 正确：状态块加一行"获得魂环：三百五十年黄色"
    漏写 = 系统判定为未获得，玩家背包/魂环面板不会有记录。
 ⚠️ 参考：主角是${CORE.age||'未知'}岁，当前魂力${CORE.soulPower}级。剧情没有明确修炼/战斗/时间跨越，不要随意提升魂力。
-⚠️ 卖/交易/使用物品时写两行：消耗物品：X×N + 获得物品：魂币×N。
+⚠️ 物品操作铁律（违反会导致玩家背包混乱）：
+   1) 物品名必须与【主角档案】背包栏里的名字完全一致，禁止缩写/替换。
+      ❌ 背包写"金魂币"，状态块写"金币" → 匹配不到，扣不掉
+      ✅ 写"金魂币"
+   2) 用/吃/喝/卖/花掉物品，必须写"消耗物品：完整名×数量"一行，否则系统不扣。
+      叙事里写"你喝下药水"不算数。
+   3) 收/买/捡到物品，必须写"获得物品：完整名×数量（可选描述）"。
+   4) 交易时写两行：消耗物品：X×N + 获得物品：魂币×N。
 ⚠️ 人物魂力变化时，用新魂力重写完整人物行（六段式）。
 ⚠️ 人物行六段：【姓名 / 性别 / 武魂 / 魂力 / 关系 / 描述】。
    - 第1段人名（2-4字），第3段武魂名，绝不能填人名！
