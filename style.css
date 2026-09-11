@@ -735,3 +735,254 @@ body.minimal-mode .msg-chapter {
 #chat-box .msg-npc,
 #chat-box .msg-power { font-size: calc(13px * var(--font-scale)); }
 #chat-box .msg-chapter { font-size: calc(14px * var(--font-scale)); }
+/* ============================================================
+   模块 45：选项过渡动画
+   ============================================================ */
+.options-container {
+  transform-origin: top center;
+  will-change: transform, opacity;
+}
+.options-container.opt-enter {
+  animation: optEnter .38s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes optEnter {
+  from { opacity: 0; transform: scale(.65); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.options-container.opt-exit {
+  animation: optExit .28s cubic-bezier(.55,0,.68,.19) forwards;
+  pointer-events: none;
+}
+@keyframes optExit {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(.65); }
+}
+
+.option-btn.opt-picked {
+  animation: optPicked .42s cubic-bezier(.34,1.56,.64,1) both;
+  position: relative;
+  z-index: 2;
+}
+@keyframes optPicked {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.14); box-shadow: 0 0 22px rgba(88,166,255,.75); }
+  100% { transform: scale(1); }
+}
+.option-btn.opt-dim {
+  animation: optDim .28s ease forwards;
+  pointer-events: none;
+}
+@keyframes optDim {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: .25; transform: scale(.9); }
+}
+body.theme-cute .option-btn.opt-picked {
+  animation: optPicked .42s cubic-bezier(.34,1.56,.64,1) both;
+}
+body.theme-cute .option-btn.opt-picked {
+  box-shadow: 0 0 22px rgba(255,141,161,.75) !important;
+}
+body.minimal-mode .options-container,
+body.minimal-mode .option-btn {
+  animation: none !important;
+  transition: opacity .2s ease;
+}
+/* ============================================================
+   样式 3 · 水色系（theme-water）
+   ============================================================ */
+body.theme-water {
+  background: linear-gradient(165deg, #071a2b 0%, #0a2336 55%, #0d2c40 100%);
+  color: #d4f1f4;
+}
+body.theme-water #chat-box {
+  background: linear-gradient(165deg, #0f2c42 0%, #0c2539 100%);
+  border: 2px solid rgba(125, 211, 252, 0.35);
+  box-shadow: 0 0 22px rgba(125, 211, 252, 0.12), inset 0 0 24px rgba(94, 234, 212, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+body.theme-water #chat-box::-webkit-scrollbar { width: 6px; }
+body.theme-water #chat-box::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7dd3fc, #5eead4);
+  border-radius: 3px;
+}
+body.theme-water #chat-box::-webkit-scrollbar-track { background: transparent; }
+
+body.theme-water .msg-user {
+  color: #7dd3fc;
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.18), rgba(94, 234, 212, 0.12));
+  padding: 8px 12px;
+  border-radius: 16px 16px 4px 16px;
+  text-align: left;
+  border: 1px solid rgba(125, 211, 252, 0.32);
+}
+body.theme-water .msg-ai {
+  color: #d4f1f4;
+  border-left: 4px solid #5eead4;
+  background: rgba(94, 234, 212, 0.07);
+  padding: 10px 14px;
+  border-radius: 16px 16px 16px 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+body.theme-water .msg-row .msg-avatar {
+  border: 1px solid #7dd3fc;
+  box-shadow: 0 0 8px rgba(125, 211, 252, 0.4);
+}
+body.theme-water .msg-row .msg-avatar .avatar-ai-inner {
+  background: linear-gradient(135deg, #7dd3fc, #5eead4);
+  color: #071a2b;
+}
+
+body.theme-water .msg-sys,
+body.theme-water .msg-summary,
+body.theme-water .msg-gain,
+body.theme-water .msg-lose,
+body.theme-water .msg-skill,
+body.theme-water .msg-ring,
+body.theme-water .msg-trait,
+body.theme-water .msg-npc,
+body.theme-water .msg-time,
+body.theme-water .msg-debug,
+body.theme-water .msg-power { align-self: center; }
+
+body.theme-water .msg-sys { color: #7fa4b8; border-top-color: #7dd3fc; }
+body.theme-water .msg-summary { color: #7dd3fc; border-top-color: #7dd3fc; }
+body.theme-water .msg-gain { color: #4ade80; background: rgba(74, 222, 128, 0.14); border: 1px solid rgba(74, 222, 128, 0.22); }
+body.theme-water .msg-lose { color: #f87171; background: rgba(248, 113, 113, 0.14); border: 1px solid rgba(248, 113, 113, 0.22); }
+body.theme-water .msg-power { color: #5eead4; background: rgba(94, 234, 212, 0.15); border: 1px solid rgba(94, 234, 212, 0.24); }
+body.theme-water .msg-ring { color: #a5f3fc; background: rgba(165, 243, 252, 0.12); }
+body.theme-water .msg-skill { color: #7dd3fc; background: rgba(125, 211, 252, 0.12); }
+body.theme-water .msg-trait { color: #fde68a; background: rgba(253, 230, 138, 0.12); }
+body.theme-water .msg-npc { color: #67e8f9; background: rgba(103, 232, 249, 0.12); }
+body.theme-water .msg-time { color: #94a3b8; background: rgba(148, 163, 184, 0.08); }
+body.theme-water .msg-debug { color: #a5f3fc; background: rgba(165, 243, 252, 0.1); }
+
+body.theme-water #status-bar,
+body.theme-water .modal-box,
+body.theme-water #config-panel {
+  background: linear-gradient(160deg, #103049 0%, #0d2840 100%);
+  border: 1px solid rgba(125, 211, 252, 0.4);
+  border-radius: 20px;
+  box-shadow: 0 0 16px rgba(125, 211, 252, 0.1);
+}
+body.theme-water #status-bar .stat {
+  background: rgba(7, 26, 43, 0.7);
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  border-radius: 12px;
+  color: #a5f3fc;
+}
+body.theme-water .stat-label { color: #7fa4b8; }
+body.theme-water .stat-value { color: #d4f1f4; }
+body.theme-water .stat-value.highlight { color: #7dd3fc; }
+
+body.theme-water #top-bar .ctrl-btn,
+body.theme-water .ctrl-btn {
+  background: linear-gradient(135deg, #124059, #0e3247);
+  color: #a5f3fc;
+  border: 1px solid rgba(125, 211, 252, 0.4);
+  border-radius: 16px;
+  padding: 5px 9px;
+}
+body.theme-water #top-bar .ctrl-btn:hover,
+body.theme-water .ctrl-btn:hover {
+  background: linear-gradient(135deg, #7dd3fc, #5eead4);
+  color: #071a2b;
+}
+
+body.theme-water #input-row input {
+  background: #0c2539;
+  border: 1px solid rgba(125, 211, 252, 0.4);
+  color: #d4f1f4;
+  border-radius: 20px;
+}
+body.theme-water #input-row input::placeholder { color: #6b8ea3; }
+body.theme-water #input-row button {
+  background: linear-gradient(135deg, #7dd3fc, #5eead4);
+  color: #071a2b;
+  border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(125, 211, 252, 0.4);
+}
+
+body.theme-water .option-btn {
+  background: linear-gradient(135deg, #0d3244, #0b2a3a);
+  border: 1px solid rgba(125, 211, 252, 0.45);
+  color: #a5f3fc;
+  border-radius: 20px;
+}
+body.theme-water .option-btn:hover {
+  background: linear-gradient(135deg, #7dd3fc, #5eead4);
+  color: #071a2b;
+}
+body.theme-water .option-btn:active { transform: scale(0.96); }
+body.theme-water .option-btn .opt-icon {
+  filter: drop-shadow(0 0 4px rgba(125, 211, 252, 0.6));
+}
+
+body.theme-water .expandable-list { background: #071a2b; }
+body.theme-water .expandable-item { border-bottom-color: #12405c; }
+body.theme-water .expandable-item:hover { background: #0e2b40; }
+body.theme-water .expandable-detail { background: #0e2b40; color: #a5f3fc; }
+body.theme-water .setting-title { color: #7dd3fc; }
+body.theme-water .slider { background: #12405c; }
+body.theme-water .switch input:checked + .slider {
+  background: linear-gradient(90deg, #7dd3fc, #5eead4);
+}
+body.theme-water .expandable-item .name.npc-archived { color: #a78bfa; opacity: .75; }
+body.theme-water #scene-banner {
+  background: rgba(12, 37, 57, 0.8);
+  border-radius: 10px;
+}
+
+/* --- 水色系专属装饰（非简洁模式） --- */
+body.theme-water:not(.minimal-mode) #chat-box {
+  position: relative;
+}
+body.theme-water:not(.minimal-mode) #chat-box::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 28px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M2 12 Q6 8 12 12 T22 12' fill='none' stroke='%237dd3fc' stroke-width='1.6' stroke-linecap='round' opacity='0.55'/></svg>");
+  background-size: 24px 24px;
+  background-repeat: repeat;
+  pointer-events: none;
+  opacity: 0.75;
+  filter: drop-shadow(0 0 6px rgba(125, 211, 252, 0.4));
+}
+body.theme-water:not(.minimal-mode) #game-area { padding: 12px 4px 4px; }
+
+body.theme-water:not(.minimal-mode) .modal-box {
+  position: relative;
+  border: none;
+  background: linear-gradient(160deg, #103049, #0d2840);
+  box-shadow: 0 0 24px rgba(125, 211, 252, 0.25);
+}
+body.theme-water:not(.minimal-mode) .modal-box h3::before { content: '💧 '; }
+body.theme-water:not(.minimal-mode) .modal-box h3::after  { content: ' 💧'; }
+
+body.theme-water:not(.minimal-mode) #status-bar {
+  border: 1px dashed rgba(125, 211, 252, 0.55);
+  box-shadow: 0 0 12px rgba(125, 211, 252, 0.15);
+}
+body.theme-water:not(.minimal-mode) #status-bar .stat {
+  position: relative; padding-right: 16px;
+}
+body.theme-water:not(.minimal-mode) #status-bar .stat::after {
+  content: '·';
+  position: absolute; right: 6px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px; color: #5eead4; opacity: 0.85;
+}
+
+body.theme-water:not(.minimal-mode) .msg-ai::after {
+  content: ' 💧'; font-size: 12px; opacity: 0.6; margin-left: 2px;
+}
+body.theme-water:not(.minimal-mode) #input-row button {
+  position: relative;
+}
+body.theme-water:not(.minimal-mode) #input-row button::before {
+  content: '💧 '; font-size: 14px; margin-right: 2px;
+}
+body.theme-water:not(.minimal-mode) .switch input:checked + .slider {
+  box-shadow: 0 0 10px rgba(125, 211, 252, 0.6);
+}

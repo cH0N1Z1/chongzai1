@@ -401,29 +401,59 @@ function classifyOption(text){
   return {icon:'✨', label:'行动'};
 }
 function appendOptions(aiOptions){
-optionsArea.innerHTML='';
-const container=document.createElement('div');
-container.className='options-container';
-if(aiOptions&&aiOptions.length>0){
-aiOptions.forEach(text=>{
-const cls = classifyOption(text);
-const btn=document.createElement('button');
-btn.className='option-btn';
-btn.dataset.type = cls.label;
-btn.innerHTML = `<span class="opt-icon">${cls.icon}</span><span class="opt-text">${escapeHtml(text)}</span>`;
-btn.onclick=()=>{if(isGenerating)return;sendAction(text)};
-container.appendChild(btn);
-});
-}else{
-const btn=document.createElement('button');
-btn.className='option-btn';
-btn.dataset.type = '行动';
-btn.innerHTML = `<span class="opt-icon">▶️</span><span class="opt-text">继续剧情</span>`;
-btn.onclick=()=>{if(isGenerating)return;sendAction('继续')};
-container.appendChild(btn);
-}
-optionsArea.appendChild(container);
-optionsArea.scrollIntoView({behavior:'smooth',block:'nearest'});
+  const old = optionsArea.querySelector('.options-container');
+  const doRender = () => {
+    const container=document.createElement('div');
+    container.className='options-container opt-enter';
+    if(aiOptions&&aiOptions.length>0){
+      aiOptions.forEach(text=>{
+        const cls = classifyOption(text);
+        const btn=document.createElement('button');
+        btn.className='option-btn';
+        btn.dataset.type = cls.label;
+        btn.innerHTML = `<span class="opt-icon">${cls.icon}</span><span class="opt-text">${escapeHtml(text)}</span>`;
+        btn.onclick=()=>{
+          if(isGenerating)return;
+          if(btn.disabled)return;
+          btn.disabled=true;
+          btn.classList.add('opt-picked');
+          container.querySelectorAll('.option-btn').forEach(b=>{
+            if(b!==btn) b.classList.add('opt-dim');
+          });
+          setTimeout(()=>container.classList.add('opt-exit'), 180);
+          setTimeout(()=>sendAction(text), 360);
+        };
+        container.appendChild(btn);
+      });
+    }else{
+      const btn=document.createElement('button');
+      btn.className='option-btn';
+      btn.dataset.type = '行动';
+      btn.innerHTML = `<span class="opt-icon">▶️</span><span class="opt-text">继续剧情</span>`;
+      btn.onclick=()=>{
+        if(isGenerating)return;
+        if(btn.disabled)return;
+        btn.disabled=true;
+        btn.classList.add('opt-picked');
+        setTimeout(()=>container.classList.add('opt-exit'), 180);
+        setTimeout(()=>sendAction('继续'), 360);
+      };
+      container.appendChild(btn);
+    }
+    optionsArea.appendChild(container);
+    optionsArea.scrollIntoView({behavior:'smooth',block:'nearest'});
+  };
+
+  if(old){
+    old.classList.remove('opt-enter');
+    old.classList.add('opt-exit');
+    old.addEventListener('animationend', function(){
+      if(old.parentNode) old.remove();
+      doRender();
+    }, {once:true});
+  } else {
+    doRender();
+  }
 }
 
 // ============================================================
@@ -659,6 +689,59 @@ updateStatus();
 }
 
 // ============================================================
+//  叙事嗅探兜底：AI 把状态写在正文没写进【状态更新】时自动补
+// ============================================================
+function sniffNarrativeUpdates(fullReply, update){
+  const narrative = stripStatus(fullReply);
+  if(!narrative) return;
+
+  // ---- 魂环嗅探 ----
+  if(update.rings.length === 0){
+    const yearRe = /([一二三四五六七八九十百千万\d]{1,8})\s*年/g;
+    const colorRe = /(白色|黄色|紫色|黑色|红色|金色|橙色|蓝色)/;
+    const contextRe = /(魂环|吸收|炼化|猎杀|魂兽)/;
+    let m;
+    while((m = yearRe.exec(narrative)) !== null){
+      const start = Math.max(0, m.index - 40);
+      const end = Math.min(narrative.length, m.index + m[0].length + 40);
+      const ctx = narrative.slice(start, end);
+      if(!contextRe.test(ctx)) continue;
+      const cm = ctx.match(colorRe);
+      if(!cm) continue;
+      const yearStr = m[1];
+      let yearName = '';
+      if(/百万/.test(ctx)) yearName = '百万年';
+      else if(/十万/.test(ctx)) yearName = '十万年';
+      else if(/万年/.test(ctx) || parseInt(yearStr) >= 10000) yearName = '万年';
+      else if(/千年/.test(ctx) || parseInt(yearStr) >= 1000) yearName = '千年';
+      else if(/百年/.test(ctx) || parseInt(yearStr) >= 100) yearName = '百年';
+      else yearName = '十年';
+      const colorName = cm[1];
+      const ringName = `${yearStr}年${colorName}`;
+      const exists = CORE.rings.some(r => r.name.includes(yearStr) || r.name.includes(colorName));
+      if(exists) continue;
+      update.rings.push({ name: ringName, desc: '' });
+      chatBox.innerHTML += `<div class="msg-sys" style="font-size:12px;color:#a78bfa;">⚠️ 正文检测到魂环但状态块未写，已自动补录：${escapeHtml(ringName)}</div>`;
+      break;
+    }
+  }
+
+  // ---- 魂力嗅探（保守） ----
+  if(update.soulPowerBase === 0 && update.soulPowerAbsolute === null){
+    const lvlRe = /魂力(?:提升|突破|达到|升至|涨到|到达)\s*(?:到|至)?\s*(\d+)\s*级/g;
+    let m;
+    while((m = lvlRe.exec(narrative)) !== null){
+      const v = parseInt(m[1]);
+      if(v > CORE.soulPower && v <= 100){
+        update.soulPowerAbsolute = v;
+        chatBox.innerHTML += `<div class="msg-sys" style="font-size:12px;color:#a78bfa;">⚠️ 正文检测到魂力提升但状态块未写，已自动补录：${CORE.soulPower} → ${v}</div>`;
+        break;
+      }
+    }
+  }
+}
+
+// ============================================================
 //  主角档案 + 动态世界书
 // ============================================================
 function buildCoreSummary(playerInput){
@@ -710,7 +793,7 @@ aiMsgDiv.textContent='...';
 chatBox.appendChild(aiMsgDiv);
 chatBox.scrollTop=chatBox.scrollHeight;
 
-// 追踪用户是否主动上滚（一旦上滚，流式期间不再强制跟随）
+// 追踪用户是否主动上滚
 let userPinnedUp = false;
 let lastTop = chatBox.scrollTop;
 function onStreamScroll(){
@@ -886,6 +969,10 @@ ${FIXED_WORLD}
 ⚠️ 天气：只在变化时写。
 ⚠️ 其他字段：只在有变化时写，无变化省略整行，绝不写"无"。
 ⚠️ 只有写进【状态更新】的属性才会更新，叙事里提"魂力提升"不算。
+⚠️ 极其重要：如果本回叙事中提到角色【获得/吸收魂环】、【习得魂技】、【获得物品】、【魂力提升】，必须同时在状态块里列出对应条目。
+   ❌ 错误：叙事写"你吸收了三百五十年黄色魂环"但状态块没写
+   ✅ 正确：状态块加一行"获得魂环：三百五十年黄色"
+   漏写 = 系统判定为未获得，玩家背包/魂环面板不会有记录。
 ⚠️ 参考：主角是${CORE.age||'未知'}岁，当前魂力${CORE.soulPower}级。剧情没有明确修炼/战斗/时间跨越，不要随意提升魂力。
 ⚠️ 卖/交易/使用物品时写两行：消耗物品：X×N + 获得物品：魂币×N。
 ⚠️ 人物魂力变化时，用新魂力重写完整人物行（六段式）。
@@ -936,6 +1023,7 @@ recent.forEach(m=>messages.push({role:m.role,content:stripStatus(m.content)}));
 messages.push({role:"user",content:isContinue?'（继续）':action});
 const reply=await streamAndProcess(messages);
 const updateInfo=parseStatusUpdate(reply);
+sniffNarrativeUpdates(reply, updateInfo);
 applyUpdate(updateInfo);
 appendOptions(extractOptions(reply));
 PLOT.history.push({role:"user",content:action});
@@ -1096,9 +1184,10 @@ ${customSoul?'指定武魂：'+customSoul:'请为角色设计一个独特武魂�
 - 关键动作用 *……* 包裹
 
 【武魂格式 - 极重要】
-请在叙事中明确写出：
+请在叙事中明确写出以下格式，缺一不可：
 武魂：xxx
 武魂描述：xxx（简短描述这个武魂的外观、来历、特性等）
+"武魂："后面直接跟武魂名称（2-8字），不要写角色名。
 
 【选项】
 在【状态更新】后，用【选项】给出2-3个觉醒后的行动选项，每项用"•"开头。
@@ -1113,11 +1202,21 @@ update.soulPowerBase=0;update.soulPowerAbsolute=null;
 let soulName = customSoul;
 let soulDesc = '';
 if(!soulName){
-    const nameMatch = reply.match(/武魂[：:]\s*([^\n]+?)(?=武魂描述|【|$)/);
-    if(nameMatch) soulName = nameMatch[1].trim().replace(/[。，,.]$/,'');
-    const descMatch = reply.match(/武魂描述[：:]\s*([^\n]+)/);
+    // 尝试多种表达：武魂：xxx / 武魂名为xxx / 你的武魂是xxx / 【武魂：xxx】
+    const patterns = [
+      /武魂[：:]\s*([^\n【]{2,15}?)(?=\s*武魂描述|【|$)/,
+      /武魂(?:名[为叫]?|是|叫做?)[：:：]?\s*[「“"]?([^\n【，。、"」]{2,12})[」”"]?/,
+      /觉醒(?:出了?|的武魂[是为])[：:：]?\s*[「“"]?([^\n【，。、"」]{2,12})[」”"]?/,
+      /【武魂[：:]\s*([^\n】]+)】/,
+    ];
+    for(const re of patterns){
+      const nm = reply.match(re);
+      if(nm){ soulName = nm[1].trim().replace(/[。，,.]$/,''); break; }
+    }
+    const descMatch = reply.match(/武魂描述[：:]\s*([^\n【]+)/);
     if(descMatch) soulDesc = descMatch[1].trim();
     if(!soulName) soulName = '未知武魂';
+    if(soulName.length > 15) soulName = soulName.slice(0, 15);
 }
 CORE.martialSoul = soulName;
 CORE.martialSoulDesc = soulDesc;

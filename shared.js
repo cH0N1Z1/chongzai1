@@ -222,8 +222,12 @@ if(key==='useSceneBg'&&!value){
 if(key==='chatTheme'){applyThemeClass()}
 }
 function applyThemeClass(){
-document.body.className = document.body.className.split(' ').filter(c => c !== 'theme-cute').join(' ');
-if(SETTINGS.chatTheme === 'cute') document.body.classList.add('theme-cute');
+  const known = ['theme-cute','theme-water'];
+  let cls = document.body.className;
+  for(const c of known){ cls = cls.split(' ').filter(x => x !== c).join(' '); }
+  document.body.className = cls;
+  if(SETTINGS.chatTheme === 'cute') document.body.classList.add('theme-cute');
+  else if(SETTINGS.chatTheme === 'water') document.body.classList.add('theme-water');
 }
 function toggleMinimalMode(on){
 SETTINGS.minimalMode = on;
