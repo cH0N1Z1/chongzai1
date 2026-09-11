@@ -142,15 +142,24 @@ async function initApp(){
 loadSettings();
 loadDefaultMedia();
 let hasSave=loadSave();
-if(hasSave&&CORE.name&&CORE.martialSoul!=='未觉醒'){
-document.getElementById('continueBtn').classList.remove('hidden');
-document.getElementById('config-inputs').classList.add('hidden');
-const infoBox=document.getElementById('saveInfoBox');
-infoBox.classList.remove('hidden');
-infoBox.innerHTML=`存档：<b style="color:#f0f6fc;">${escapeHtml(CORE.name)}</b> · ${escapeHtml(CORE.martialSoul)} · 魂力${CORE.soulPower}级<br><span style="color:#6b7280;">时间：${escapeHtml(CORE.time)}</span>`;
-document.getElementById('roleName').value=CORE.name;
-document.getElementById('roleDesc').value=CORE.roleDesc||'';
-document.getElementById('innatePower').value=CORE.innatePower||5;
+
+// 修复：如果存档是废弃的（没有名字或未觉醒），彻底清理
+if(hasSave && (!CORE.name || CORE.martialSoul === '未觉醒')){
+    localStorage.removeItem('douro2Save');
+    hasSave = false;
+    Object.assign(CORE, {name:'',gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天'});
+    Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
+}
+
+if(hasSave){
+    document.getElementById('continueBtn').classList.remove('hidden');
+    document.getElementById('config-inputs').classList.add('hidden');
+    const infoBox=document.getElementById('saveInfoBox');
+    infoBox.classList.remove('hidden');
+    infoBox.innerHTML=`存档：<b style="color:#f0f6fc;">${escapeHtml(CORE.name)}</b> · ${escapeHtml(CORE.martialSoul)} · 魂力${CORE.soulPower}级<br><span style="color:#6b7280;">时间：${escapeHtml(CORE.time)}</span>`;
+    document.getElementById('roleName').value=CORE.name;
+    document.getElementById('roleDesc').value=CORE.roleDesc||'';
+    document.getElementById('innatePower').value=CORE.innatePower||5;
 }
 }
 
@@ -646,13 +655,20 @@ finally{isGenerating=false;sendBtn.disabled=false;userInput.disabled=false;userI
 function startNewGame(){
 const key=document.getElementById('apiKey').value.trim();
 if(!key){alert("请填入 DeepSeek API Key");return}
-if(localStorage.getItem('douro2Save')&&!confirm("已有存档，开始新游戏会覆盖。确定？"))return;
+
+// 修复：只有存在有效存档时才弹窗
+const hasValidSave = localStorage.getItem('douro2Save') && CORE.name && CORE.martialSoul !== '未觉醒';
+if(hasValidSave && !confirm("已有存档，开始新游戏会覆盖。确定？")) return;
+
+// 修复：彻底清理残留数据，确保觉醒流程正常触发
 localStorage.removeItem('douro2Save');
+Object.assign(CORE, {name:'',gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天'});
+Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
+
 document.getElementById('config-inputs').classList.remove('hidden');
 configPanel.style.display='none';
 gameArea.style.display='flex';
 chatBox.innerHTML=`<div class="msg-sys">欢迎，${escapeHtml(document.getElementById('roleName').value||'旅者')}。准备觉醒武魂...</div>`;
-PLOT.isFirst=true;
 setTimeout(()=>sendAction("觉醒武魂"),400);
 }
 
