@@ -1,6 +1,7 @@
 // ============================================================
 //  rpg.js - 角色扮演模式专属逻辑
 //  依赖 shared.js（必须先加载）
+//  本版本移除：物品/背包/货币系统
 // ============================================================
 
 // ============================================================
@@ -74,7 +75,7 @@ const FIXED_WORLD=`斗罗大陆 · 绝世唐门时代（一万年后）。
 货币：金/银/铜魂币（1金=10银=100铜）。
 具体设定见资料库，优先参考资料库。`;
 
-const CORE={name:'',avatar:'',gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''};
+const CORE={name:'',avatar:'',gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''};
 const PLOT={history:[],turn:0,isFirst:true,summaryCounter:0};
 let isGenerating=false;
 
@@ -246,7 +247,6 @@ if(!CORE.age)CORE.age=0;
 if(!CORE.martialSoulDesc)CORE.martialSoulDesc='';
 if(CORE.rings.length>0&&typeof CORE.rings[0]==='string')CORE.rings=CORE.rings.map(r=>({name:r,count:1,desc:''}));
 if(CORE.skills.length>0&&typeof CORE.skills[0]==='string')CORE.skills=CORE.skills.map(s=>({name:s,desc:''}));
-if(CORE.inventory.length>0&&typeof CORE.inventory[0]==='string')CORE.inventory=CORE.inventory.map(i=>({name:i,count:1,desc:''}));
 if(CORE.traits.length>0&&typeof CORE.traits[0]==='string')CORE.traits=CORE.traits.map(t=>({name:t,type:'先天',desc:''}));
 if(!CORE.npcs)CORE.npcs=[];
 if(!CORE.time)CORE.time='觉醒武魂当天';
@@ -262,7 +262,7 @@ CORE.npcs.forEach(n=>{
   if(n.snapshot===undefined)n.snapshot=null;
   if(n.soulPower===undefined)n.soulPower='';
 });
-delete CORE.hp;delete CORE.maxHp;
+delete CORE.hp;delete CORE.maxHp;delete CORE.inventory;
 Object.assign(PLOT,data.plot);return true}}catch(e){console.error('读档失败',e)}
 return false;
 }
@@ -283,7 +283,7 @@ if(hasSave && (!CORE.name || CORE.martialSoul === '未觉醒')){
     localStorage.removeItem('douro2Save');
     hasSave = false;
     const _keepAvatar2 = CORE.avatar || '';
-Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''});
+Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''});
     Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 }
 
@@ -351,8 +351,6 @@ function showSoulDesc() {
 // ============================================================
 //  业务弹窗
 // ============================================================
-function openBag(){renderExpandableList(document.getElementById('bagContent'),CORE.inventory,{emptyText:'空',removeFn:'removeBagItem'});openModal('bagModal')}
-function removeBagItem(idx){CORE.inventory.splice(idx,1);updateStatus();openBag()}
 function openRings(){const container=document.getElementById('ringsContent');if(SETTINGS.useRingsVisual&&CORE.rings.length>0){container.innerHTML=renderRingsVisual(CORE.rings)}else{renderExpandableList(container,CORE.rings,{emptyText:'无魂环',nameClassFn:(r)=>getRingColorClass(r.name),removeFn:'removeRingItem'})}openModal('ringsModal')}
 function removeRingItem(idx){CORE.rings.splice(idx,1);updateStatus();openRings()}
 function openSkills(){renderExpandableList(document.getElementById('skillsContent'),CORE.skills,{emptyText:'无魂技',removeFn:'removeSkillItem'});openModal('skillsModal')}
@@ -444,7 +442,7 @@ function appendOptions(aiOptions){
     optionsArea.scrollIntoView({behavior:'smooth',block:'nearest'});
   };
 
-  // 有旧容器：加淡出动画，但以 350ms 超时兜底（防止 animationend 不触发）
+  // 有旧容器：加淡出动画，以 350ms 超时兜底（防止 animationend 不触发）
   if(old && old.parentNode){
     old.classList.add('opt-exit');
     let finished = false;
@@ -465,104 +463,13 @@ function appendOptions(aiOptions){
 // ============================================================
 //  状态解析
 // ============================================================
-const STATUS_LINE_RE=/^(年龄[：:]|魂力\s*[+\-：:]|魂力\s*(提升|增加|提高|升至|达到|变为)|获得物品[：:]|消耗物品[：:]|使用物品[：:]|删除物品[：:]|获得魂技[：:]|删除魂技[：:]|获得魂环[：:]|删除魂环[：:]|获得特质[：:]|删除特质[：:]|人物[：:]|重要人物[：:]|新人物[：:]|删除人物[：:]|时间[：:]|天气[：:]|时期[：:]|归档时期[：:])/;
+const STATUS_LINE_RE=/^(年龄[：:]|魂力\s*[+\-：:]|魂力\s*(提升|增加|提高|升至|达到|变为)|获得魂技[：:]|删除魂技[：:]|获得魂环[：:]|删除魂环[：:]|获得特质[：:]|删除特质[：:]|人物[：:]|重要人物[：:]|新人物[：:]|删除人物[：:]|时间[：:]|天气[：:]|时期[：:]|归档时期[：:])/;
 function stripStatus(text){let result=text.replace(/【状态更新】[\s\S]*?(?=【选项】|$)/g,'');result=result.replace(/【选项】[\s\S]*/g,'');const lines=result.split('\n');const kept=lines.filter(line=>{const t=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();if(!t)return true;if(STATUS_LINE_RE.test(t))return false;return true});return kept.join('\n').trim()}
 function parseSeg(seg){let name=seg,count=1,desc='';const descM=seg.match(/^(.+?)[（(](.+?)[）)]\s*$/);if(descM){name=descM[1].trim();desc=descM[2].trim()}const cntM=name.match(/[×xX*](\d+)\s*(个|枚|颗|件|本|张|块|份)?\s*$/);if(cntM){count=parseInt(cntM[1])||1;name=name.replace(/[×xX*]\d+\s*(个|枚|颗|件|本|张|块|份)?\s*$/,'').trim()}const cnM=name.match(/^(.+?)([一二三四五六七八九十百千万]+)(个|枚|颗|件|本|张|块|份)\s*$/);if(cnM){count=chineseToNumber(cnM[2]);name=cnM[1].trim()}return{name,count,desc}}
 
 // ============================================================
-//  属性操作（物品名归一化 + 宽容查找）
+//  属性操作
 // ============================================================
-const ITEM_ALIASES = {
-  '金币':'金魂币', '金魂币':'金魂币',
-  '银币':'银魂币', '银魂币':'银魂币',
-  '铜币':'铜魂币', '铜魂币':'铜魂币',
-  '药水':'治疗药水', '红药':'治疗药水',
-  '回血药':'治疗药水',
-};
-function normalizeItemName(name){
-  if(!name) return '';
-  let n = String(name).trim();
-  n = n.replace(/[（(].*?[）)]/g,'').trim();
-  n = n.replace(/^(?:[一二两三四五六七八九十百千万零]+|\d+)\s*[把柄枚个颗件本张块份瓶袋支根条片滴粒包头只匹种盒罐筒台架串束株壶缸]\s*/,'');
-  if(ITEM_ALIASES[n]) return ITEM_ALIASES[n];
-  return n;
-}
-function longestCommonSubstr(a,b){
-  if(!a||!b) return 0;
-  const m=a.length,n=b.length;let max=0;
-  const dp=new Array(n+1).fill(0);
-  for(let i=1;i<=m;i++){
-    let prev=0;
-    for(let j=1;j<=n;j++){
-      const tmp=dp[j];
-      dp[j]=(a[i-1]===b[j-1])?prev+1:0;
-      if(dp[j]>max)max=dp[j];
-      prev=tmp;
-    }
-  }
-  return max;
-}
-function findInventoryIndex(name){
-  if(!name) return -1;
-  const raw = String(name).trim();
-  const target = normalizeItemName(raw);
-  if(!target) return -1;
-  let idx = CORE.inventory.findIndex(i => i.name === raw);
-  if(idx !== -1) return idx;
-  idx = CORE.inventory.findIndex(i => normalizeItemName(i.name) === target);
-  if(idx !== -1) return idx;
-  const cands = [];
-  CORE.inventory.forEach((i,ii)=>{
-    const n = normalizeItemName(i.name);
-    if(!n) return;
-    if(n.includes(target) || target.includes(n)) cands.push({idx:ii, len:n.length});
-  });
-  if(cands.length){ cands.sort((a,b)=>b.len-a.len); return cands[0].idx; }
-  let best=-1, bestLen=0;
-  CORE.inventory.forEach((i,ii)=>{
-    const n = normalizeItemName(i.name);
-    const l = longestCommonSubstr(n, target);
-    if(l>=2 && l>bestLen){ best=ii; bestLen=l; }
-  });
-  return best;
-}
-
-function addItem(name,count,desc){
-  const clean = normalizeItemName(name) || String(name||'').trim();
-  const idx = findInventoryIndex(name);
-  if(idx !== -1){
-    CORE.inventory[idx].count += count;
-    if(desc && !CORE.inventory[idx].desc) CORE.inventory[idx].desc = desc;
-  } else {
-    CORE.inventory.push({name: clean, count, desc: desc||''});
-  }
-  chatBox.innerHTML+=`<div class="msg-gain">${icon('item','#4ade80')}获得：${escapeHtml(clean)}${count>1?` ×${count}`:''}</div>`;
-  if(typeof soundDing==='function')soundDing(880,0.35);
-}
-function consumeItem(name,count){
-  const idx = findInventoryIndex(name);
-  if(idx === -1){
-    chatBox.innerHTML+=`<div class="msg-lose" style="opacity:0.6;font-size:12px;">⚠️ 背包找不到「${escapeHtml(name)}」，跳过本次消耗</div>`;
-    return false;
-  }
-  if(CORE.inventory[idx].count < count) count = CORE.inventory[idx].count;
-  CORE.inventory[idx].count -= count;
-  const itemName = CORE.inventory[idx].name;
-  if(CORE.inventory[idx].count <= 0) CORE.inventory.splice(idx,1);
-  chatBox.innerHTML+=`<div class="msg-lose">${icon('consume','#f87171')}消耗：${escapeHtml(itemName)} ×${count}</div>`;
-  if(typeof soundDing==='function')soundDing(560,0.25,0.35);
-  return true;
-}
-function deleteItem(name){
-  const idx = findInventoryIndex(name);
-  if(idx === -1){
-    chatBox.innerHTML+=`<div class="msg-lose" style="opacity:0.6;font-size:12px;">⚠️ 背包找不到「${escapeHtml(name)}」，无法删除</div>`;
-    return;
-  }
-  const n = CORE.inventory[idx].name;
-  CORE.inventory.splice(idx,1);
-  chatBox.innerHTML+=`<div class="msg-lose">已移除物品：${escapeHtml(n)}</div>`;
-}
 function addRing(name,desc){const existing=CORE.rings.find(r=>r.name===name);if(existing)existing.count=(existing.count||1)+1;else CORE.rings.push({name,count:1,desc:desc||''});chatBox.innerHTML+=`<div class="msg-ring">${icon('ring','#c084fc')}魂环：${escapeHtml(name)}</div>`;triggerBtnDot('openRings');if(typeof soundDing==='function')soundDing(988,0.45,0.5)}
 function deleteRing(name){const idx=CORE.rings.findIndex(r=>r.name===name);if(idx!==-1){CORE.rings.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除魂环：${escapeHtml(name)}</div>`}}
 function addSkill(name,desc){if(CORE.skills.find(s=>s.name===name))return;CORE.skills.push({name,desc:desc||''});chatBox.innerHTML+=`<div class="msg-skill">${icon('skill','#60a5fa')}魂技：${escapeHtml(name)}</div>`;if(typeof soundDing==='function')soundDing(784,0.4,0.45)}
@@ -691,7 +598,7 @@ ${text}`;
 //  状态更新解析
 // ============================================================
 function parseStatusUpdate(text){
-const update={age:null,soulPowerBase:0,soulPowerAbsolute:null,items:[],consumed:[],delItems:[],skills:[],delSkills:[],rings:[],delRings:[],traits:[],delTraits:[],npcs:[],delNpcs:[],time:null,era:null,archiveEra:null,weather:null};
+const update={age:null,soulPowerBase:0,soulPowerAbsolute:null,skills:[],delSkills:[],rings:[],delRings:[],traits:[],delTraits:[],npcs:[],delNpcs:[],time:null,era:null,archiveEra:null,weather:null};
 let block='';
 const m=text.match(/【状态更新】([\s\S]*?)(?=【选项】|$)/);
 if(m){block=m[1]}else{const lines=text.split('\n');const statusLines=[];for(const line of lines){const t=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();if(STATUS_LINE_RE.test(t))statusLines.push(t)}block=statusLines.join('\n')}
@@ -704,13 +611,10 @@ const lines=block.split('\n').map(l=>l.trim()).filter(Boolean);
 for(let line of lines){
 line=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();
 if(!line)continue;
-const km=line.match(/^(获得物品|消耗物品|使用物品|删除物品|获得魂技|删除魂技|获得魂环|删除魂环|获得特质|删除特质|人物|重要人物|新人物|删除人物|时间|天气|时期|归档时期)[：:]\s*(.+)$/);
+const km=line.match(/^(获得魂技|删除魂技|获得魂环|删除魂环|获得特质|删除特质|人物|重要人物|新人物|删除人物|时间|天气|时期|归档时期)[：:]\s*(.+)$/);
 if(!km)continue;
 const kw=km[1];const content=km[2].trim();
-if(kw==='获得物品')smartSplit(content).forEach(seg=>{const p=parseSeg(seg);if(!isPlaceholder(p.name))update.items.push(p)});
-else if(kw==='消耗物品'||kw==='使用物品')smartSplit(content).forEach(seg=>{const p=parseSeg(seg);if(!isPlaceholder(p.name))update.consumed.push({name:p.name,count:p.count})});
-else if(kw==='删除物品')smartSplit(content).forEach(seg=>{const n=seg.split(/[（(]/)[0].trim();if(!isPlaceholder(n))update.delItems.push(n)});
-else if(kw==='获得魂技')smartSplit(content).forEach(seg=>{const p=parseSeg(seg);if(!isPlaceholder(p.name))update.skills.push({name:p.name,desc:p.desc})});
+if(kw==='获得魂技')smartSplit(content).forEach(seg=>{const p=parseSeg(seg);if(!isPlaceholder(p.name))update.skills.push({name:p.name,desc:p.desc})});
 else if(kw==='删除魂技')smartSplit(content).forEach(seg=>{const n=seg.trim();if(!isPlaceholder(n))update.delSkills.push(n)});
 else if(kw==='获得魂环')smartSplit(content).forEach(seg=>{const p=parseSeg(seg);if(!isPlaceholder(p.name))update.rings.push({name:p.name,desc:p.desc})});
 else if(kw==='删除魂环')smartSplit(content).forEach(seg=>{const n=seg.trim();if(!isPlaceholder(n))update.delRings.push(n)});
@@ -758,10 +662,6 @@ if(CORE.soulPower!==oldSP){
 }
 if(update.era)setEra(update.era);
 if(update.archiveEra)archiveEra(update.archiveEra);
-// 先消耗、再删除、最后获得——避免"卖旧买新"时把新买的扣掉
-update.consumed.forEach(c=>consumeItem(c.name,c.count));
-update.delItems.forEach(n=>deleteItem(n));
-update.items.forEach(i=>addItem(i.name,i.count,i.desc));
 update.skills.forEach(s=>addSkill(s.name,s.desc));
 update.delSkills.forEach(n=>deleteSkill(n));
 update.rings.forEach(r=>addRing(r.name,r.desc));
@@ -824,45 +724,6 @@ function sniffNarrativeUpdates(fullReply, update){
       }
     }
   }
-
-  if(update.items.length === 0){
-    const gainRe = /(?:你|主角)(?:捡起|捡到|拾起|拾取|得到|获得|拿走|入手|收下|收起|收入囊中)(?:了)?(?:[一二两三四五六七八九十百千万]+|\d+)?\s*[把柄枚个颗件本张块份瓶袋支根条片滴粒包株壶缸]?\s*([^\s，。！？,.!?、；;""]{2,8})/;
-    const gm = gainRe.exec(narrative);
-    if(gm){
-      const nm = gm[1].trim();
-      const skipWords = /^(他|她|它|我|目光|视线|神|头|身|手|脚|心|气|力量|魂力|警觉|寒意|意识|自由|主动|教训|便宜|消息|信息|风声|传言|好处|坏处|机会|线索)$/;
-      if(nm.length >= 2 && nm.length <= 8 && !skipWords.test(nm) && findInventoryIndex(nm) === -1){
-        update.items.push({name: nm, count: 1, desc: '（叙事嗅探）'});
-        chatBox.innerHTML += `<div class="msg-sys" style="font-size:12px;color:#a78bfa;">⚠️ 正文检测到获得物品但状态块未写，已自动补录：${escapeHtml(nm)}×1</div>`;
-      }
-    }
-  }
-
-  if(update.consumed.length === 0){
-    // 从背包反向匹配：遍历背包物品，检查是否出现在正文里，且附近有消耗动词
-    const consumeVerbs = /(?:吃|喝|饮|吞|咽|服|用掉|耗费|花费|花掉|消耗|使用了|掏出|拿出|取出|消灭|干掉|耗尽|嚼|咬|塞)/;
-    let consumedName = null;
-    for(const item of CORE.inventory){
-      const raw = String(item.name || '').trim();
-      if(!raw) continue;
-      const nm = normalizeItemName(raw);
-      if(!nm || nm.length < 2) continue;
-      let hitIdx = narrative.indexOf(raw);
-      if(hitIdx === -1 && nm !== raw) hitIdx = narrative.indexOf(nm);
-      if(hitIdx === -1) continue;
-      const start = Math.max(0, hitIdx - 35);
-      const end = Math.min(narrative.length, hitIdx + nm.length + 20);
-      const ctx = narrative.slice(start, end);
-      if(consumeVerbs.test(ctx)){
-        consumedName = raw;
-        break;
-      }
-    }
-    if(consumedName){
-      update.consumed.push({name: consumedName, count: 1});
-      chatBox.innerHTML += `<div class="msg-sys" style="font-size:12px;color:#a78bfa;">⚠️ 正文检测到消耗物品但状态块未写，已自动补扣：${escapeHtml(consumedName)}×1</div>`;
-    }
-  }
 }
 
 // ============================================================
@@ -881,7 +742,6 @@ s+=`当前时期：${CORE.era}\n`;
 s+=`魂环：${CORE.rings.map(r=>r.name).join('、')||'无'}\n`;
 s+=`魂技：${CORE.skills.map(x=>x.name).join('、')||'无'}\n`;
 s+=`特质：${CORE.traits.map(t=>t.name).join('、')||'无'}\n`;
-s+=`背包：${CORE.inventory.map(i=>i.name+'×'+i.count).join('、')||'空'}\n`;
 const activeNPCs=CORE.npcs.filter(n=>n.status!=='archived');
 const archivedNPCs=CORE.npcs.filter(n=>n.status==='archived');
 if(activeNPCs.length>0)s+=`【现役人物】\n${activeNPCs.map(n=>`- ${n.name}（${n.gender}·${n.soul}·魂力${n.soulPower||'?'}·${n.relation}）：${n.desc||''}`).join('\n')}\n`;
@@ -1013,12 +873,12 @@ throw e;
 // ============================================================
 function handleDebugCommand(rawText){
 let text=rawText.trim();
-if(!text){chatBox.innerHTML+=`<div class="msg-debug">用法：/调试 获得金币50</div>`;return}
+if(!text){chatBox.innerHTML+=`<div class="msg-debug">用法：/调试 获得魂环 百年</div>`;return}
 text=normalizeDebugText(text);
 const pseudo=`【状态更新】\n${text}\n`;
 const update=parseStatusUpdate(pseudo);
-const hasAny=update.items.length>0||update.consumed.length>0||update.delItems.length>0||update.skills.length>0||update.delSkills.length>0||update.rings.length>0||update.delRings.length>0||update.traits.length>0||update.delTraits.length>0||update.npcs.length>0||update.delNpcs.length>0||update.time!==null||update.era!==null||update.archiveEra!==null||update.weather!==null||update.soulPowerAbsolute!==null||update.soulPowerBase!==0||update.age!==null;
-if(!hasAny){chatBox.innerHTML+=`<div class="msg-debug">无法识别，请用：/调试 获得物品：金币×50</div>`;return}
+const hasAny=update.skills.length>0||update.delSkills.length>0||update.rings.length>0||update.delRings.length>0||update.traits.length>0||update.delTraits.length>0||update.npcs.length>0||update.delNpcs.length>0||update.time!==null||update.era!==null||update.archiveEra!==null||update.weather!==null||update.soulPowerAbsolute!==null||update.soulPowerBase!==0||update.age!==null;
+if(!hasAny){chatBox.innerHTML+=`<div class="msg-debug">无法识别，请用：/调试 获得魂环 百年</div>`;return}
 applyUpdate(update);
 chatBox.innerHTML+=`<div class="msg-debug">调试已应用</div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
@@ -1035,25 +895,17 @@ function handleLoreTest(testInput){
 }
 
 function normalizeDebugText(text){
-if(/^(获得物品|消耗物品|使用物品|删除物品|获得魂技|删除魂技|获得魂环|删除魂环|获得特质|删除特质|人物|重要人物|新人物|删除人物|时间|天气|魂力|年龄|时期|归档时期)[：:]/.test(text))return text;
+if(/^(获得魂技|删除魂技|获得魂环|删除魂环|获得特质|删除特质|人物|重要人物|新人物|删除人物|时间|天气|魂力|年龄|时期|归档时期)[：:]/.test(text))return text;
 let m;
 if((m=text.match(/^年龄\s*(\d+)\s*$/)))return `年龄：${m[1]}`;
 if((m=text.match(/^魂力\s*([+-]?\d+)\s*$/)))return `魂力 ${m[1]}`;
 if((m=text.match(/^魂力\s*(?:提升至|提升到|达到|变为)\s*(\d+)\s*$/)))return `魂力 提升至${m[1]}`;
 if((m=text.match(/^(?:认识|遇见|遇到|结识|加入|新增)\s*(?:人物|npc|NPC)?\s*(.+?)\s*$/))){const n=m[1].trim();if(n)return `人物：${n}/未知/未知/未知/相识/`}
 if((m=text.match(/^删除人物\s+(.+?)\s*$/)))return `删除人物：${m[1]}`;
-if((m=text.match(/^(?:消耗|使用|吃掉|用掉|花掉|扣除)\s*(\d+)\s*(个|枚|颗|件|本|张|块|份|瓶|袋|把|支|根|条|片|滴)?\s*(.+?)\s*$/)))return `消耗物品：${m[3]}×${m[1]}`;
-if((m=text.match(/^(?:消耗|使用|吃掉|用掉|花掉|扣除)\s*(.+?)\s*(\d+)\s*(个|枚|颗|件|本|张|块|份|瓶|袋|把|支|根|条|片|滴)?\s*$/)))return `消耗物品：${m[1]}×${m[2]}`;
-if((m=text.match(/^(?:消耗|使用|吃掉|用掉|花掉|扣除)\s*(.+?)\s*$/)))return `消耗物品：${m[1].trim()}×1`;
-if((m=text.match(/^删除物品\s*(.+?)\s*$/)))return `删除物品：${m[1]}`;
 if((m=text.match(/^获得\s*(.+?)\s*魂环\s*$/)))return `获得魂环：${m[1]}`;
 if((m=text.match(/^获得\s*(.+?)\s*魂技\s*$/)))return `获得魂技：${m[1]}`;
 if((m=text.match(/^获得\s*(.+?)\s*特质\s*$/)))return `获得特质：${m[1]}(先天)`;
-if((m=text.match(/^获得\s*([一二三四五六七八九十百千万]+)\s*(个|枚|颗|件|本|张|块|份|瓶|袋|把|支|根|条|片|滴)?\s*(.+?)\s*$/))){const num=chineseToNumber(m[1]);if(num>0)return `获得物品：${m[3]}×${num}`}
-if((m=text.match(/^获得\s*(.+?)\s*(\d+)\s*(个|枚|颗|件|本|张|块|份|瓶|袋|把|支|根|条|片|滴)?\s*$/)))return `获得物品：${m[1]}×${m[2]}`;
-if((m=text.match(/^获得\s*(\d+)\s*(个|枚|颗|件|本|张|块|份|瓶|袋|把|支|根|条|片|滴)?\s*(.+?)\s*$/)))return `获得物品：${m[3]}×${m[1]}`;
-if((m=text.match(/^获得\s*(.+?)\s*([一二三四五六七八九十百千万]+)\s*(个|枚|颗|件|本|张|块|份|瓶|袋|把|支|根|条|片|滴)?\s*$/))){const num=chineseToNumber(m[2]);return `获得物品：${m[1]}×${num}`}
-return `获得物品：${text}×1`;
+return '';
 }
 
 // ============================================================
@@ -1111,7 +963,6 @@ ${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
 
 【状态更新】
 时间：次日·下午
-获得物品：蝶形木牌×1（老者的入谷信物）
 人物：守门老者/男/未知/未知/引路人/白发苍苍，性情温和
 
 【选项】
@@ -1126,7 +977,6 @@ ${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
 
 ## 状态更新格式
 年龄:N / 魂力+N 或 魂力提升至N / 时间:xxx / 天气:晴阴雨雪雾雷风
-获得|消耗|删除物品：名×N（可选描述）
 获得|删除魂技：名（描述）
 获得|删除魂环：百年
 获得|删除特质：名(先天)（描述）
@@ -1136,8 +986,6 @@ ${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
 ## 硬约束
 - 时间每轮必写；其他字段仅在有变化时写，绝不写"无"。
 - 只有写进【状态更新】的才生效，叙事里提"魂力提升"不算。
-- 物品名必须与【主角档案】背包栏里完全一致（背包写"金魂币"就写"金魂币"，不能写"金币"）。
-- 用/吃/卖物品 → 消耗物品：名×N；收/买/捡 → 获得物品：名×N；交易写两行。
 - 人物行第 3 段是武魂名（不是人名）；无信息填"未知"。
 - 主角性别为 ${CORE.gender}，据此调整称呼、外貌、心理与社交描写。
 
@@ -1239,7 +1087,7 @@ const oldLen=oldSummary.length;
 const START=200,STEP=20,MAX=500;
 const targetLen=oldLen===0?START:Math.min(oldLen+STEP,MAX);
 const prompt=`把「旧摘要」和「新对话」融合成一份新摘要。
-目标长度约${targetLen}字，第三人称，保留有后续影响的内容（人物、地点、目标、承诺、身份、物品、能力），丢弃琐事。
+目标长度约${targetLen}字，第三人称，保留有后续影响的内容（人物、地点、目标、承诺、身份、能力），丢弃琐事。
 直接输出正文，不要任何前缀。
 
 【旧摘要】${oldSummary||'（开头）'}
@@ -1282,7 +1130,6 @@ document.getElementById('roleDesc').value=reply.trim();
 }catch(e){alert("生成失败："+e.message)}
 }
 
-// 优化当前设定：无论长短都重写为 150 字左右的高密度版本，玩家可见
 async function refineCharacter(){
   const desc = document.getElementById('roleDesc').value.trim();
   const apiKey = document.getElementById('apiKey').value.trim();
@@ -1346,7 +1193,7 @@ CORE.roleDesc=roleDesc||"无详细设定";
 CORE.innatePower=Math.min(Math.max(innate,1),10);
 CORE.soulPower=CORE.innatePower;
 CORE.summary='';
-CORE.rings=[];CORE.skills=[];CORE.inventory=[];CORE.traits=[];CORE.npcs=[];
+CORE.rings=[];CORE.skills=[];CORE.traits=[];CORE.npcs=[];
 CORE.time='觉醒武魂当天';
 CORE.era='初始';
 CORE.weather='';
@@ -1459,7 +1306,7 @@ if(hasValidSave && !confirm("已有存档，开始新游戏会覆盖。确定？
 
 localStorage.removeItem('douro2Save');
 const _keepAvatar = CORE.avatar || '';
-Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''});
+Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''});
 Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 
 resetScene();

@@ -65,7 +65,7 @@
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
 <div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V61 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V62 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">
@@ -73,7 +73,6 @@
 <div class="btn-group">
 <button class="ctrl-btn" onclick="openRings()">魂环</button>
 <button class="ctrl-btn" onclick="openSkills()">魂技</button>
-<button class="ctrl-btn" onclick="openBag()">背包</button>
 <button class="ctrl-btn" onclick="openTraits()">特质</button>
 <button class="ctrl-btn" onclick="openNPCs()">人物</button>
 <button class="ctrl-btn" onclick="openMore()">⋯</button>
@@ -98,7 +97,6 @@
 </div>
 
 <!-- 属性面板弹窗 -->
-<div class="modal-overlay" id="bagModal"><div class="modal-box"><h3>背包物品</h3><div id="bagContent" class="expandable-list">空</div><div class="btn-row"><button class="btn-close" onclick="closeModal('bagModal')">关闭</button></div></div></div>
 <div class="modal-overlay" id="ringsModal"><div class="modal-box"><h3>魂环</h3><div id="ringsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('ringsModal')">关闭</button></div></div></div>
 <div class="modal-overlay" id="skillsModal"><div class="modal-box"><h3>魂技</h3><div id="skillsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('skillsModal')">关闭</button></div></div></div>
 <div class="modal-overlay" id="traitsModal"><div class="modal-box"><h3>特质 / 称号</h3><div id="traitsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('traitsModal')">关闭</button></div></div></div>
@@ -172,7 +170,7 @@
 <button type="button" class="ctrl-btn" onclick="openTokenPanel()" style="padding:6px 12px;font-size:13px;">查看</button>
 </div>
 <div class="setting-row">
-<div class="setting-label"><div class="setting-title">音效</div><div class="setting-desc">打字、物品、晋阶等提示音</div></div>
+<div class="setting-label"><div class="setting-title">音效</div><div class="setting-desc">打字、晋阶等提示音</div></div>
 <label class="switch"><input type="checkbox" id="setSound" onchange="toggleSound(this.checked)"><span class="slider"></span></label>
 </div>
 <div class="setting-row">
