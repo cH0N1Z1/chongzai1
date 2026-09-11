@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>绝世唐门</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#161b22">
+</head>
+<body>
+<div id="mode-select">
+<h2 style="text-align:center;margin-bottom:8px">绝世唐门</h2>
+<p style="text-align:center;font-size:14px;color:#9ca3af;margin-bottom:20px">选择游戏模式</p>
+<button class="mode-btn" onclick="selectMode('rpg')">
+<div class="mode-title">角色扮演模式</div>
+<div class="mode-tag">测试版</div>
+<div class="mode-desc">扮演一名魂师，在斗罗大陆展开冒险</div>
+</button>
+<button class="mode-btn disabled" onclick="selectMode('sim')">
+<div class="mode-title">模拟器模式</div>
+<div class="mode-tag">未开放</div>
+<div class="mode-desc">模拟经营魂师学院，敬请期待</div>
+</button>
+</div>
+<div id="config-panel" class="hidden">
+<h2 style="margin:0 0 5px">绝世唐门</h2>
+<p style="font-size:14px;color:#9ca3af;margin:0 0 10px">状态行识别 · 调试命令 · 可开关图标</p>
+<div id="saveInfoBox" class="save-info hidden"></div>
+<label>API Key (DeepSeek)</label>
+<input id="apiKey" type="password" placeholder="sk-..." value="">
+<div id="config-inputs">
+<label>角色名</label>
+<input id="roleName" placeholder="如：唐舞桐" value="唐舞桐">
+<label>角色设定</label>
+<textarea id="roleDesc" placeholder="女，粉蓝色长发...">女，粉蓝色长发，容貌精致，性格温柔而坚韧，出身于史莱克学院，对魂导器有独特天赋。</textarea>
+<button class="btn-generate" onclick="generateCharacter()">AI生成角色设定</button>
+<label>先天魂力（1-10）</label>
+<input id="innatePower" type="number" min="1" max="10" value="5">
+<label>武魂选择</label>
+<div class="radio-group">
+<label><input type="radio" name="soulChoice" value="random" checked> 随机觉醒</label>
+<label><input type="radio" name="soulChoice" value="custom"> 自选武魂</label>
+</div>
+<div id="customSoulDiv" class="hidden">
+<input id="customSoul" placeholder="输入武魂名称，如：光明女神蝶">
+</div>
+</div>
+<button id="continueBtn" class="btn-continue hidden" onclick="continueGame()">继续游戏</button>
+<button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
+<button class="btn-secondary" onclick="resetSave()">重置存档</button>
+<div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 v20 · 若显示旧版请卸载 PWA 重装</div>
+</div>
+
+<div id="game-area">
+<div id="top-bar">
+<span class="badge">绝世唐门</span>
+<div class="btn-group">
+<button class="ctrl-btn home" onclick="goHome()">主界面</button>
+<button class="ctrl-btn" onclick="openRings()">魂环</button>
+<button class="ctrl-btn" onclick="openSkills()">魂技</button>
+<button class="ctrl-btn" onclick="openBag()">背包</button>
+<button class="ctrl-btn" onclick="openTraits()">特质</button>
+<button class="ctrl-btn" onclick="openNPCs()">人物</button>
+<button class="ctrl-btn" onclick="openLibrary()">素材库</button>
+<button class="ctrl-btn" onclick="openSummaryEditor()">摘要</button>
+<button class="ctrl-btn" onclick="openAvatarManager()">头像</button>
+<button class="ctrl-btn" onclick="openSettings()">设置</button>
+</div>
+</div>
+<div id="status-bar">
+<span id="s-avatar" style="flex-shrink:0;display:inline-flex;"></span>
+<span class="stat"><span class="stat-label">姓名</span> <span id="s-name" class="stat-value">-</span></span>
+<span class="stat"><span class="stat-label">年龄</span> <span id="s-age" class="stat-value">-</span></span>
+<span class="stat"><span class="stat-label">武魂</span> <span id="s-soul" class="stat-value highlight">-</span></span>
+<span class="stat"><span class="stat-label">魂力</span> <span id="s-soulpower" class="stat-value">-</span></span>
+<span class="stat"><span class="stat-label">阶段</span> <span id="s-stage" class="stat-value">-</span></span>
+<span class="stat"><span class="stat-label">时间</span> <span id="s-time" class="stat-value">-</span></span>
+<span class="stat hidden" id="token-stat"><span class="stat-label">Token</span> <span id="s-token" class="stat-value">0</span></span>
+</div>
+<div id="chat-box"><div class="msg-sys">准备觉醒武魂...</div></div>
+<div id="options-area"></div>
+<div id="input-row">
+<input id="userInput" placeholder="输入动作，或 /调试 ..." onkeydown="if(event.keyCode==13) sendAction()">
+<button id="sendBtn" onclick="sendAction()">发送</button>
+</div>
+</div>
+
+<div class="modal-overlay" id="bagModal"><div class="modal-box"><h3>背包物品</h3><div id="bagContent" class="expandable-list">空</div><div class="btn-row"><button class="btn-close" onclick="closeModal('bagModal')">关闭</button></div></div></div>
+<div class="modal-overlay" id="ringsModal"><div class="modal-box"><h3>魂环</h3><div id="ringsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('ringsModal')">关闭</button></div></div></div>
+<div class="modal-overlay" id="skillsModal"><div class="modal-box"><h3>魂技</h3><div id="skillsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('skillsModal')">关闭</button></div></div></div>
+<div class="modal-overlay" id="traitsModal"><div class="modal-box"><h3>特质 / 称号</h3><div id="traitsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('traitsModal')">关闭</button></div></div></div>
+<div class="modal-overlay" id="npcsModal"><div class="modal-box"><h3>重要人物</h3><div id="npcsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('npcsModal')">关闭</button></div></div></div>
+
+<div class="modal-overlay" id="libraryModal">
+<div class="modal-box">
+<h3>素材库</h3>
+<div style="margin-bottom:12px;">
+<button class="lib-tab active" data-tab="images" onclick="switchLibTab('images')">图片素材</button>
+<button class="lib-tab" data-tab="worldbook" onclick="switchLibTab('worldbook')">世界观资料</button>
+</div>
+<div id="libContent" style="background:#0d1117;border-radius:8px;margin:6px 0;max-height:35vh;overflow-y:auto;"></div>
+<div style="border-top:1px solid #30363d;padding-top:12px;margin-top:8px;">
+<input id="libNewKey" placeholder="关键词（如：史莱克学院）" style="width:100%;padding:8px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;font-size:13px;margin-bottom:6px;">
+<input id="libNewValue" placeholder="图片URL，或世界观设定文本" style="width:100%;padding:8px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;font-size:13px;margin-bottom:6px;">
+<div style="display:flex;gap:6px;">
+<button class="btn-secondary" style="margin-top:0;font-size:12px;" onclick="document.getElementById('libNewFile').click()">选本地图</button>
+<button class="btn-primary" style="margin-top:0;font-size:14px;" onclick="addLibEntry()">添加</button>
+</div>
+<input id="libNewFile" type="file" accept="image/*" style="display:none;">
+</div>
+<div class="btn-row"><button class="btn-close" onclick="closeModal('libraryModal')">关闭</button></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="imageViewModal">
+<div class="modal-box">
+<h3>查看图片</h3>
+<div id="imageViewContent"></div>
+<div class="btn-row"><button class="btn-close" onclick="closeModal('imageViewModal')">关闭</button></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="summaryModal">
+<div class="modal-box">
+<h3>剧情摘要（可手动编辑）</h3>
+<textarea id="summaryTextarea" style="width:100%;height:220px;padding:10px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;font-size:13px;resize:vertical;line-height:1.6;"></textarea>
+<div class="btn-row">
+<button class="btn-close" onclick="closeModal('summaryModal')">取消</button>
+<button class="btn-save" onclick="saveSummaryEdit()">保存</button>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="avatarModal">
+<div class="modal-box">
+<h3>角色头像 / 立绘</h3>
+<div style="margin-bottom:12px;">
+<div style="font-size:13px;color:#8b949e;margin-bottom:6px;">主角头像</div>
+<div style="display:flex;align-items:center;gap:12px;">
+<div id="avatarPreview"></div>
+<button style="padding:8px 14px;font-size:12px;border-radius:20px;border:none;background:#4a5568;color:#fff;cursor:pointer;" onclick="uploadAvatar()">上传</button>
+</div>
+</div>
+<div style="margin-bottom:12px;border-top:1px solid #1f2937;padding-top:12px;">
+<div style="font-size:13px;color:#8b949e;margin-bottom:6px;">主角立绘</div>
+<div id="portraitPreview"></div>
+<button style="margin-top:6px;padding:8px 14px;font-size:12px;border-radius:20px;border:none;background:#4a5568;color:#fff;cursor:pointer;width:100%;" onclick="uploadPortrait()">上传立绘</button>
+</div>
+<div style="border-top:1px solid #1f2937;padding-top:12px;">
+<div style="font-size:13px;color:#8b949e;margin-bottom:6px;">人物头像（覆盖默认头像）</div>
+<div id="npcAvatarList" style="max-height:200px;overflow-y:auto;"></div>
+</div>
+<div class="btn-row">
+<button class="btn-close" onclick="closeModal('avatarModal')">关闭</button>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+<div class="modal-box">
+<h3>显示设置</h3>
+<div class="setting-row">
+<div class="setting-label"><div class="setting-title">联网头像</div><div class="setting-desc">为人物显示 DiceBear 风格头像（需联网）</div></div>
+<label class="switch"><input type="checkbox" id="setAvatar" onchange="toggleSetting('useAvatar',this.checked)"><span class="slider"></span></label>
+</div>
+<div class="setting-row">
+<div class="setting-label"><div class="setting-title">精美图标</div><div class="setting-desc">用 SVG 图标替换文字标签</div></div>
+<label class="switch"><input type="checkbox" id="setIcons" onchange="toggleSetting('useIcons',this.checked)"><span class="slider"></span></label>
+</div>
+<div class="setting-row">
+<div class="setting-label"><div class="setting-title">魂环可视化</div><div class="setting-desc">魂环页面用同心圆展示年限</div></div>
+<label class="switch"><input type="checkbox" id="setRingsVisual" onchange="toggleSetting('useRingsVisual',this.checked)"><span class="slider"></span></label>
+</div>
+<div class="setting-row">
+<div class="setting-label"><div class="setting-title">场景氛围边框</div><div class="setting-desc">聊天框边框颜色随剧情场景变化</div></div>
+<label class="switch"><input type="checkbox" id="setSceneBg" onchange="toggleSetting('useSceneBg',this.checked)"><span class="slider"></span></label>
+</div>
+<div class="setting-row">
+<div class="setting-label"><div class="setting-title">显示 Token 消耗</div><div class="setting-desc">在状态栏显示本次会话累计 token</div></div>
+<label class="switch"><input type="checkbox" id="setTokenStats" onchange="toggleSetting('useTokenStats',this.checked)"><span class="slider"></span></label>
+</div>
+<div class="setting-row">
+<div class="setting-label"><div class="setting-title">简洁模式</div><div class="setting-desc">一键关闭所有装饰，纯文字体验</div></div>
+<label class="switch"><input type="checkbox" id="setMinimal" onchange="toggleMinimalMode(this.checked)"><span class="slider"></span></label>
+</div>
+<div class="btn-row"><button class="btn-close" onclick="closeModal('settingsModal')">完成</button></div>
+</div>
+</div>
+
+<script src="game.js"></script>
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')}
+document.addEventListener('DOMContentLoaded',function(){
+var f=document.getElementById('libNewFile');
+if(f)f.onchange=function(e){
+var file=e.target.files&&e.target.files[0];
+if(!file)return;
+if(file.size>500*1024){alert('图片超过500KB，建议压缩后上传，或使用图片URL');return}
+var r=new FileReader();
+r.onload=function(ev){document.getElementById('libNewValue').value=ev.target.result;};
+r.readAsDataURL(file);
+};
+});
+</script>
+</body>
+</html>
