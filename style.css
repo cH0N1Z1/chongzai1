@@ -43,7 +43,7 @@ body{background:#0b0e14;color:#d4d4d4;font-family:system-ui,-apple-system,sans-s
 @keyframes blink{50%{opacity:0}}
 .msg-sys{color:#8b949e;font-size:12px;text-align:center;border-top:1px dashed #30363d;padding-top:8px;margin-top:10px}
 .msg-summary{color:#a78bfa;font-size:13px;text-align:center;border-top:1px dashed #6b21a8;padding-top:6px;margin-top:8px}
-.msg-gain,.msg-lose,.msg-skill,.msg-ring,.msg-trait,.msg-npc,.msg-time,.msg-debug{font-size:13px;text-align:center;padding:4px 10px;margin:4px 0;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:flex;align-items:center;justify-content:center;gap:6px}
+.msg-gain,.msg-lose,.msg-skill,.msg-ring,.msg-trait,.msg-npc,.msg-time,.msg-debug,.msg-power{font-size:13px;text-align:center;padding:4px 10px;margin:4px 0;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:flex;align-items:center;justify-content:center;gap:6px}
 .msg-gain{color:#4ade80;background:rgba(74,222,128,.1)}
 .msg-lose{color:#f87171;background:rgba(248,113,113,.1)}
 .msg-skill{color:#60a5fa;background:rgba(96,165,250,.1)}
@@ -52,6 +52,7 @@ body{background:#0b0e14;color:#d4d4d4;font-family:system-ui,-apple-system,sans-s
 .msg-npc{color:#38bdf8;background:rgba(56,189,248,.1)}
 .msg-time{color:#94a3b8;background:rgba(148,163,184,.08);font-size:12px}
 .msg-debug{color:#a78bfa;background:rgba(167,139,250,.1);font-size:12px}
+.msg-power{color:#fbbf24;background:rgba(251,191,36,.12)}
 .msg-image{margin:8px 0;text-align:center}
 .msg-image img{max-width:100%;border-radius:10px;cursor:pointer;border:1px solid #30363d}
 .msg-image-caption{font-size:11px;color:#6b7280;margin-top:4px}
@@ -178,7 +179,8 @@ body.theme-cute .msg-ring,
 body.theme-cute .msg-trait,
 body.theme-cute .msg-npc,
 body.theme-cute .msg-time,
-body.theme-cute .msg-debug {
+body.theme-cute .msg-debug,
+body.theme-cute .msg-power {
     align-self: center;
 }
 
@@ -251,3 +253,205 @@ body.theme-cute .expandable-detail { background: #2a162a; color: #ffb6c1; }
 body.theme-cute .setting-title { color: #ff8da1; }
 body.theme-cute .slider { background: #3d1e3d; }
 body.theme-cute .switch input:checked + .slider { background: #ff8da1; }
+
+/* ============================================================
+   归档人物样式
+   ============================================================ */
+.expandable-item .name.npc-archived{opacity:.65;font-style:italic;color:#a78bfa}
+body.theme-cute .msg-power{color:#ffb6c1;background:rgba(255,141,161,.15);border:1px solid rgba(255,141,161,.2)}
+body.theme-cute .expandable-item .name.npc-archived{color:#c4a3ff;opacity:.75}
+
+/* ============================================================
+   可爱主题增强 · 花边 & 装饰图案
+   仅 theme-cute + 非 minimal-mode 生效，简洁模式一键关闭
+   ============================================================ */
+
+/* ---------- 聊天框：蕾丝花边 + 点阵内纹 ---------- */
+body.theme-cute:not(.minimal-mode) #chat-box {
+  position: relative;
+  border: 3px dotted #ff8da1;
+  border-radius: 28px;
+  box-shadow:
+    0 0 0 3px #2a162a,
+    0 0 0 5px #ffb6c1,
+    0 0 0 8px #2a162a,
+    0 0 0 10px #ffb6c1,
+    0 0 0 13px #2a162a,
+    0 0 0 15px #ff8da1,
+    inset 0 0 40px rgba(255, 141, 161, 0.10);
+  background-color: #2a162a;
+  background-image:
+    radial-gradient(circle at 14px 14px, rgba(255, 182, 193, 0.20) 2px, transparent 3px),
+    radial-gradient(circle at 54px 44px, rgba(200, 162, 255, 0.14) 1.5px, transparent 2.5px),
+    radial-gradient(circle at 34px 74px, rgba(255, 209, 220, 0.16) 2px, transparent 3px);
+  background-size: 80px 80px, 110px 110px, 90px 90px;
+}
+
+/* 让聊天框周围保留空间，避免花边被裁掉 */
+body.theme-cute:not(.minimal-mode) #game-area {
+  padding: 16px 4px 4px;
+}
+
+/* ---------- 用户气泡尾部 💗 ---------- */
+body.theme-cute:not(.minimal-mode) .msg-user::after {
+  content: ' 💗';
+  font-size: 12px;
+  opacity: 0.75;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+/* ---------- AI 气泡尾部 ✨ ---------- */
+body.theme-cute:not(.minimal-mode) .msg-ai::after {
+  content: ' ✨';
+  font-size: 12px;
+  opacity: 0.7;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+/* ---------- 状态栏：虚线花边 + 外圈光环 ---------- */
+body.theme-cute:not(.minimal-mode) #status-bar {
+  position: relative;
+  border: 2px dashed #ffb6c1;
+  box-shadow:
+    0 0 0 2px #2a162a,
+    0 0 0 4px #ff8da1,
+    0 0 12px rgba(255, 141, 161, 0.25);
+}
+
+/* 状态栏里的小胶囊，右侧加一颗小爱心点缀 */
+body.theme-cute:not(.minimal-mode) #status-bar .stat {
+  background: #1a0f1a;
+  border: 1px solid #ffb6c1;
+  position: relative;
+  padding-right: 18px;
+}
+body.theme-cute:not(.minimal-mode) #status-bar .stat::after {
+  content: '♡';
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: #ff8da1;
+  opacity: 0.7;
+}
+
+/* ---------- 发送按钮：加一颗爱心 ---------- */
+body.theme-cute:not(.minimal-mode) #input-row button {
+  position: relative;
+  box-shadow: 0 0 0 2px #2a162a, 0 0 0 4px #ffb6c1, 0 3px 10px rgba(255, 141, 161, 0.3);
+}
+body.theme-cute:not(.minimal-mode) #input-row button::before {
+  content: '♡ ';
+  font-size: 14px;
+  margin-right: 2px;
+}
+
+/* ---------- 输入框：柔光边 ---------- */
+body.theme-cute:not(.minimal-mode) #input-row input {
+  box-shadow:
+    0 0 0 1px #ffb6c1,
+    inset 0 0 10px rgba(255, 141, 161, 0.12);
+}
+
+/* ---------- 顶部控制按钮：加星点 ---------- */
+body.theme-cute:not(.minimal-mode) #top-bar .ctrl-btn {
+  position: relative;
+  box-shadow: 0 0 0 1px #ffb6c1, 0 2px 6px rgba(255, 141, 161, 0.2);
+}
+body.theme-cute:not(.minimal-mode) #top-bar .ctrl-btn::after {
+  content: '✧';
+  position: absolute;
+  right: -3px;
+  top: -3px;
+  font-size: 9px;
+  color: #ffb6c1;
+  opacity: 0;
+  transition: opacity .25s;
+}
+body.theme-cute:not(.minimal-mode) #top-bar .ctrl-btn:hover::after {
+  opacity: 1;
+}
+
+/* ---------- 选项按钮：左侧小星星 ---------- */
+body.theme-cute:not(.minimal-mode) .option-btn {
+  position: relative;
+  padding-left: 26px;
+  box-shadow: inset 0 0 0 1px rgba(255, 182, 193, 0.4);
+}
+body.theme-cute:not(.minimal-mode) .option-btn::before {
+  content: '✿';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #ff8da1;
+  opacity: 0.85;
+}
+body.theme-cute:not(.minimal-mode) .option-btn:active::before {
+  content: '🌸';
+}
+
+/* ---------- 弹窗：蕾丝花边 ---------- */
+body.theme-cute:not(.minimal-mode) .modal-box {
+  border: 3px dotted #ff8da1;
+  border-radius: 28px;
+  box-shadow:
+    0 0 0 3px #2a162a,
+    0 0 0 5px #ffb6c1,
+    0 0 0 8px #2a162a,
+    0 0 0 10px #ffb6c1,
+    0 0 30px rgba(255, 141, 161, 0.35);
+  background-color: #2a162a;
+  background-image:
+    radial-gradient(circle at 12px 12px, rgba(255, 182, 193, 0.16) 2px, transparent 3px),
+    radial-gradient(circle at 52px 52px, rgba(200, 162, 255, 0.12) 1.5px, transparent 2.5px);
+  background-size: 70px 70px, 100px 100px;
+}
+
+/* 弹窗标题左右加小花 */
+body.theme-cute:not(.minimal-mode) .modal-box h3::before { content: '🌸 '; }
+body.theme-cute:not(.minimal-mode) .modal-box h3::after  { content: ' 🌸'; }
+
+/* ---------- 设置页的开关滑块：加星点 ---------- */
+body.theme-cute:not(.minimal-mode) .switch input:checked + .slider {
+  background: linear-gradient(90deg, #ff8da1, #c8a2ff);
+  box-shadow: 0 0 8px rgba(255, 141, 161, 0.5);
+}
+
+/* ---------- 属性列表里展开的卡片：加淡淡花边 ---------- */
+body.theme-cute:not(.minimal-mode) .expandable-item {
+  border-bottom: 1px dashed rgba(255, 182, 193, 0.4);
+}
+body.theme-cute:not(.minimal-mode) .expandable-detail {
+  border: 1px dashed rgba(255, 182, 193, 0.5);
+}
+
+/* ---------- 简洁模式：强制关掉所有花哨视觉 ---------- */
+body.minimal-mode #chat-box,
+body.minimal-mode #status-bar,
+body.minimal-mode .modal-box,
+body.minimal-mode #input-row button,
+body.minimal-mode #input-row input,
+body.minimal-mode #top-bar .ctrl-btn,
+body.minimal-mode .option-btn {
+  box-shadow: none !important;
+  background-image: none !important;
+}
+body.minimal-mode #chat-box { border: 2px solid #30363d !important; border-radius: 16px; }
+body.minimal-mode #status-bar { border: 1px solid #30363d !important; }
+body.minimal-mode .modal-box { border: 1px solid #30363d !important; border-radius: 16px; }
+body.minimal-mode .msg-user::after,
+body.minimal-mode .msg-ai::after,
+body.minimal-mode #input-row button::before,
+body.minimal-mode #top-bar .ctrl-btn::after,
+body.minimal-mode .option-btn::before,
+body.minimal-mode .modal-box h3::before,
+body.minimal-mode .modal-box h3::after,
+body.minimal-mode #status-bar .stat::after {
+  content: none !important;
+}
+body.minimal-mode .option-btn { padding-left: 14px; }
