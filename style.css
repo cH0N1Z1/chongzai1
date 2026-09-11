@@ -1149,3 +1149,84 @@ body.theme-water #status-bar .stat .icon { color: #7fa0b3; }
 
 /* --- 存档提示框 --- */
 body.theme-water .expandable-item .del-item { color: #d16b8a; }
+/* ============================================================
+   模块 47：加强按钮动画 + 水色主题强制统一
+   ============================================================ */
+
+/* --- 按钮按压：更明显（覆盖模块46） --- */
+@keyframes btnPress {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(0.82); }
+  65%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.ctrl-btn.btn-pressing,
+.btn-primary.btn-pressing,
+.btn-secondary.btn-pressing,
+.btn-generate.btn-pressing,
+.btn-continue.btn-pressing,
+.modal-box .btn-row button.btn-pressing,
+.mode-btn.btn-pressing,
+.rogue-btn.btn-pressing,
+.rogue-btn-primary.btn-pressing,
+.rogue-btn-ghost.btn-pressing {
+  animation: btnPress .38s cubic-bezier(.34,1.56,.64,1) !important;
+}
+
+/* --- 水色主题：select 强制自定义渲染（绕开手机原生控件） --- */
+body.theme-water select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-color: #ffffff !important;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' fill='none' stroke='%233b7fbf' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 12px !important;
+  color: #2c4a5c !important;
+  border: 1.5px solid #b3dcef !important;
+  border-radius: 12px !important;
+  padding: 8px 30px 8px 12px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  min-width: 96px;
+  max-width: 140px;
+}
+body.theme-water select option {
+  background: #ffffff !important;
+  color: #2c4a5c !important;
+}
+
+/* --- 水色主题：所有普通输入框、下拉框、滑块统一 --- */
+body.theme-water input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]),
+body.theme-water textarea {
+  background: #ffffff !important;
+  color: #2c4a5c !important;
+  border: 1.5px solid #b3dcef !important;
+  border-radius: 12px !important;
+}
+body.theme-water input::placeholder,
+body.theme-water textarea::placeholder { color: #9cb8c8 !important; }
+body.theme-water input[type=range] { accent-color: #7ec8e3 !important; }
+
+/* --- 水色主题：所有 modal 标题蓝色 --- */
+body.theme-water .modal-box h3 { color: #3b7fbf !important; }
+body.theme-water .modal-box label { color: #5a8fa8 !important; }
+
+/* --- 水色主题：气泡颜色（明确覆盖，切换主题立即生效） --- */
+body.theme-water #chat-box .msg-user {
+  background: linear-gradient(135deg, #ffe4ee, #ffd5e2) !important;
+  color: #b5567a !important;
+  border: 1px solid #ffc2d6 !important;
+}
+body.theme-water #chat-box .msg-ai {
+  background: linear-gradient(180deg, #f4faff, #eaf6fc) !important;
+  color: #2c4a5c !important;
+  border-left: 4px solid #7ec8e3 !important;
+}
+
+/* --- 主题切换过渡动画（让颜色平滑变化） --- */
+body, #chat-box, .msg-user, .msg-ai, .modal-box, #status-bar,
+#input-row input, #input-row button, .option-btn, .ctrl-btn {
+  transition: background-color .3s ease, color .3s ease, border-color .3s ease;
+}

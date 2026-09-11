@@ -64,7 +64,7 @@
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
 <div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V53 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V54 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">
@@ -132,7 +132,7 @@
 <h3>显示设置</h3>
 <div class="setting-row">
 <div class="setting-label"><div class="setting-title">聊天界面样式</div><div class="setting-desc">切换默认暗黑或可爱风格</div></div>
-<select id="setChatTheme" onchange="toggleSetting('chatTheme', this.value)" style="width:100px;padding:6px;border-radius:8px;background:#0d1117;color:#f0f6fc;border:1px solid #30363d;font-size:14px;">
+<select id="setChatTheme" onchange="toggleSetting('chatTheme', this.value)">
 <option value="default">样式1</option>
 <option value="cute">样式2</option>
 <option value="water">样式3</option>
@@ -152,7 +152,7 @@
 </div>
 <div class="setting-row">
 <div class="setting-label"><div class="setting-title">叙事风格</div><div class="setting-desc">调整 AI 的文采和节奏</div></div>
-<select id="setNarrativeStyle" onchange="toggleNarrativeStyle(this.value)" style="width:100px;padding:6px;border-radius:8px;background:#0d1117;color:#f0f6fc;border:1px solid #30363d;font-size:14px;">
+<select id="setNarrativeStyle" onchange="toggleNarrativeStyle(this.value)">
 <option value="concise">简洁</option>
 <option value="standard">标准</option>
 <option value="ornate">华丽</option>
@@ -164,7 +164,7 @@
 </div>
 <div class="setting-row">
 <div class="setting-label"><div class="setting-title">字体大小</div><div class="setting-desc">调整聊天文字大小</div></div>
-<input type="range" id="setFontScale" min="80" max="150" value="100" oninput="toggleFontScale(this.value)" style="width:120px;padding:0;background:transparent;border:none;accent-color:#238636;">
+<input type="range" id="setFontScale" min="80" max="150" value="100" oninput="toggleFontScale(this.value)" style="width:120px;padding:0;background:transparent;border:none;">
 </div>
 <div class="setting-row">
 <div class="setting-label"><div class="setting-title">Token 用量</div><div class="setting-desc">查看本次与累计消耗</div></div>
@@ -176,7 +176,7 @@
 </div>
 <div class="setting-row">
 <div class="setting-label"><div class="setting-title">音量</div><div class="setting-desc">拖动调整音效大小</div></div>
-<input type="range" id="setSoundVolume" min="0" max="100" value="20" oninput="toggleSoundVolume(this.value)" style="width:120px;padding:0;background:transparent;border:none;accent-color:#238636;">
+<input type="range" id="setSoundVolume" min="0" max="100" value="20" oninput="toggleSoundVolume(this.value)" style="width:120px;padding:0;background:transparent;border:none;">
 </div>
 <div class="setting-row">
 <div class="setting-label"><div class="setting-title">简洁模式</div><div class="setting-desc">一键关闭所有装饰，纯文字体验</div></div>
@@ -218,7 +218,7 @@
 <script>
 // —— 按钮点击脉冲动画（所有按钮渐大渐小） ——
 document.addEventListener('click', function(e){
-  const btn = e.target.closest('.ctrl-btn, .btn-primary, .btn-secondary, .btn-generate, .btn-continue, .modal-box .btn-row button, .rogue-btn, .rogue-btn-primary, .rogue-btn-ghost');
+  const btn = e.target.closest('.ctrl-btn, .btn-primary, .btn-secondary, .btn-generate, .btn-continue, .modal-box .btn-row button, .mode-btn, .rogue-btn, .rogue-btn-primary, .rogue-btn-ghost');
   if(!btn) return;
   if(btn.classList.contains('btn-pressing')) return;
   btn.classList.add('btn-pressing');
