@@ -1,5 +1,5 @@
-const C='douro-v44';
-const ASSETS=['./','./index.html','./style.css','./rogue.css','./shared.js','./rpg.js','./rogue.js','./manifest.json','./icon-192.png','./icon-512.png','./media.json'];
+const C='douro-v46';
+const ASSETS=['./','./index.html','./style.css','./rogue.css','./sound.js','./shared.js','./rpg.js','./rogue.js','./manifest.json','./icon-192.png','./icon-512.png','./media.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -19,7 +19,6 @@ self.addEventListener('fetch', e => {
   if(e.request.method !== 'GET' || !e.request.url.startsWith(self.location.origin)){
     return;
   }
-
   e.respondWith(
     fetch(e.request).then(r => {
       if(r && r.status === 200){

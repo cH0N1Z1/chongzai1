@@ -1,6 +1,6 @@
 {
-  "name": "绝世唐门",
-  "short_name": "斗罗",
+  "name": "豆虫模拟器",
+  "short_name": "豆虫",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

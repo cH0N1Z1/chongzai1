@@ -74,7 +74,7 @@ const FIXED_WORLD=`斗罗大陆 · 绝世唐门时代（一万年后）。
 货币：金/银/铜魂币（1金=10银=100铜）。
 具体设定见资料库，优先参考资料库。`;
 
-const CORE={name:'',avatar:'',gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始'};
+const CORE={name:'',avatar:'',gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''};
 const PLOT={history:[],turn:0,isFirst:true,summaryCounter:0};
 let isGenerating=false;
 
@@ -113,7 +113,7 @@ return `<div class="rings-visual-container">${svg}${legend}</div>`;
 }
 
 // ============================================================
-//  场景氛围（模块 12 升级版）
+//  场景氛围 + 时间/天气（模块 12 + 16）
 // ============================================================
 const SCENE_PLACES = [
   {re:/星斗大森林/, name:'星斗大森林', type:'forest', emoji:'🌲'},
@@ -150,6 +150,21 @@ function detectTimeOfDay(timeStr){
   if(/夜晚|夜里|晚上/.test(timeStr)) return '夜晚';
   return '';
 }
+function getTimeEmoji(t){
+  if(!t) return '';
+  return {'清晨':'🌅','上午':'🌤','正午':'☀️','午后':'🌞','黄昏':'🌇','夜晚':'🌙','深夜':'🌃'}[t] || '';
+}
+function getWeatherEmoji(w){
+  if(!w) return '';
+  if(/晴/.test(w)) return '☀️';
+  if(/阴|多云/.test(w)) return '☁️';
+  if(/雨/.test(w)) return '🌧';
+  if(/雪/.test(w)) return '❄️';
+  if(/雾|霾/.test(w)) return '🌫';
+  if(/风/.test(w)) return '💨';
+  if(/雷/.test(w)) return '⛈';
+  return '';
+}
 
 function detectSceneFull(text){
   if(!SETTINGS.useSceneBg) return null;
@@ -172,7 +187,12 @@ function updateSceneBanner(sceneInfo){
     return;
   }
   const timePart = detectTimeOfDay(CORE.time);
-  el.textContent = sceneInfo.emoji + ' ' + sceneInfo.name + (timePart ? ' · ' + timePart : '');
+  const timeEmoji = getTimeEmoji(timePart);
+  const weatherEmoji = getWeatherEmoji(CORE.weather);
+  let txt = sceneInfo.emoji + ' ' + sceneInfo.name;
+  if(timePart) txt += ' · ' + (timeEmoji ? timeEmoji + ' ' : '') + timePart;
+  if(weatherEmoji) txt += ' ' + weatherEmoji;
+  el.textContent = txt;
   el.classList.remove('hidden');
   el.classList.remove('scene-banner-fade');
   void el.offsetWidth;
@@ -186,24 +206,27 @@ function applyScene(text){
     cb.className = cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ');
     _currentSceneKey = '';
     updateSceneBanner(null);
+    if(typeof soundStopAmbient==='function') soundStopAmbient();
     return;
   }
   const sceneInfo = detectSceneFull(text);
-  if(!sceneInfo) return;  // 没检测到新场景就保持原样
+  if(!sceneInfo) return;
   const key = sceneInfo.type;
   if(key === _currentSceneKey) return;
   _currentSceneKey = key;
   cb.className = cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ');
   cb.classList.add('scene-' + sceneInfo.type);
   updateSceneBanner(sceneInfo);
+  if(typeof soundSceneShift==='function') soundSceneShift();
+  if(typeof soundAmbient==='function') soundAmbient(sceneInfo.type);
 }
 
-// 清空场景（新游戏时用）
 function resetScene(){
-  const cb = document.getElementById('chat-box');
+  const cb=document.getElementById('chat-box');
   if(cb) cb.className = cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ');
-  _currentSceneKey = '';
+  _currentSceneKey='';
   updateSceneBanner(null);
+  if(typeof soundStopAmbient==='function') soundStopAmbient();
 }
 
 // ============================================================
@@ -229,6 +252,9 @@ if(!CORE.npcs)CORE.npcs=[];
 if(!CORE.time)CORE.time='觉醒武魂当天';
 if(!CORE.era)CORE.era='初始';
 if(CORE.avatar===undefined)CORE.avatar='';
+if(CORE.weather===undefined)CORE.weather='';
+if(CORE.chapterNum===undefined)CORE.chapterNum=0;
+if(CORE.chapterTitle===undefined)CORE.chapterTitle='';
 CORE.npcs.forEach(n=>{
   if(!n.status)n.status='active';
   if(n.era===undefined)n.era='初始';
@@ -241,7 +267,7 @@ Object.assign(PLOT,data.plot);return true}}catch(e){console.error('读档失败'
 return false;
 }
 function resetSave(){if(confirm("清空所有本地存档？")){localStorage.removeItem('douro2Save');document.getElementById('config-inputs').classList.remove('hidden');location.reload()}}
-function goHome(){if(isGenerating){alert("正在生成，请等待完成");return}if(confirm("返回主界面？")){saveToPhone();gameArea.style.display='none';configPanel.style.display='block';initApp()}}
+function goHome(){if(isGenerating){alert("正在生成，请等待完成");return}if(confirm("返回主界面？")){saveToPhone();if(typeof soundStopAmbient==='function')soundStopAmbient();gameArea.style.display='none';configPanel.style.display='block';initApp()}}
 function selectMode(mode){if(mode!=='rpg'){alert('模拟器模式尚未开放，敬请期待');return}document.getElementById('mode-select').classList.add('hidden');document.getElementById('config-panel').classList.remove('hidden');initApp().catch(e=>console.error(e))}
 
 // ============================================================
@@ -257,7 +283,7 @@ if(hasSave && (!CORE.name || CORE.martialSoul === '未觉醒')){
     localStorage.removeItem('douro2Save');
     hasSave = false;
     const _keepAvatar2 = CORE.avatar || '';
-Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始'});
+Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''});
     Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 }
 
@@ -349,7 +375,7 @@ function openNPCs(){
 function removeNPCItem(idx){CORE.npcs.splice(idx,1);updateStatus();openNPCs()}
 
 // ============================================================
-//  选项渲染（模块 13 升级版）
+//  选项渲染
 // ============================================================
 function extractOptions(text){
 const opts=[];
@@ -365,17 +391,15 @@ if(opts.length>=3)break;
 }
 return opts.slice(0,3);
 }
-
 function classifyOption(text){
   const t = String(text||'').trim();
   if(/^(攻击|战斗|出手|拔|挥|击|挑战|应战|偷袭|反手|抢先|冲上去|打|轰|砸|催动|施展)/.test(t)) return {icon:'⚔️', label:'战斗'};
   if(/^(说|问|回答|交谈|询问|告诉|开口|聊|喊|招呼|打招呼|回头|低声|高声|回应)/.test(t)) return {icon:'💬', label:'对话'};
-  if(/^(想|回忆|思考|审视|琢磨|推测|沉思|观察|打量|注意|冷静|深吸|凝神|回忆)/.test(t)) return {icon:'💭', label:'思考'};
+  if(/^(想|回忆|思考|审视|琢磨|推测|沉思|观察|打量|注意|冷静|深吸|凝神)/.test(t)) return {icon:'💭', label:'思考'};
   if(/^(用|使|吃|喝|拿|取|掏出|动用|服用|吞下|拉开|点燃)/.test(t)) return {icon:'🎒', label:'使用'};
   if(/^(去|走|进入|前往|探索|查看|搜寻|寻找|翻找|推门|离开|赶到|溜出|跟随|转身)/.test(t)) return {icon:'🔍', label:'探索'};
   return {icon:'✨', label:'行动'};
 }
-
 function appendOptions(aiOptions){
 optionsArea.innerHTML='';
 const container=document.createElement('div');
@@ -405,21 +429,21 @@ optionsArea.scrollIntoView({behavior:'smooth',block:'nearest'});
 // ============================================================
 //  状态解析
 // ============================================================
-const STATUS_LINE_RE=/^(年龄[：:]|魂力\s*[+\-：:]|魂力\s*(提升|增加|提高|升至|达到|变为)|获得物品[：:]|消耗物品[：:]|使用物品[：:]|删除物品[：:]|获得魂技[：:]|删除魂技[：:]|获得魂环[：:]|删除魂环[：:]|获得特质[：:]|删除特质[：:]|人物[：:]|重要人物[：:]|新人物[：:]|删除人物[：:]|时间[：:]|时期[：:]|归档时期[：:])/;
+const STATUS_LINE_RE=/^(年龄[：:]|魂力\s*[+\-：:]|魂力\s*(提升|增加|提高|升至|达到|变为)|获得物品[：:]|消耗物品[：:]|使用物品[：:]|删除物品[：:]|获得魂技[：:]|删除魂技[：:]|获得魂环[：:]|删除魂环[：:]|获得特质[：:]|删除特质[：:]|人物[：:]|重要人物[：:]|新人物[：:]|删除人物[：:]|时间[：:]|天气[：:]|时期[：:]|归档时期[：:])/;
 function stripStatus(text){let result=text.replace(/【状态更新】[\s\S]*?(?=【选项】|$)/g,'');result=result.replace(/【选项】[\s\S]*/g,'');const lines=result.split('\n');const kept=lines.filter(line=>{const t=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();if(!t)return true;if(STATUS_LINE_RE.test(t))return false;return true});return kept.join('\n').trim()}
 function parseSeg(seg){let name=seg,count=1,desc='';const descM=seg.match(/^(.+?)[（(](.+?)[）)]\s*$/);if(descM){name=descM[1].trim();desc=descM[2].trim()}const cntM=name.match(/[×xX*](\d+)\s*(个|枚|颗|件|本|张|块|份)?\s*$/);if(cntM){count=parseInt(cntM[1])||1;name=name.replace(/[×xX*]\d+\s*(个|枚|颗|件|本|张|块|份)?\s*$/,'').trim()}const cnM=name.match(/^(.+?)([一二三四五六七八九十百千万]+)(个|枚|颗|件|本|张|块|份)\s*$/);if(cnM){count=chineseToNumber(cnM[2]);name=cnM[1].trim()}return{name,count,desc}}
 
 // ============================================================
 //  属性操作
 // ============================================================
-function addItem(name,count,desc){const existing=CORE.inventory.find(i=>i.name===name);if(existing){existing.count+=count;if(desc&&!existing.desc)existing.desc=desc}else CORE.inventory.push({name,count,desc:desc||''});chatBox.innerHTML+=`<div class="msg-gain">${icon('item','#4ade80')}获得：${escapeHtml(name)}${count>1?` ×${count}`:''}</div>`}
-function consumeItem(name,count){let idx=CORE.inventory.findIndex(i=>i.name===name);if(idx===-1){const cleanName=name.replace(/\s+/g,'');idx=CORE.inventory.findIndex(i=>{const itemClean=i.name.replace(/\s+/g,'');return itemClean===cleanName||itemClean.includes(cleanName)||cleanName.includes(itemClean)})}if(idx===-1)return false;if(CORE.inventory[idx].count<count)count=CORE.inventory[idx].count;CORE.inventory[idx].count-=count;const itemName=CORE.inventory[idx].name;if(CORE.inventory[idx].count<=0)CORE.inventory.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">${icon('consume','#f87171')}消耗：${escapeHtml(itemName)} ×${count}</div>`;return true}
+function addItem(name,count,desc){const existing=CORE.inventory.find(i=>i.name===name);if(existing){existing.count+=count;if(desc&&!existing.desc)existing.desc=desc}else CORE.inventory.push({name,count,desc:desc||''});chatBox.innerHTML+=`<div class="msg-gain">${icon('item','#4ade80')}获得：${escapeHtml(name)}${count>1?` ×${count}`:''}</div>`;if(typeof soundDing==='function')soundDing(880,0.35)}
+function consumeItem(name,count){let idx=CORE.inventory.findIndex(i=>i.name===name);if(idx===-1){const cleanName=name.replace(/\s+/g,'');idx=CORE.inventory.findIndex(i=>{const itemClean=i.name.replace(/\s+/g,'');return itemClean===cleanName||itemClean.includes(cleanName)||cleanName.includes(itemClean)})}if(idx===-1)return false;if(CORE.inventory[idx].count<count)count=CORE.inventory[idx].count;CORE.inventory[idx].count-=count;const itemName=CORE.inventory[idx].name;if(CORE.inventory[idx].count<=0)CORE.inventory.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">${icon('consume','#f87171')}消耗：${escapeHtml(itemName)} ×${count}</div>`;if(typeof soundDing==='function')soundDing(560,0.25,0.35);return true}
 function deleteItem(name){const idx=CORE.inventory.findIndex(i=>i.name===name);if(idx!==-1){const n=CORE.inventory[idx].name;CORE.inventory.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除物品：${escapeHtml(n)}</div>`}}
-function addRing(name,desc){const existing=CORE.rings.find(r=>r.name===name);if(existing)existing.count=(existing.count||1)+1;else CORE.rings.push({name,count:1,desc:desc||''});chatBox.innerHTML+=`<div class="msg-ring">${icon('ring','#c084fc')}魂环：${escapeHtml(name)}</div>`;triggerBtnDot('openRings')}
+function addRing(name,desc){const existing=CORE.rings.find(r=>r.name===name);if(existing)existing.count=(existing.count||1)+1;else CORE.rings.push({name,count:1,desc:desc||''});chatBox.innerHTML+=`<div class="msg-ring">${icon('ring','#c084fc')}魂环：${escapeHtml(name)}</div>`;triggerBtnDot('openRings');if(typeof soundDing==='function')soundDing(988,0.45,0.5)}
 function deleteRing(name){const idx=CORE.rings.findIndex(r=>r.name===name);if(idx!==-1){CORE.rings.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除魂环：${escapeHtml(name)}</div>`}}
-function addSkill(name,desc){if(CORE.skills.find(s=>s.name===name))return;CORE.skills.push({name,desc:desc||''});chatBox.innerHTML+=`<div class="msg-skill">${icon('skill','#60a5fa')}魂技：${escapeHtml(name)}</div>`}
+function addSkill(name,desc){if(CORE.skills.find(s=>s.name===name))return;CORE.skills.push({name,desc:desc||''});chatBox.innerHTML+=`<div class="msg-skill">${icon('skill','#60a5fa')}魂技：${escapeHtml(name)}</div>`;if(typeof soundDing==='function')soundDing(784,0.4,0.45)}
 function deleteSkill(name){const idx=CORE.skills.findIndex(s=>s.name===name);if(idx!==-1){CORE.skills.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除魂技：${escapeHtml(name)}</div>`}}
-function addTrait(name,type,desc){if(CORE.traits.find(t=>t.name===name))return;CORE.traits.push({name,type,desc:desc||''});chatBox.innerHTML+=`<div class="msg-trait">${icon('trait','#fbbf24')}特质：${escapeHtml(name)}（${escapeHtml(type)}）</div>`}
+function addTrait(name,type,desc){if(CORE.traits.find(t=>t.name===name))return;CORE.traits.push({name,type,desc:desc||''});chatBox.innerHTML+=`<div class="msg-trait">${icon('trait','#fbbf24')}特质：${escapeHtml(name)}（${escapeHtml(type)}）</div>`;if(typeof soundDing==='function')soundDing(740,0.4,0.45)}
 function deleteTrait(name){const idx=CORE.traits.findIndex(t=>t.name===name);if(idx!==-1){CORE.traits.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除特质：${escapeHtml(name)}</div>`}}
 
 function addNPC(name,gender,soul,soulPower,relation,desc){
@@ -491,6 +515,7 @@ function triggerStageUpgrade(oldStage,newStage){
   banner.textContent=`晋阶 · ${newStage}`;
   document.body.appendChild(banner);
   setTimeout(()=>banner.remove(), 2300);
+  if(typeof soundUpgrade==='function') soundUpgrade();
 }
 function triggerBtnDot(onclickName){
   const btn=document.querySelector(`#top-bar .ctrl-btn[onclick="${onclickName}()"]`);
@@ -510,10 +535,39 @@ function triggerBtnGlow(onclickName){
 }
 
 // ============================================================
+//  章节系统（模块 14）
+// ============================================================
+function insertChapterDivider(num, title){
+  const html = `<div class="msg-chapter">—— 第${num}章 · ${escapeHtml(title)} ——</div>`;
+  chatBox.innerHTML += html;
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+async function generateChapterTitle(){
+  if(PLOT.history.length < 3) return;
+  const recent = PLOT.history.slice(-6);
+  const text = recent.map(m => stripStatus(m.content)).join('\n').slice(0, 800);
+  const prompt = `为以下剧情片段取一个5-8字的章节标题。
+要求：中文，古典雅致，不含标点，不含引号，不含"第X章"，直接输出标题本身。
+
+【剧情片段】
+${text}`;
+  try{
+    const title = await callDeepSeekStream([{role:'user',content:prompt}], ()=>{});
+    if(title){
+      const clean = title.trim().replace(/[「」“”"'\s\r\n]/g,'').replace(/^第[一二三四五六七八九十百]+章[·、,，]?/,'').slice(0,12);
+      if(clean.length >= 2 && clean.length <= 14){
+        return clean;
+      }
+    }
+  }catch(e){}
+  return null;
+}
+
+// ============================================================
 //  状态更新解析
 // ============================================================
 function parseStatusUpdate(text){
-const update={age:null,soulPowerBase:0,soulPowerAbsolute:null,items:[],consumed:[],delItems:[],skills:[],delSkills:[],rings:[],delRings:[],traits:[],delTraits:[],npcs:[],delNpcs:[],time:null,era:null,archiveEra:null};
+const update={age:null,soulPowerBase:0,soulPowerAbsolute:null,items:[],consumed:[],delItems:[],skills:[],delSkills:[],rings:[],delRings:[],traits:[],delTraits:[],npcs:[],delNpcs:[],time:null,era:null,archiveEra:null,weather:null};
 let block='';
 const m=text.match(/【状态更新】([\s\S]*?)(?=【选项】|$)/);
 if(m){block=m[1]}else{const lines=text.split('\n');const statusLines=[];for(const line of lines){const t=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();if(STATUS_LINE_RE.test(t))statusLines.push(t)}block=statusLines.join('\n')}
@@ -526,7 +580,7 @@ const lines=block.split('\n').map(l=>l.trim()).filter(Boolean);
 for(let line of lines){
 line=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();
 if(!line)continue;
-const km=line.match(/^(获得物品|消耗物品|使用物品|删除物品|获得魂技|删除魂技|获得魂环|删除魂环|获得特质|删除特质|人物|重要人物|新人物|删除人物|时间|时期|归档时期)[：:]\s*(.+)$/);
+const km=line.match(/^(获得物品|消耗物品|使用物品|删除物品|获得魂技|删除魂技|获得魂环|删除魂环|获得特质|删除特质|人物|重要人物|新人物|删除人物|时间|天气|时期|归档时期)[：:]\s*(.+)$/);
 if(!km)continue;
 const kw=km[1];const content=km[2].trim();
 if(kw==='获得物品')smartSplit(content).forEach(seg=>{const p=parseSeg(seg);if(!isPlaceholder(p.name))update.items.push(p)});
@@ -556,6 +610,7 @@ else if(kw==='人物'||kw==='重要人物'||kw==='新人物'){
 }
 else if(kw==='删除人物')smartSplit(content).forEach(seg=>{const n=seg.trim();if(!isPlaceholder(n))update.delNpcs.push(n)});
 else if(kw==='时间'){if(!isPlaceholder(content))update.time=content}
+else if(kw==='天气'){if(!isPlaceholder(content))update.weather=content.trim()}
 else if(kw==='时期'){if(!isPlaceholder(content))update.era=content.trim()}
 else if(kw==='归档时期'){if(!isPlaceholder(content))update.archiveEra=content.trim()}
 }
@@ -574,6 +629,7 @@ if(CORE.soulPower!==oldSP){
   if(newStage!==oldStage)txt+=` · 晋阶 ${oldStage} → ${newStage}`;
   chatBox.innerHTML+=`<div class="msg-power">${icon('power','#fbbf24')}${escapeHtml(txt)}</div>`;
   triggerStatPowerPulse();
+  if(typeof soundPower==='function') soundPower();
   if(newStage!==oldStage) triggerStageUpgrade(oldStage,newStage);
 }
 if(update.era)setEra(update.era);
@@ -590,11 +646,23 @@ update.delTraits.forEach(n=>deleteTrait(n));
 update.npcs.forEach(n=>addNPC(n.name,n.gender,n.soul,n.soulPower,n.relation,n.desc));
 update.delNpcs.forEach(n=>deleteNPC(n));
 if(update.time){CORE.time=update.time;chatBox.innerHTML+=`<div class="msg-time">${icon('time','#94a3b8')}${escapeHtml(update.time)}</div>`}
+if(update.weather){CORE.weather=update.weather;}
+if(update.time || update.weather){
+  // 时间或天气变化，刷新场景标签
+  const sceneInfo = _currentSceneKey ? detectSceneFull(_currentSceneKey) : null;
+  if(_currentSceneKey){
+    // 重新用当前场景信息刷新标签
+    const cb = document.getElementById('chat-box');
+    const type = _currentSceneKey;
+    const found = SCENE_TYPES.find(t => t.type === type) || SCENE_PLACES.find(p => p.type === type);
+    if(found) updateSceneBanner({name:found.name, type:found.type, emoji:found.emoji});
+  }
+}
 updateStatus();
 }
 
 // ============================================================
-//  主角档案（含动态世界书接线）
+//  主角档案 + 动态世界书
 // ============================================================
 function buildCoreSummary(playerInput){
 let s='';
@@ -604,6 +672,7 @@ s+=`武魂：${CORE.martialSoul}（先天魂力${CORE.innatePower}级，速度�
 if(CORE.martialSoulDesc) s+=`武魂描述：${CORE.martialSoulDesc}\n`;
 s+=`魂力：${CORE.soulPower}级（${getStage(CORE.soulPower)}）\n`;
 s+=`时间：${CORE.time}\n`;
+if(CORE.weather) s+=`天气：${CORE.weather}\n`;
 s+=`当前时期：${CORE.era}\n`;
 s+=`魂环：${CORE.rings.map(r=>r.name).join('、')||'无'}\n`;
 s+=`魂技：${CORE.skills.map(x=>x.name).join('、')||'无'}\n`;
@@ -621,8 +690,6 @@ if(archivedNPCs.length>0){
   s+='\n';
 }
 if(CORE.summary)s+=`前情：${CORE.summary}\n`;
-
-// 动态世界书注入
 if(Object.keys(MEDIA.worldbook).length>0){
   const recentText = PLOT.history.slice(-4).map(m=>stripStatus(m.content)).join('\n');
   const loreText = triggerLorebook(playerInput || '', recentText, 5);
@@ -657,6 +724,7 @@ function twTick(){
   const stick = isNearBottom();
   aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending.slice(0, tw.shown)));
   if(stick) chatBox.scrollTop = chatBox.scrollHeight;
+  if(typeof soundType==='function') soundType();
   let delay = 22;
   if('，。？！；、'.includes(ch)) delay = 100;
   else if(ch === '\n') delay = 180;
@@ -700,14 +768,12 @@ if(!text){chatBox.innerHTML+=`<div class="msg-debug">用法：/调试 获得金�
 text=normalizeDebugText(text);
 const pseudo=`【状态更新】\n${text}\n`;
 const update=parseStatusUpdate(pseudo);
-const hasAny=update.items.length>0||update.consumed.length>0||update.delItems.length>0||update.skills.length>0||update.delSkills.length>0||update.rings.length>0||update.delRings.length>0||update.traits.length>0||update.delTraits.length>0||update.npcs.length>0||update.delNpcs.length>0||update.time!==null||update.era!==null||update.archiveEra!==null||update.soulPowerAbsolute!==null||update.soulPowerBase!==0||update.age!==null;
+const hasAny=update.items.length>0||update.consumed.length>0||update.delItems.length>0||update.skills.length>0||update.delSkills.length>0||update.rings.length>0||update.delRings.length>0||update.traits.length>0||update.delTraits.length>0||update.npcs.length>0||update.delNpcs.length>0||update.time!==null||update.era!==null||update.archiveEra!==null||update.weather!==null||update.soulPowerAbsolute!==null||update.soulPowerBase!==0||update.age!==null;
 if(!hasAny){chatBox.innerHTML+=`<div class="msg-debug">无法识别，请用：/调试 获得物品：金币×50</div>`;return}
 applyUpdate(update);
 chatBox.innerHTML+=`<div class="msg-debug">调试已应用</div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
 }
-
-// 世界书测试命令
 function handleLoreTest(testInput){
   const recentText = PLOT.history.slice(-4).map(m=>stripStatus(m.content)).join('\n');
   const result = triggerLorebook(testInput || '', recentText, 5);
@@ -720,7 +786,7 @@ function handleLoreTest(testInput){
 }
 
 function normalizeDebugText(text){
-if(/^(获得物品|消耗物品|使用物品|删除物品|获得魂技|删除魂技|获得魂环|删除魂环|获得特质|删除特质|人物|重要人物|新人物|删除人物|时间|魂力|年龄|时期|归档时期)[：:]/.test(text))return text;
+if(/^(获得物品|消耗物品|使用物品|删除物品|获得魂技|删除魂技|获得魂环|删除魂环|获得特质|删除特质|人物|重要人物|新人物|删除人物|时间|天气|魂力|年龄|时期|归档时期)[：:]/.test(text))return text;
 let m;
 if((m=text.match(/^年龄\s*(\d+)\s*$/)))return `年龄：${m[1]}`;
 if((m=text.match(/^魂力\s*([+-]?\d+)\s*$/)))return `魂力 ${m[1]}`;
@@ -795,6 +861,7 @@ ${FIXED_WORLD}
 年龄：13
 魂力 +5        或  魂力 提升至13
 时间：xxx
+天气：晴/阴/雨/雪/雾/雷/风
 获得物品：物品名×数量（描述）
 消耗物品：物品名×数量
 删除物品：物品名
@@ -810,6 +877,7 @@ ${FIXED_WORLD}
 归档时期：时期名
 
 ⚠️ 时间：每轮必写。
+⚠️ 天气：只在天气变化时写，没变化就省略整行。
 ⚠️ 其他字段：只在有变化时才写！无变化就省略整行，绝对不要写"无"。
 ⚠️ 只有写进【状态更新】的属性才会更新，叙事里提到"魂力提升"不算数。
 ⚠️ 参考：主角是${CORE.age||'未知'}岁，当前魂力${CORE.soulPower}级。若剧情没有明确修炼/战斗/时间跨越，不要随意提升魂力。
@@ -832,7 +900,29 @@ ${FIXED_WORLD}
 【选项 - 必须】
 在【状态更新】块之后，必须用【选项】引出2-3个玩家可选的行动，每项用"•"开头。
 这些选项要贴合当前剧情，能推进故事，让玩家有真实选择感。`;
-const messages=[{role:"system",content:systemPrompt}];
+const narrativePrompts = {
+  concise: `【叙事风格 - 简洁】
+- 文字精炼，点到为止，不堆砌形容词
+- 对话为主，场景描写不超过 2 句
+- 关键信息优先，冗余抒情省略`,
+  standard: `【叙事风格 - 标准】
+- 平衡描写与对话，节奏舒适
+- 场景、感官、心理各一点，不铺陈
+- 不写华丽排比`,
+  ornate: `【叙事风格 - 华丽】
+- 用丰富的感官和意象，营造沉浸感
+- 场景描写可以铺陈，但不超过 6 句
+- 保留关键情节推进，不要只抒情不推动剧情`
+};
+const styleBlock = narrativePrompts[SETTINGS.narrativeStyle] || narrativePrompts.standard;
+const proactiveBlock = SETTINGS.npcProactive !== false ? `
+【NPC 主动性 - 重要】
+- 每 2~3 轮至少让一个 NPC 主动说话或采取行动（送信、求助、挑衅、提议、打断等）
+- NPC 有自己的目标和情绪，不是玩家提问才存在
+- 让世界"活着"，即使玩家发呆也可能有事发生
+` : '';
+const fullPrompt = systemPrompt + '\n\n' + styleBlock + '\n' + proactiveBlock;
+const messages=[{role:"system",content:fullPrompt}];
 const recent=PLOT.history.slice(-4);
 recent.forEach(m=>messages.push({role:m.role,content:stripStatus(m.content)}));
 messages.push({role:"user",content:isContinue?'（继续）':action});
@@ -853,9 +943,49 @@ chatBox.scrollTop=chatBox.scrollHeight;
 }
 finally{isGenerating=false;sendBtn.disabled=false;userInput.disabled=false;userInput.focus()}
 }
+// ============================================================
+//  Token 用量面板（模块 43）
+// ============================================================
+function openTokenPanel(){
+  const s = TOKEN_STATS;
+  const l = LIFETIME;
+  const IN_PRICE = 2 / 1000000;
+  const OUT_PRICE = 8 / 1000000;
+  const sCost = s.input * IN_PRICE + s.output * OUT_PRICE;
+  const lCost = l.input * IN_PRICE + l.output * OUT_PRICE;
+  const html = `
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 18px;">
+      <div style="color:#8b949e;grid-column:1/3;font-weight:bold;margin:2px 0 6px;">本次会话</div>
+      <div style="color:#8b949e;">输入</div><div style="text-align:right;">${s.input.toLocaleString()}</div>
+      <div style="color:#8b949e;">输出</div><div style="text-align:right;">${s.output.toLocaleString()}</div>
+      <div style="color:#8b949e;">合计</div><div style="text-align:right;font-weight:bold;">${s.session.toLocaleString()}</div>
+      <div style="color:#8b949e;">预估费用</div><div style="text-align:right;color:#fbbf24;">¥${sCost.toFixed(4)}</div>
+      <div style="color:#8b949e;grid-column:1/3;font-weight:bold;margin:12px 0 6px;border-top:1px dashed #30363d;padding-top:10px;">累计</div>
+      <div style="color:#8b949e;">输入</div><div style="text-align:right;">${l.input.toLocaleString()}</div>
+      <div style="color:#8b949e;">输出</div><div style="text-align:right;">${l.output.toLocaleString()}</div>
+      <div style="color:#8b949e;">合计</div><div style="text-align:right;font-weight:bold;">${l.session.toLocaleString()}</div>
+      <div style="color:#8b949e;">预估费用</div><div style="text-align:right;color:#fbbf24;">¥${lCost.toFixed(4)}</div>
+    </div>
+    <div style="font-size:11px;color:#6b7280;margin-top:12px;line-height:1.5;">* 费用按约 ¥2/百万（输入）+ ¥8/百万（输出）估算，实际以 DeepSeek 账单为准。</div>
+  `;
+  document.getElementById('tokenPanelContent').innerHTML = html;
+  openModal('tokenModal');
+}
+function resetTokenStats(){
+  if(!confirm('确定要清空累计 Token 数据吗？')) return;
+  LIFETIME.input = 0;
+  LIFETIME.output = 0;
+  LIFETIME.session = 0;
+  saveLifetimeTokens(LIFETIME);
+  openTokenPanel();
+  updateTokenDisplay();
+}
 
 // ============================================================
-//  摘要生成
+//  摘要 + 章节生成
+// ============================================================
+// ============================================================
+//  摘要 + 章节生成
 // ============================================================
 async function generateSummary(force=false){
 if(!force&&PLOT.summaryCounter<4)return;
@@ -881,6 +1011,15 @@ PLOT.summaryCounter=0;
 chatBox.innerHTML+=`<div class="msg-summary">记忆精炼 · 摘要 ${CORE.summary.length} 字</div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
 saveToPhone();
+// 同步生成章节标题
+generateChapterTitle().then(title=>{
+  if(!title) return;
+  CORE.chapterNum = (CORE.chapterNum||0) + 1;
+  CORE.chapterTitle = title;
+  insertChapterDivider(CORE.chapterNum, title);
+  if(typeof soundChapter==='function') soundChapter();
+  saveToPhone();
+});
 }
 }catch(e){PLOT.summaryCounter=0}
 }
@@ -925,6 +1064,9 @@ CORE.summary='';
 CORE.rings=[];CORE.skills=[];CORE.inventory=[];CORE.traits=[];CORE.npcs=[];
 CORE.time='觉醒武魂当天';
 CORE.era='初始';
+CORE.weather='';
+CORE.chapterNum=0;
+CORE.chapterTitle='';
 updateAvatarPreview();
 const soulChoice=document.querySelector('input[name="soulChoice"]:checked').value;
 let customSoul='';
@@ -941,7 +1083,7 @@ ${customSoul?'指定武魂：'+customSoul:'请为角色设计一个独特武魂�
 1. 用"你"生动描述觉醒场景（400-600字）
 2. 初始魂力${CORE.soulPower}级
 3. 生成3-5个先天特质
-4. 末尾必须写【状态更新】块，含：年龄：6，时间：觉醒武魂当天·上午，获得特质：xxx(先天)，人物：觉醒师/男/xxx/30级/觉醒引导者/描述
+4. 末尾必须写【状态更新】块，含：年龄：6，时间：觉醒武魂当天·上午，天气：（根据场景合理选择晴天/阴天/雨天等），获得特质：xxx(先天)，人物：觉醒师/男/xxx/30级/觉醒引导者/描述
 
 【文本分层标记】
 - 对话用 “……” 或 「……」
@@ -1009,7 +1151,7 @@ if(hasValidSave && !confirm("已有存档，开始新游戏会覆盖。确定？
 
 localStorage.removeItem('douro2Save');
 const _keepAvatar = CORE.avatar || '';
-Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始'});
+Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''});
 Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 
 resetScene();

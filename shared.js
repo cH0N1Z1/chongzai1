@@ -44,7 +44,6 @@ function formatNarrative(escapedText){
     .replace(/“([^”\n]+)”/g, '<span class="hl-speak">“$1”</span>')
     .replace(/「([^「」\n]+)」/g, '<span class="hl-speak">「$1」</span>');
 }
-
 function smartSplit(text){
   const result=[];let current='';let depth=0;
   for(let i=0;i<text.length;i++){
@@ -95,16 +94,9 @@ if(def.worldbook){for(const k in def.worldbook){if(!MEDIA.worldbook[k])MEDIA.wor
 }).catch(e=>console.warn('默认素材加载失败',e));
 }
 
-// 归一化：兼容旧格式（纯字符串）和新格式（对象）
 function normalizeWorldbookEntry(key, value){
   if(typeof value === 'string'){
-    return {
-      key: key,
-      content: value,
-      keywords: [key],
-      priority: 5,
-      type: 'selective'
-    };
+    return { key: key, content: value, keywords: [key], priority: 5, type: 'selective' };
   }
   return {
     key: key,
@@ -115,24 +107,18 @@ function normalizeWorldbookEntry(key, value){
   };
 }
 
-// 动态触发：根据玩家输入 + 最近对话，返回格式化后的资料片段
 function triggerLorebook(playerInput, recentHistory, maxEntries){
   maxEntries = maxEntries || 5;
   const inputText = String(playerInput || '') + '\n' + String(recentHistory || '');
   if(!inputText.trim()) return '';
   const hits = [];
-
   for(const key in MEDIA.worldbook){
     const entry = normalizeWorldbookEntry(key, MEDIA.worldbook[key]);
     if(!entry.content) continue;
-
-    // 常驻条目：永远注入，优先级拉满
     if(entry.type === 'constant'){
       hits.push({ entry, score: 999 + entry.priority });
       continue;
     }
-
-    // 触发条目：数命中几个关键词
     let matched = 0;
     for(const kw of entry.keywords){
       if(kw && inputText.includes(kw)) matched++;
@@ -141,11 +127,9 @@ function triggerLorebook(playerInput, recentHistory, maxEntries){
       hits.push({ entry, score: matched * 10 + entry.priority });
     }
   }
-
   hits.sort((a, b) => b.score - a.score);
   const selected = hits.slice(0, maxEntries);
   if(selected.length === 0) return '';
-
   let s = '【资料库 · 命中】\n';
   for(const h of selected){
     s += `【${h.entry.key}】${h.entry.content}\n`;
@@ -156,8 +140,20 @@ function triggerLorebook(playerInput, recentHistory, maxEntries){
 // ============================================================
 //  设置
 // ============================================================
-const SETTINGS={useIcons:true,useRingsVisual:true,useSceneBg:true,useTokenStats:false,chatTheme:'default',minimalMode:false};
+const SETTINGS={useIcons:true,useRingsVisual:true,useSceneBg:true,useTokenStats:false,chatTheme:'default',minimalMode:false,soundOn:true,soundVolume:0.2,narrativeStyle:'standard',npcProactive:true,fontScale:1};
 const TOKEN_STATS={input:0,output:0,session:0};
+function loadLifetimeTokens(){
+  try{
+    const raw=localStorage.getItem('douro2TokenLifetime');
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return {input:0,output:0,session:0};
+}
+function saveLifetimeTokens(obj){
+  try{localStorage.setItem('douro2TokenLifetime',JSON.stringify(obj));}catch(e){}
+}
+const LIFETIME=loadLifetimeTokens();
+
 function saveSettings(){try{localStorage.setItem('douro2Settings',JSON.stringify(SETTINGS))}catch(e){}}
 function loadSettings(){
 try{const raw=localStorage.getItem('douro2Settings');if(raw)Object.assign(SETTINGS,JSON.parse(raw))}catch(e){}
@@ -167,15 +163,57 @@ const elScene=document.getElementById('setSceneBg');
 const elToken=document.getElementById('setTokenStats');
 const themeSelect=document.getElementById('setChatTheme');
 const minSwitch=document.getElementById('setMinimal');
+const sndSwitch=document.getElementById('setSound');
+const sndVol=document.getElementById('setSoundVolume');
+const styleSel=document.getElementById('setNarrativeStyle');
+const npcSwitch=document.getElementById('setNpcProactive');
+const fontRange=document.getElementById('setFontScale');
 if(elIcons)elIcons.checked=SETTINGS.useIcons;
 if(elRings)elRings.checked=SETTINGS.useRingsVisual;
 if(elScene)elScene.checked=SETTINGS.useSceneBg;
 if(elToken)elToken.checked=SETTINGS.useTokenStats;
 if(themeSelect)themeSelect.value=SETTINGS.chatTheme||'default';
 if(minSwitch)minSwitch.checked=!!SETTINGS.minimalMode;
+if(sndSwitch)sndSwitch.checked=SETTINGS.soundOn!==false;
+if(sndVol)sndVol.value=Math.round((SETTINGS.soundVolume||0.2)*100);
+if(styleSel)styleSel.value=SETTINGS.narrativeStyle||'standard';
+if(npcSwitch)npcSwitch.checked=SETTINGS.npcProactive!==false;
+if(fontRange)fontRange.value=Math.round((SETTINGS.fontScale||1)*100);
+if(typeof soundSetEnabled==='function') soundSetEnabled(SETTINGS.soundOn!==false);
+if(typeof soundSetVolume==='function') soundSetVolume(SETTINGS.soundVolume||0.2);
+applyFontScale();
 document.body.classList.toggle('minimal-mode',!!SETTINGS.minimalMode);
 applyThemeClass();
 updateTokenDisplay();
+}
+
+function toggleNarrativeStyle(v){
+  SETTINGS.narrativeStyle = (v==='concise'||v==='ornate') ? v : 'standard';
+  saveSettings();
+}
+function toggleNpcProactive(on){
+  SETTINGS.npcProactive = !!on;
+  saveSettings();
+}
+function toggleFontScale(v){
+  SETTINGS.fontScale = Math.max(0.8, Math.min(1.5, parseInt(v||'100')/100));
+  applyFontScale();
+  saveSettings();
+}
+function applyFontScale(){
+  document.documentElement.style.setProperty('--font-scale', SETTINGS.fontScale||1);
+}
+
+function toggleSound(on){
+  SETTINGS.soundOn = on;
+  if(typeof soundEnsure==='function') soundEnsure();
+  if(typeof soundSetEnabled==='function') soundSetEnabled(on);
+  saveSettings();
+}
+function toggleSoundVolume(v){
+  SETTINGS.soundVolume = Math.max(0, Math.min(1, parseInt(v||'20')/100));
+  if(typeof soundSetVolume==='function') soundSetVolume(SETTINGS.soundVolume);
+  saveSettings();
 }
 function toggleSetting(key,value){
 SETTINGS[key]=value;saveSettings();
@@ -302,6 +340,10 @@ try {
           TOKEN_STATS.input+=json.usage.prompt_tokens||0;
           TOKEN_STATS.output+=json.usage.completion_tokens||0;
           TOKEN_STATS.session+=json.usage.total_tokens||0;
+          LIFETIME.input+=json.usage.prompt_tokens||0;
+          LIFETIME.output+=json.usage.completion_tokens||0;
+          LIFETIME.session+=json.usage.total_tokens||0;
+          saveLifetimeTokens(LIFETIME);
           updateTokenDisplay();
         }
         const delta=json.choices?.[0]?.delta?.content||"";
