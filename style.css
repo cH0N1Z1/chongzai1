@@ -1019,3 +1019,133 @@ body.theme-water #chat-box.scene-battle  { border-color: #ff9ba8; }
 body.theme-water #chat-box.scene-cave    { border-color: #b59be8; }
 body.theme-water #chat-box.scene-water   { border-color: #7ec8e3; }
 body.theme-water #chat-box.scene-city    { border-color: #e8b58b; }
+/* ============================================================
+   模块 46：按钮点击动效（渐大渐小脉冲）
+   ============================================================ */
+@keyframes btnPress {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(0.88); }
+  70%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.ctrl-btn.btn-pressing,
+.btn-primary.btn-pressing,
+.btn-secondary.btn-pressing,
+.btn-generate.btn-pressing,
+.btn-continue.btn-pressing,
+.modal-box .btn-row button.btn-pressing,
+.rogue-btn.btn-pressing,
+.rogue-btn-primary.btn-pressing,
+.rogue-btn-ghost.btn-pressing {
+  animation: btnPress .4s cubic-bezier(.34,1.56,.64,1);
+}
+.ctrl-btn,
+.btn-primary,
+.btn-secondary,
+.btn-generate,
+.btn-continue,
+.modal-box .btn-row button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ============================================================
+   样式 3 · 水色主题补全（统一所有控件）
+   ============================================================ */
+
+/* --- 配置面板 --- */
+body.theme-water #config-panel label { color: #5a8fa8; }
+body.theme-water #config-panel h2 { color: #3b7fbf; }
+body.theme-water .radio-group label { color: #3b5c70; }
+body.theme-water .hint { color: #8fa9b8; }
+body.theme-water .save-info {
+  background: #f4fbff;
+  border-color: #d9edf7;
+  color: #5a8fa8;
+}
+
+/* --- 所有输入框 / 下拉框 --- */
+body.theme-water #config-panel textarea,
+body.theme-water #config-panel input:not([type=range]),
+body.theme-water #config-panel select,
+body.theme-water .modal-box input:not([type=range]),
+body.theme-water .modal-box select,
+body.theme-water .modal-box textarea,
+body.theme-water #summaryTextarea {
+  background: #ffffff !important;
+  border: 1.5px solid #b3dcef !important;
+  color: #2c4a5c !important;
+  border-radius: 12px;
+}
+body.theme-water #config-panel textarea::placeholder,
+body.theme-water #config-panel input::placeholder,
+body.theme-water .modal-box input::placeholder { color: #9cb8c8; }
+body.theme-water select option { background: #ffffff; color: #2c4a5c; }
+
+/* --- 范围滑块 --- */
+body.theme-water input[type=range] { accent-color: #7ec8e3 !important; }
+
+/* --- 主按钮 --- */
+body.theme-water .btn-primary {
+  background: linear-gradient(135deg, #7ec8e3, #a8d8ee);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(126, 200, 227, 0.45);
+}
+body.theme-water .btn-continue {
+  background: linear-gradient(135deg, #ffc2d6, #ffb0c9);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(255, 176, 200, 0.5);
+}
+body.theme-water .btn-secondary {
+  background: #f4fbff;
+  color: #3b7fbf;
+  border: 1.5px solid #b3dcef;
+}
+body.theme-water .btn-generate {
+  background: linear-gradient(135deg, #b8d8f0, #a8d8ee);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(168, 216, 238, 0.4);
+}
+body.theme-water .modal-box .btn-row .btn-close {
+  background: #d4ecf7;
+  color: #3b7fbf;
+}
+body.theme-water .modal-box .btn-row .btn-save {
+  background: linear-gradient(135deg, #7ec8e3, #a8d8ee);
+  color: #ffffff;
+}
+
+/* --- 弹窗 h3 --- */
+body.theme-water .modal-box h3 { color: #3b7fbf; }
+
+/* --- moreModal 内按钮 --- */
+body.theme-water #moreModal .ctrl-btn {
+  background: linear-gradient(135deg, #e8f4fb, #d4ecf7) !important;
+  color: #3b7fbf !important;
+  border: 1px solid #a8d8ee !important;
+}
+body.theme-water #moreModal .ctrl-btn[style*="dc2626"] {
+  background: linear-gradient(135deg, #ffb0c9, #ff9ba8) !important;
+  color: #ffffff !important;
+  border-color: #ffb0c9 !important;
+}
+
+/* --- 模式选择界面 --- */
+body.theme-water #mode-select { background: #ffffff; border-color: #a8d8ee; }
+body.theme-water .mode-btn {
+  background: linear-gradient(180deg, #f4fbff, #eaf6fc);
+  border-color: #b3dcef;
+  color: #2c4a5c;
+}
+body.theme-water .mode-btn:hover { border-color: #7ec8e3; background: #eaf6fc; }
+body.theme-water .mode-title { color: #3b7fbf; }
+body.theme-water .mode-desc { color: #6b8ba0; }
+body.theme-water .mode-btn:not(.disabled) .mode-tag {
+  background: linear-gradient(135deg, #a8d8ee, #ffc2d6);
+  color: #ffffff;
+}
+
+/* --- 状态栏头像外圈（浅底上的圆形描边） --- */
+body.theme-water #status-bar .stat .icon { color: #7fa0b3; }
+
+/* --- 存档提示框 --- */
+body.theme-water .expandable-item .del-item { color: #d16b8a; }

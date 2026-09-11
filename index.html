@@ -64,7 +64,7 @@
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
 <div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V50 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V53 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">
@@ -216,6 +216,15 @@
 <script src="rpg.js"></script>
 <script src="rogue.js"></script>
 <script>
+// —— 按钮点击脉冲动画（所有按钮渐大渐小） ——
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('.ctrl-btn, .btn-primary, .btn-secondary, .btn-generate, .btn-continue, .modal-box .btn-row button, .rogue-btn, .rogue-btn-primary, .rogue-btn-ghost');
+  if(!btn) return;
+  if(btn.classList.contains('btn-pressing')) return;
+  btn.classList.add('btn-pressing');
+  setTimeout(function(){ btn.classList.remove('btn-pressing'); }, 420);
+}, true);
+
 // —— 音效初始化：首次用户交互时激活 AudioContext（修复刷新后无声） ——
 (function(){
   let done = false;
