@@ -680,7 +680,7 @@ body.theme-cute:not(.minimal-mode) .option-btn::before {
 body.theme-cute:not(.minimal-mode) .option-btn .opt-icon {
   color: #ff8da1;
   filter: drop-shadow(0 0 3px rgba(255,141,161,0.6));
-}
+}
 /* ============================================================
    模块 14：章节分隔符
    ============================================================ */
@@ -788,49 +788,53 @@ body.minimal-mode .option-btn {
   transition: opacity .2s ease;
 }
 /* ============================================================
-   样式 3 · 水色系（theme-water）
+   样式 3 · 淡蓝少女（theme-water）
    ============================================================ */
 body.theme-water {
-  background: linear-gradient(165deg, #071a2b 0%, #0a2336 55%, #0d2c40 100%);
-  color: #d4f1f4;
+  background: linear-gradient(170deg, #eef8fd 0%, #d9edf7 55%, #c9e4f2 100%);
+  color: #3b5c70;
 }
 body.theme-water #chat-box {
-  background: linear-gradient(165deg, #0f2c42 0%, #0c2539 100%);
-  border: 2px solid rgba(125, 211, 252, 0.35);
-  box-shadow: 0 0 22px rgba(125, 211, 252, 0.12), inset 0 0 24px rgba(94, 234, 212, 0.05);
+  background: linear-gradient(180deg, #ffffff 0%, #f5fbfe 100%);
+  border: 2px solid #b3dcef;
+  border-radius: 20px;
+  box-shadow: 0 4px 22px rgba(126, 200, 227, 0.22), 0 0 0 6px rgba(200, 230, 245, 0.35);
+  color: #2c4a5c;
   display: flex;
   flex-direction: column;
 }
 body.theme-water #chat-box::-webkit-scrollbar { width: 6px; }
 body.theme-water #chat-box::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #7dd3fc, #5eead4);
+  background: linear-gradient(180deg, #a8d8ee, #7ec8e3);
   border-radius: 3px;
 }
 body.theme-water #chat-box::-webkit-scrollbar-track { background: transparent; }
 
+/* ---------- 消息气泡 ---------- */
 body.theme-water .msg-user {
-  color: #7dd3fc;
-  background: linear-gradient(135deg, rgba(125, 211, 252, 0.18), rgba(94, 234, 212, 0.12));
+  color: #b5567a;
+  background: linear-gradient(135deg, #ffe4ee, #ffd5e2);
   padding: 8px 12px;
   border-radius: 16px 16px 4px 16px;
   text-align: left;
-  border: 1px solid rgba(125, 211, 252, 0.32);
+  border: 1px solid #ffc2d6;
+  box-shadow: 0 2px 6px rgba(255, 176, 200, 0.25);
 }
 body.theme-water .msg-ai {
-  color: #d4f1f4;
-  border-left: 4px solid #5eead4;
-  background: rgba(94, 234, 212, 0.07);
+  color: #2c4a5c;
+  border-left: 4px solid #7ec8e3;
+  background: linear-gradient(180deg, #f4faff, #eaf6fc);
   padding: 10px 14px;
   border-radius: 16px 16px 16px 4px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 8px rgba(126, 200, 227, 0.18);
 }
 body.theme-water .msg-row .msg-avatar {
-  border: 1px solid #7dd3fc;
-  box-shadow: 0 0 8px rgba(125, 211, 252, 0.4);
+  border: 2px solid #a8d8ee;
+  box-shadow: 0 0 0 3px rgba(200, 230, 245, 0.6);
 }
 body.theme-water .msg-row .msg-avatar .avatar-ai-inner {
-  background: linear-gradient(135deg, #7dd3fc, #5eead4);
-  color: #071a2b;
+  background: linear-gradient(135deg, #a8d8ee, #ffc2d6);
+  color: #ffffff;
 }
 
 body.theme-water .msg-sys,
@@ -845,124 +849,140 @@ body.theme-water .msg-time,
 body.theme-water .msg-debug,
 body.theme-water .msg-power { align-self: center; }
 
-body.theme-water .msg-sys { color: #7fa4b8; border-top-color: #7dd3fc; }
-body.theme-water .msg-summary { color: #7dd3fc; border-top-color: #7dd3fc; }
-body.theme-water .msg-gain { color: #4ade80; background: rgba(74, 222, 128, 0.14); border: 1px solid rgba(74, 222, 128, 0.22); }
-body.theme-water .msg-lose { color: #f87171; background: rgba(248, 113, 113, 0.14); border: 1px solid rgba(248, 113, 113, 0.22); }
-body.theme-water .msg-power { color: #5eead4; background: rgba(94, 234, 212, 0.15); border: 1px solid rgba(94, 234, 212, 0.24); }
-body.theme-water .msg-ring { color: #a5f3fc; background: rgba(165, 243, 252, 0.12); }
-body.theme-water .msg-skill { color: #7dd3fc; background: rgba(125, 211, 252, 0.12); }
-body.theme-water .msg-trait { color: #fde68a; background: rgba(253, 230, 138, 0.12); }
-body.theme-water .msg-npc { color: #67e8f9; background: rgba(103, 232, 249, 0.12); }
-body.theme-water .msg-time { color: #94a3b8; background: rgba(148, 163, 184, 0.08); }
-body.theme-water .msg-debug { color: #a5f3fc; background: rgba(165, 243, 252, 0.1); }
+body.theme-water .msg-sys { color: #8fa9b8; border-top-color: #b3dcef; }
+body.theme-water .msg-summary { color: #5a8fa8; border-top-color: #a8d8ee; }
+body.theme-water .msg-gain { color: #3d9c7a; background: rgba(126, 220, 180, 0.18); border: 1px solid rgba(126, 220, 180, 0.35); }
+body.theme-water .msg-lose { color: #d16b8a; background: rgba(255, 176, 200, 0.2); border: 1px solid rgba(255, 176, 200, 0.35); }
+body.theme-water .msg-power { color: #c9862c; background: rgba(255, 220, 150, 0.28); border: 1px solid rgba(255, 210, 130, 0.4); }
+body.theme-water .msg-ring { color: #8b6bc9; background: rgba(200, 180, 240, 0.22); border: 1px solid rgba(180, 160, 230, 0.35); }
+body.theme-water .msg-skill { color: #3b7fbf; background: rgba(160, 210, 245, 0.25); border: 1px solid rgba(140, 200, 240, 0.4); }
+body.theme-water .msg-trait { color: #c9862c; background: rgba(255, 225, 170, 0.3); border: 1px solid rgba(255, 215, 150, 0.4); }
+body.theme-water .msg-npc { color: #2c9bb5; background: rgba(150, 220, 235, 0.25); border: 1px solid rgba(130, 210, 230, 0.4); }
+body.theme-water .msg-time { color: #6b8ba0; background: rgba(180, 210, 225, 0.18); }
+body.theme-water .msg-debug { color: #8b6bc9; background: rgba(200, 180, 240, 0.18); }
 
+/* ---------- 状态栏 / 弹窗 / 配置面板 ---------- */
 body.theme-water #status-bar,
 body.theme-water .modal-box,
 body.theme-water #config-panel {
-  background: linear-gradient(160deg, #103049 0%, #0d2840 100%);
-  border: 1px solid rgba(125, 211, 252, 0.4);
+  background: linear-gradient(180deg, #ffffff, #f2fafd);
+  border: 1.5px solid #a8d8ee;
   border-radius: 20px;
-  box-shadow: 0 0 16px rgba(125, 211, 252, 0.1);
+  box-shadow: 0 4px 18px rgba(126, 200, 227, 0.22);
 }
 body.theme-water #status-bar .stat {
-  background: rgba(7, 26, 43, 0.7);
-  border: 1px solid rgba(125, 211, 252, 0.35);
+  background: #f4fbff;
+  border: 1px solid #b3dcef;
   border-radius: 12px;
-  color: #a5f3fc;
+  color: #3b5c70;
 }
-body.theme-water .stat-label { color: #7fa4b8; }
-body.theme-water .stat-value { color: #d4f1f4; }
-body.theme-water .stat-value.highlight { color: #7dd3fc; }
+body.theme-water .stat-label { color: #7fa0b3; }
+body.theme-water .stat-value { color: #2c4a5c; }
+body.theme-water .stat-value.highlight { color: #d16b8a; }
 
+/* ---------- 顶部按钮 ---------- */
 body.theme-water #top-bar .ctrl-btn,
 body.theme-water .ctrl-btn {
-  background: linear-gradient(135deg, #124059, #0e3247);
-  color: #a5f3fc;
-  border: 1px solid rgba(125, 211, 252, 0.4);
+  background: linear-gradient(135deg, #e8f4fb, #d4ecf7);
+  color: #3b7fbf;
+  border: 1px solid #a8d8ee;
   border-radius: 16px;
   padding: 5px 9px;
+  font-weight: 600;
 }
 body.theme-water #top-bar .ctrl-btn:hover,
 body.theme-water .ctrl-btn:hover {
-  background: linear-gradient(135deg, #7dd3fc, #5eead4);
-  color: #071a2b;
+  background: linear-gradient(135deg, #a8d8ee, #ffc2d6);
+  color: #ffffff;
 }
 
+/* ---------- 输入栏 ---------- */
 body.theme-water #input-row input {
-  background: #0c2539;
-  border: 1px solid rgba(125, 211, 252, 0.4);
-  color: #d4f1f4;
+  background: #ffffff;
+  border: 1.5px solid #b3dcef;
+  color: #2c4a5c;
   border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(126, 200, 227, 0.15);
 }
-body.theme-water #input-row input::placeholder { color: #6b8ea3; }
+body.theme-water #input-row input::placeholder { color: #9cb8c8; }
 body.theme-water #input-row button {
-  background: linear-gradient(135deg, #7dd3fc, #5eead4);
-  color: #071a2b;
+  background: linear-gradient(135deg, #7ec8e3, #a8d8ee);
+  color: #ffffff;
   border-radius: 20px;
-  box-shadow: 0 2px 12px rgba(125, 211, 252, 0.4);
+  box-shadow: 0 2px 12px rgba(126, 200, 227, 0.45);
+  font-weight: 700;
 }
 
+/* ---------- 选项按钮 ---------- */
 body.theme-water .option-btn {
-  background: linear-gradient(135deg, #0d3244, #0b2a3a);
-  border: 1px solid rgba(125, 211, 252, 0.45);
-  color: #a5f3fc;
+  background: linear-gradient(135deg, #ffffff, #f0f9fe);
+  border: 1.5px solid #b3dcef;
+  color: #3b5c70;
   border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(126, 200, 227, 0.15);
 }
 body.theme-water .option-btn:hover {
-  background: linear-gradient(135deg, #7dd3fc, #5eead4);
-  color: #071a2b;
+  background: linear-gradient(135deg, #a8d8ee, #ffc2d6);
+  color: #ffffff;
+  border-color: #7ec8e3;
 }
 body.theme-water .option-btn:active { transform: scale(0.96); }
 body.theme-water .option-btn .opt-icon {
-  filter: drop-shadow(0 0 4px rgba(125, 211, 252, 0.6));
+  filter: drop-shadow(0 0 3px rgba(126, 200, 227, 0.6));
 }
 
-body.theme-water .expandable-list { background: #071a2b; }
-body.theme-water .expandable-item { border-bottom-color: #12405c; }
-body.theme-water .expandable-item:hover { background: #0e2b40; }
-body.theme-water .expandable-detail { background: #0e2b40; color: #a5f3fc; }
-body.theme-water .setting-title { color: #7dd3fc; }
-body.theme-water .slider { background: #12405c; }
+/* ---------- 列表 / 设置 ---------- */
+body.theme-water .expandable-list { background: #f4fbff; }
+body.theme-water .expandable-item { border-bottom-color: #d9edf7; }
+body.theme-water .expandable-item:hover { background: #eaf6fc; }
+body.theme-water .expandable-detail { background: #eaf6fc; color: #3b5c70; }
+body.theme-water .setting-title { color: #3b7fbf; }
+body.theme-water .setting-row { border-bottom-color: #d9edf7; }
+body.theme-water .slider { background: #c9e4f2; }
 body.theme-water .switch input:checked + .slider {
-  background: linear-gradient(90deg, #7dd3fc, #5eead4);
+  background: linear-gradient(90deg, #a8d8ee, #ffc2d6);
 }
 body.theme-water .expandable-item .name.npc-archived { color: #a78bfa; opacity: .75; }
 body.theme-water #scene-banner {
-  background: rgba(12, 37, 57, 0.8);
+  background: rgba(244, 251, 255, 0.85);
   border-radius: 10px;
+  color: #3b5c70;
 }
 
-/* --- 水色系专属装饰（非简洁模式） --- */
+/* ---------- 文本分层颜色（浅底上提高对比） ---------- */
+body.theme-water .msg-ai .hl-speak { color: #2c7fbf; }
+body.theme-water .msg-ai .hl-inner { color: #8b6bc9; }
+body.theme-water .msg-ai .hl-action { color: #d16b8a; font-weight: 700; }
+
+/* ---------- 可爱装饰（非简洁模式） ---------- */
 body.theme-water:not(.minimal-mode) #chat-box {
   position: relative;
 }
 body.theme-water:not(.minimal-mode) #chat-box::before {
   content: '';
   position: absolute;
-  inset: -10px;
-  border-radius: 28px;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M2 12 Q6 8 12 12 T22 12' fill='none' stroke='%237dd3fc' stroke-width='1.6' stroke-linecap='round' opacity='0.55'/></svg>");
-  background-size: 24px 24px;
+  inset: -12px;
+  border-radius: 30px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><path d='M3 14 Q8 9 14 14 T25 14' fill='none' stroke='%237ec8e3' stroke-width='1.6' stroke-linecap='round' opacity='0.6'/></svg>");
+  background-size: 28px 28px;
   background-repeat: repeat;
   pointer-events: none;
-  opacity: 0.75;
-  filter: drop-shadow(0 0 6px rgba(125, 211, 252, 0.4));
+  opacity: 0.8;
 }
-body.theme-water:not(.minimal-mode) #game-area { padding: 12px 4px 4px; }
+body.theme-water:not(.minimal-mode) #game-area { padding: 14px 4px 4px; }
 
 body.theme-water:not(.minimal-mode) .modal-box {
   position: relative;
-  border: none;
-  background: linear-gradient(160deg, #103049, #0d2840);
-  box-shadow: 0 0 24px rgba(125, 211, 252, 0.25);
+  border: 1.5px solid #a8d8ee;
+  background: linear-gradient(180deg, #ffffff, #f2fafd);
+  box-shadow: 0 8px 30px rgba(126, 200, 227, 0.35);
 }
 body.theme-water:not(.minimal-mode) .modal-box h3::before { content: '💧 '; }
 body.theme-water:not(.minimal-mode) .modal-box h3::after  { content: ' 💧'; }
 
 body.theme-water:not(.minimal-mode) #status-bar {
-  border: 1px dashed rgba(125, 211, 252, 0.55);
-  box-shadow: 0 0 12px rgba(125, 211, 252, 0.15);
+  border: 1.5px dashed #a8d8ee;
+  box-shadow: 0 0 14px rgba(126, 200, 227, 0.2);
 }
 body.theme-water:not(.minimal-mode) #status-bar .stat {
   position: relative; padding-right: 16px;
@@ -971,11 +991,14 @@ body.theme-water:not(.minimal-mode) #status-bar .stat::after {
   content: '·';
   position: absolute; right: 6px; top: 50%;
   transform: translateY(-50%);
-  font-size: 14px; color: #5eead4; opacity: 0.85;
+  font-size: 14px; color: #ffc2d6; opacity: 0.9;
 }
 
 body.theme-water:not(.minimal-mode) .msg-ai::after {
-  content: ' 💧'; font-size: 12px; opacity: 0.6; margin-left: 2px;
+  content: ' 💧'; font-size: 12px; opacity: 0.55; margin-left: 2px;
+}
+body.theme-water:not(.minimal-mode) .msg-row-user .msg-user::after {
+  content: ' 🌸'; font-size: 12px; opacity: 0.7; margin-left: 2px;
 }
 body.theme-water:not(.minimal-mode) #input-row button {
   position: relative;
@@ -984,5 +1007,15 @@ body.theme-water:not(.minimal-mode) #input-row button::before {
   content: '💧 '; font-size: 14px; margin-right: 2px;
 }
 body.theme-water:not(.minimal-mode) .switch input:checked + .slider {
-  box-shadow: 0 0 10px rgba(125, 211, 252, 0.6);
+  box-shadow: 0 0 12px rgba(255, 194, 214, 0.7);
 }
+
+/* ---------- 场景氛围：浅底上减弱背景图，保留边框色 ---------- */
+body.theme-water #chat-box.scene-forest  { border-color: #7ec8a8; }
+body.theme-water #chat-box.scene-academy { border-color: #7ec8e3; }
+body.theme-water #chat-box.scene-palace  { border-color: #e8c98b; }
+body.theme-water #chat-box.scene-night   { border-color: #8b9be8; }
+body.theme-water #chat-box.scene-battle  { border-color: #ff9ba8; }
+body.theme-water #chat-box.scene-cave    { border-color: #b59be8; }
+body.theme-water #chat-box.scene-water   { border-color: #7ec8e3; }
+body.theme-water #chat-box.scene-city    { border-color: #e8b58b; }
