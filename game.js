@@ -318,16 +318,6 @@ try {
 }
 return fullContent;
 }
-const apiKey=document.getElementById('apiKey').value.trim();
-if(!apiKey)throw new Error("请填入 DeepSeek API Key");
-const resp=await fetch("https://api.deepseek.com/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${apiKey}`},body:JSON.stringify({model:"deepseek-chat",messages:messages,temperature:0.85,stream:true,stream_options:{include_usage:true}})});
-if(!resp.ok){const errText=await resp.text();throw new Error(`HTTP ${resp.status}: ${errText.substring(0,200)}`)}
-const reader=resp.body.getReader();
-const decoder=new TextDecoder();
-let fullContent="";let buffer="";
-while(true){const{done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const lines=buffer.split('\n');buffer=lines.pop();for(const line of lines){const trimmed=line.trim();if(!trimmed||!trimmed.startsWith('data:'))continue;const data=trimmed.slice(5).trim();if(data==='[DONE]')continue;try{const json=JSON.parse(data);if(json.usage){TOKEN_STATS.input+=json.usage.prompt_tokens||0;TOKEN_STATS.output+=json.usage.completion_tokens||0;TOKEN_STATS.session+=json.usage.total_tokens||0;updateTokenDisplay()}const delta=json.choices?.[0]?.delta?.content||"";if(delta){fullContent+=delta;onChunk(delta,fullContent)}}catch(e){}}}
-return fullContent;
-}
 
 const STATUS_LINE_RE=/^(年龄[：:]|魂力\s*[+\-：:]|魂力\s*(提升|增加|提高|升至|达到|变为)|获得物品[：:]|消耗物品[：:]|使用物品[：:]|删除物品[：:]|获得魂技[：:]|删除魂技[：:]|获得魂环[：:]|删除魂环[：:]|获得特质[：:]|删除特质[：:]|人物[：:]|重要人物[：:]|新人物[：:]|删除人物[：:]|时间[：:])/;
 function stripStatus(text){let result=text.replace(/【状态更新】[\s\S]*?(?=【选项】|$)/g,'');result=result.replace(/【选项】[\s\S]*/g,'');const lines=result.split('\n');const kept=lines.filter(line=>{const t=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();if(!t)return true;if(STATUS_LINE_RE.test(t))return false;return true});return kept.join('\n').trim()}
@@ -641,7 +631,7 @@ const gender=document.querySelector('input[name="roleGender"]:checked').value;
 const roleDesc=document.getElementById('roleDesc').value.trim();
 const innate=parseInt(document.getElementById('innatePower').value)||1;
 
-// 【修复】用聊天框替代 alert，防止手机 PWA 卡死
+// 用聊天框替代 alert，防止手机 PWA 卡死
 if(!name){
     chatBox.innerHTML+=`<div class="msg-lose">请填写角色名！请回到主界面配置面板填写。</div>`;
     chatBox.scrollTop=chatBox.scrollHeight;
@@ -719,7 +709,7 @@ function startNewGame(){
 const key=document.getElementById('apiKey').value.trim();
 if(!key){alert("请填入 DeepSeek API Key");return}
 
-// 【修复】检查角色名，避免卡死
+// 检查角色名，避免卡死
 const roleName = document.getElementById('roleName').value.trim();
 if(!roleName){
     chatBox.innerHTML+=`<div class="msg-lose">请先在配置面板填写角色名，再开始游戏。</div>`;
@@ -727,11 +717,11 @@ if(!roleName){
     return;
 }
 
-// 修复：只有存在有效存档时才弹窗
+// 只有存在有效存档时才弹窗
 const hasValidSave = localStorage.getItem('douro2Save') && CORE.name && CORE.martialSoul !== '未觉醒';
 if(hasValidSave && !confirm("已有存档，开始新游戏会覆盖。确定？")) return;
 
-// 修复：彻底清理残留数据，确保觉醒流程正常触发
+// 彻底清理残留数据，确保觉醒流程正常触发
 localStorage.removeItem('douro2Save');
 Object.assign(CORE, {name:'',gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],inventory:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天'});
 Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
