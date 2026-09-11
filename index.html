@@ -167,7 +167,23 @@
 
 <script src="game.js"></script>
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')}
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').then(function(reg){
+    // 每 10 分钟主动检查一次更新
+    setInterval(function(){ reg.update(); }, 10 * 60 * 1000);
+    // 每次打开 App 也检查一次
+    reg.update();
+  });
+
+  // 检测到 SW 换代时，自动刷新一次页面
+  let _refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    if(_refreshing) return;
+    _refreshing = true;
+    // 延迟一下，避免打断当前正在生成的对话
+    setTimeout(function(){ window.location.reload(); }, 800);
+  });
+}
 </script>
 </body>
 </html>

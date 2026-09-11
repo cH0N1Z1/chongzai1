@@ -264,6 +264,62 @@ optionsArea.scrollIntoView({behavior:'smooth',block:'nearest'});
 async function callDeepSeekStream(messages,onChunk){
 const apiKey=document.getElementById('apiKey').value.trim();
 if(!apiKey)throw new Error("请填入 DeepSeek API Key");
+
+// 加超时保护：60秒无响应自动中断，防止永久卡死
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+let resp;
+try {
+  resp = await fetch("https://api.deepseek.com/v1/chat/completions",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":`Bearer ${apiKey}`},
+    body:JSON.stringify({model:"deepseek-chat",messages,temperature:0.85,stream:true,stream_options:{include_usage:true}}),
+    signal: controller.signal
+  });
+} catch(err) {
+  clearTimeout(timeoutId);
+  if(err.name === 'AbortError') throw new Error('请求超时（60秒），请检查网络或 API Key');
+  throw err;
+}
+
+if(!resp.ok){clearTimeout(timeoutId);const errText=await resp.text();throw new Error(`HTTP ${resp.status}: ${errText.substring(0,200)}`)}
+
+const reader=resp.body.getReader();
+const decoder=new TextDecoder();
+let fullContent="";let buffer="";
+try {
+  while(true){
+    const{done,value}=await reader.read();
+    if(done)break;
+    buffer+=decoder.decode(value,{stream:true});
+    const lines=buffer.split('\n');
+    buffer=lines.pop();
+    for(const line of lines){
+      const trimmed=line.trim();
+      if(!trimmed||!trimmed.startsWith('data:'))continue;
+      const data=trimmed.slice(5).trim();
+      if(data==='[DONE]')continue;
+      try{
+        const json=JSON.parse(data);
+        if(json.usage){
+          TOKEN_STATS.input+=json.usage.prompt_tokens||0;
+          TOKEN_STATS.output+=json.usage.completion_tokens||0;
+          TOKEN_STATS.session+=json.usage.total_tokens||0;
+          updateTokenDisplay();
+        }
+        const delta=json.choices?.[0]?.delta?.content||"";
+        if(delta){fullContent+=delta;onChunk(delta,fullContent)}
+      }catch(e){}
+    }
+  }
+} finally {
+  clearTimeout(timeoutId);
+}
+return fullContent;
+}
+const apiKey=document.getElementById('apiKey').value.trim();
+if(!apiKey)throw new Error("请填入 DeepSeek API Key");
 const resp=await fetch("https://api.deepseek.com/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${apiKey}`},body:JSON.stringify({model:"deepseek-chat",messages:messages,temperature:0.85,stream:true,stream_options:{include_usage:true}})});
 if(!resp.ok){const errText=await resp.text();throw new Error(`HTTP ${resp.status}: ${errText.substring(0,200)}`)}
 const reader=resp.body.getReader();
