@@ -28,6 +28,13 @@
 <h2 style="margin:0 0 5px">绝世唐门</h2>
 <p style="font-size:14px;color:#9ca3af;margin:0 0 10px">状态行识别 · 调试命令 · 可开关图标</p>
 <div id="saveInfoBox" class="save-info hidden"></div>
+<label>头像（可选）</label>
+<div style="display:flex;align-items:center;gap:10px;margin:0 0 10px;">
+  <div id="avatarPreview" class="avatar-preview">?</div>
+  <label for="avatarUpload" class="btn-generate" style="flex:1;text-align:center;margin:0;cursor:pointer;">选择图片</label>
+  <input type="file" id="avatarUpload" accept="image/*" onchange="handleAvatarUpload(event)" style="display:none;">
+  <button type="button" class="btn-secondary" style="width:auto;padding:8px 14px;margin:0;" onclick="clearAvatar()">清除</button>
+</div>
 <label>API Key (DeepSeek)</label>
 <input id="apiKey" type="password" placeholder="sk-..." value="">
 <div id="config-inputs">
@@ -56,7 +63,7 @@
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
 <div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 v26 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 v27 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">
@@ -169,18 +176,14 @@
 <script>
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(function(reg){
-    // 每 10 分钟主动检查一次更新
     setInterval(function(){ reg.update(); }, 10 * 60 * 1000);
-    // 每次打开 App 也检查一次
     reg.update();
   });
 
-  // 检测到 SW 换代时，自动刷新一次页面
   let _refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', function(){
     if(_refreshing) return;
     _refreshing = true;
-    // 延迟一下，避免打断当前正在生成的对话
     setTimeout(function(){ window.location.reload(); }, 800);
   });
 }
