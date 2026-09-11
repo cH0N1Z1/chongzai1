@@ -515,3 +515,27 @@ body.minimal-mode .msg-ai .hl-speak,body.minimal-mode .msg-ai .hl-inner,body.min
 body.minimal-mode .msg-chapter{color:#9ca3af;border-color:#30363d;background:transparent;text-shadow:none;animation:none}
 body.minimal-mode #scene-banner{background:transparent;border-left-width:2px;padding-left:8px}
 body.minimal-mode .options-container,body.minimal-mode .option-btn{animation:none !important;transition:opacity .2s ease}
+/* ============================================================
+   模块 49：可爱主题弹窗波浪跟随滚动
+   ============================================================ */
+body.theme-cute:not(.minimal-mode) .modal-box {
+  border: 2px solid #ff8da1;
+  border-radius: 20px;
+  background-color: #2a162a;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='14' viewBox='0 0 12 14'><path d='M2 0 Q10 3.5 2 7 T2 14' fill='none' stroke='%23ffb6c1' stroke-width='1.6' stroke-linecap='round' opacity='0.75'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='14' viewBox='0 0 12 14'><path d='M10 0 Q2 3.5 10 7 T10 14' fill='none' stroke='%23ffb6c1' stroke-width='1.6' stroke-linecap='round' opacity='0.75'/></svg>");
+  background-position: left 6px top, right 6px top;
+  background-size: 10px 14px, 10px 14px;
+  background-repeat: repeat-y, repeat-y;
+  background-attachment: local, local;
+  padding: 20px 26px;
+  box-shadow: 0 0 20px rgba(255,141,161,0.28);
+}
+body.theme-cute:not(.minimal-mode) .modal-box::before,
+body.theme-cute:not(.minimal-mode) .modal-box::after {
+  content: none !important;
+  display: none !important;
+}
+body.theme-cute:not(.minimal-mode) .modal-box h3::before { content: '🌸 '; }
+body.theme-cute:not(.minimal-mode) .modal-box h3::after  { content: ' 🌸'; }
