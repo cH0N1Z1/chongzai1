@@ -49,6 +49,7 @@
 <label>角色设定</label>
 <textarea id="roleDesc" placeholder="女，粉蓝色长发...">女，粉蓝色长发，容貌精致，性格温柔而坚韧，出身于史莱克学院，对魂导器有独特天赋。</textarea>
 <button class="btn-generate" onclick="generateCharacter()">AI生成角色设定</button>
+<button class="btn-generate" onclick="refineCharacter()" style="background:#2563eb;margin-top:6px;">AI优化当前设定</button>
 <label>先天魂力（1-10）</label>
 <input id="innatePower" type="number" min="1" max="10" value="5">
 <label>武魂选择</label>
@@ -64,7 +65,7 @@
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
 <div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V54 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V60 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">

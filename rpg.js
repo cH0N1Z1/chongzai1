@@ -113,7 +113,7 @@ return `<div class="rings-visual-container">${svg}${legend}</div>`;
 }
 
 // ============================================================
-//  场景氛围 + 时间/天气（模块 12 + 16）
+//  场景氛围 + 时间/天气
 // ============================================================
 const SCENE_PLACES = [
   {re:/星斗大森林/, name:'星斗大森林', type:'forest', emoji:'🌲'},
@@ -144,7 +144,7 @@ function detectTimeOfDay(timeStr){
   if(/清晨|黎明|天亮|早上|早晨/.test(timeStr)) return '清晨';
   if(/上午/.test(timeStr)) return '上午';
   if(/中午|正午/.test(timeStr)) return '正午';
-  if(/下午|午后/.test(timeStr)) return '午后';
+  if(/下午|午后/.test(timeStr)) return '下午';
   if(/黄昏|傍晚|日落/.test(timeStr)) return '黄昏';
   if(/深夜|午夜|凌晨/.test(timeStr)) return '深夜';
   if(/夜晚|夜里|晚上/.test(timeStr)) return '夜晚';
@@ -477,7 +477,6 @@ function normalizeItemName(name){
   if(!name) return '';
   let n = String(name).trim();
   n = n.replace(/[（(].*?[）)]/g,'').trim();
-  // 剥前导量词："一把短剑" → "短剑"，"3个苹果" → "苹果"
   n = n.replace(/^(?:[一二两三四五六七八九十百千万零]+|\d+)\s*[把柄枚个颗件本张块份瓶袋支根条片滴粒包头只匹种盒罐筒台架串束株壶缸]\s*/,'');
   if(ITEM_ALIASES[n]) return ITEM_ALIASES[n];
   return n;
@@ -502,13 +501,10 @@ function findInventoryIndex(name){
   const raw = String(name).trim();
   const target = normalizeItemName(raw);
   if(!target) return -1;
-  // 1. 完全相等
   let idx = CORE.inventory.findIndex(i => i.name === raw);
   if(idx !== -1) return idx;
-  // 2. 归一化后相等
   idx = CORE.inventory.findIndex(i => normalizeItemName(i.name) === target);
   if(idx !== -1) return idx;
-  // 3. 包含（取最精确的）
   const cands = [];
   CORE.inventory.forEach((i,ii)=>{
     const n = normalizeItemName(i.name);
@@ -516,7 +512,6 @@ function findInventoryIndex(name){
     if(n.includes(target) || target.includes(n)) cands.push({idx:ii, len:n.length});
   });
   if(cands.length){ cands.sort((a,b)=>b.len-a.len); return cands[0].idx; }
-  // 4. 最长公共子串 >= 2
   let best=-1, bestLen=0;
   CORE.inventory.forEach((i,ii)=>{
     const n = normalizeItemName(i.name);
@@ -658,7 +653,7 @@ function triggerBtnGlow(onclickName){
 }
 
 // ============================================================
-//  章节系统（模块 14）
+//  章节系统
 // ============================================================
 function insertChapterDivider(num, title){
   const html = `<div class="msg-chapter">—— 第${num}章 · ${escapeHtml(title)} ——</div>`;
@@ -771,7 +766,6 @@ update.delNpcs.forEach(n=>deleteNPC(n));
 if(update.time){CORE.time=update.time;chatBox.innerHTML+=`<div class="msg-time">${icon('time','#94a3b8')}${escapeHtml(update.time)}</div>`}
 if(update.weather){CORE.weather=update.weather;}
 if(update.time || update.weather){
-  // 时间或天气变化，刷新场景标签
   if(_currentSceneKey){
     const type = _currentSceneKey;
     const found = SCENE_TYPES.find(t => t.type === type) || SCENE_PLACES.find(p => p.type === type);
@@ -782,13 +776,12 @@ updateStatus();
 }
 
 // ============================================================
-//  叙事嗅探兜底：AI 把状态写在正文没写进【状态更新】时自动补
+//  叙事嗅探兜底
 // ============================================================
 function sniffNarrativeUpdates(fullReply, update){
   const narrative = stripStatus(fullReply);
   if(!narrative) return;
 
-  // ---- 魂环嗅探 ----
   if(update.rings.length === 0){
     const yearRe = /([一二三四五六七八九十百千万\d]{1,8})\s*年/g;
     const colorRe = /(白色|黄色|紫色|黑色|红色|金色|橙色|蓝色)/;
@@ -812,7 +805,6 @@ function sniffNarrativeUpdates(fullReply, update){
     }
   }
 
-  // ---- 魂力嗅探（保守） ----
   if(update.soulPowerBase === 0 && update.soulPowerAbsolute === null){
     const lvlRe = /魂力(?:提升|突破|达到|升至|涨到|到达)\s*(?:到|至)?\s*(\d+)\s*级/g;
     let m;
@@ -826,7 +818,6 @@ function sniffNarrativeUpdates(fullReply, update){
     }
   }
 
-  // ---- 物品获得嗅探（保守，只在状态块没写物品时补一条） ----
   if(update.items.length === 0){
     const gainRe = /(?:你|主角)(?:捡起|捡到|拾起|拾取|得到|获得|拿走|入手|收下|收起|收入囊中)(?:了)?(?:[一二两三四五六七八九十百千万]+|\d+)?\s*[把柄枚个颗件本张块份瓶袋支根条片滴粒包株壶缸]?\s*([^\s，。！？,.!?、；;""]{2,8})/;
     const gm = gainRe.exec(narrative);
@@ -840,7 +831,6 @@ function sniffNarrativeUpdates(fullReply, update){
     }
   }
 
-  // ---- 物品消耗嗅探（保守，只在状态块没写消耗时补一条） ----
   if(update.consumed.length === 0){
     const useRe = /(?:你|主角)(?:吃下|喝下|服下|吞下|饮下|用掉|耗费|花费|花掉|消耗|使用了)(?:了)?(?:[一二两三四五六七八九十百千万]+|\d+)?\s*[把柄枚个颗件本张块份瓶袋支根条片滴粒包株壶缸]?\s*([^\s，。！？,.!?、；;""]{2,8})/;
     const um = useRe.exec(narrative);
@@ -859,9 +849,9 @@ function sniffNarrativeUpdates(fullReply, update){
 // ============================================================
 function buildCoreSummary(playerInput){
 let s='';
-s+=`主角：${CORE.name}（${CORE.gender}），${CORE.age||'?'}岁。\n`;
+s+=`姓名：${CORE.name}（${CORE.gender}），${CORE.age||'?'}岁。\n`;
 s+=`设定：${CORE.roleDesc}\n`;
-s+=`武魂：${CORE.martialSoul}（先天魂力${CORE.innatePower}级，速度系数×${getSpeedFactor().toFixed(2)}）\n`;
+s+=`武魂：${CORE.martialSoul}（先天魂力${CORE.innatePower}级）\n`;
 if(CORE.martialSoulDesc) s+=`武魂描述：${CORE.martialSoulDesc}\n`;
 s+=`魂力：${CORE.soulPower}级（${getStage(CORE.soulPower)}）\n`;
 s+=`时间：${CORE.time}\n`;
@@ -875,20 +865,55 @@ const activeNPCs=CORE.npcs.filter(n=>n.status!=='archived');
 const archivedNPCs=CORE.npcs.filter(n=>n.status==='archived');
 if(activeNPCs.length>0)s+=`【现役人物】\n${activeNPCs.map(n=>`- ${n.name}（${n.gender}·${n.soul}·魂力${n.soulPower||'?'}·${n.relation}）：${n.desc||''}`).join('\n')}\n`;
 if(archivedNPCs.length>0){
-  s+=`【归档人物】（玩家过去时期的故人，再次遇到时必须根据时间差描述其成长变化，并用"人物："指令重新激活）\n`;
+  s+=`【归档人物】（玩家过去时期的故人，再遇时须体现时间差并重新激活）\n`;
   s+=archivedNPCs.map(n=>{
     const snap=n.snapshot||{};
     return `- ${n.name}（${n.gender}·${snap.soul||n.soul}·魂力${snap.soulPower||'?'}·${snap.relation||n.relation}·归档于「${n.archTime}」）：${snap.desc||n.desc||''}`;
   }).join('\n');
   s+='\n';
 }
-if(CORE.summary)s+=`前情：${CORE.summary}\n`;
+if(CORE.summary)s+=`【前情】${CORE.summary}\n`;
 if(Object.keys(MEDIA.worldbook).length>0){
   const recentText = PLOT.history.slice(-3).map(m=>stripStatus(m.content)).join('\n');
   const loreText = triggerLorebook(playerInput || '', recentText, 5);
   if(loreText) s += loreText + '\n';
 }
 return s;
+}
+
+// ============================================================
+//  SillyTavern 式辅助：当前处境 + 最近事件
+// ============================================================
+function buildCurrentSituation(){
+  const parts = [];
+  if(CORE.time) parts.push(CORE.time);
+  if(CORE.era && CORE.era !== '初始') parts.push(CORE.era);
+  if(_currentSceneKey){
+    const s = SCENE_TYPES.find(t=>t.type===_currentSceneKey) || SCENE_PLACES.find(p=>p.type===_currentSceneKey);
+    if(s) parts.push('在'+s.name);
+  }
+  const lastUser = [...PLOT.history].reverse().find(m=>m.role==='user');
+  if(lastUser && lastUser.content){
+    const a = String(lastUser.content).trim();
+    if(a && a !== '（继续）' && a !== '继续' && a.length < 60){
+      parts.push('刚做了：' + a);
+    }
+  }
+  return parts.join(' · ') || '故事开场';
+}
+function buildRecentEvents(){
+  const recent = PLOT.history.slice(-6).filter(m => m.role === 'assistant');
+  const events = [];
+  recent.forEach(m => {
+    const t = stripStatus(m.content);
+    const first = t.split(/[。！？\n]/)[0].trim();
+    if(first && first.length >= 6 && first.length <= 60){
+      events.push(first);
+    }
+  });
+  const unique = [...new Set(events)].slice(-3);
+  if(unique.length === 0) return '';
+  return unique.map(e => '- ' + e).join('\n');
 }
 
 // ============================================================
@@ -906,7 +931,6 @@ aiMsgDiv.textContent='...';
 chatBox.appendChild(aiMsgDiv);
 chatBox.scrollTop=chatBox.scrollHeight;
 
-// 追踪用户是否主动上滚
 let userPinnedUp = false;
 let lastTop = chatBox.scrollTop;
 function onStreamScroll(){
@@ -1028,119 +1052,102 @@ if(PLOT.isFirst){await awakenSoul();return}
 isGenerating=true;sendBtn.disabled=true;userInput.disabled=true;
 try{
 const coreSummary=buildCoreSummary(action);
+const currentSituation=buildCurrentSituation();
+const recentEvents=buildRecentEvents();
 const isContinue=action==='继续';
-const systemPrompt=`你是一部斗罗大陆2（绝世唐门时代）背景的小说叙事者，玩家就是主角"你"。用第二人称"你"叙述。
 
-【主角档案】
-${coreSummary}
-
-【世界观】
-${FIXED_WORLD}
-
-【性别设定 - 极重要】
-主角性别为：${CORE.gender}。请根据性别调整称呼、外貌描写、心理活动和社交互动，避免出现与主角性别不符的描写。
-
-【时代词汇规范 - 极重要】
-这是魂导器文明时代，不是古代！避免使用：官道、驿站、客栈、铜板、银两、镖局、江湖、衙门。
-应使用：公路/大道、补给站/旅馆、魂导酒店、魂币（金/银/铜）、佣兵行会、城卫队、市政厅。
-短途走路，城际应提到魂导列车、魂导飞艇。
-日常道具备选：魂导灯/萤石灯（照明），魂导车/魂导列车/魂导飞艇（交通），魂导通讯器（通讯）。
-
-【叙事要求 - 严格遵守】
-- 日常 100-200 字，关键剧情 250-350 字，禁止超过 400 字
-- 场景/对话/感官点到为止，不写华丽排比
-- 用"你"指代玩家，禁止用"他/她/角色名"指代玩家
-- ${isContinue?'玩家选择"继续"，自然推进剧情，可让NPC主动说话，不要替玩家做重大决定。':'根据玩家输入推进剧情。'}
-
-【文本分层标记 - 必须遵守】
-- 角色对话：用中文引号 “……” 或 「……」
-- 心理活动：用括号 （……）
-- 关键动作/戏剧性瞬间：用星号 *……* 包裹（每段最多 1 处）
-- 场景描写、普通动作：不加标记
-
-【状态更新 - 极重要】
-叙事末尾写一段"【状态更新】"块，每行一个关键词开头，只在有变化时写该行：
-年龄：13
-魂力 +5  或  魂力 提升至13
-时间：xxx
-天气：晴/阴/雨/雪/雾/雷/风
-获得物品：物品名×数量（描述）
-消耗物品：物品名×数量
-删除物品：物品名
-获得魂技：名称（描述）
-删除魂技：名称
-获得魂环：百年
-删除魂环：xxx
-获得特质：名称(先天)（描述）
-删除特质：名称
-人物：姓名/性别/武魂/魂力/关系/描述
-删除人物：姓名
-时期：时期名
-归档时期：时期名
-
-⚠️ 时间：每轮必写。
-⚠️ 天气：只在变化时写。
-⚠️ 其他字段：只在有变化时写，无变化省略整行，绝不写"无"。
-⚠️ 只有写进【状态更新】的属性才会更新，叙事里提"魂力提升"不算。
-⚠️ 极其重要：如果本回叙事中提到角色【获得/吸收魂环】、【习得魂技】、【获得物品】、【魂力提升】，必须同时在状态块里列出对应条目。
-   ❌ 错误：叙事写"你吸收了三百五十年黄色魂环"但状态块没写
-   ✅ 正确：状态块加一行"获得魂环：三百五十年黄色"
-   漏写 = 系统判定为未获得，玩家背包/魂环面板不会有记录。
-⚠️ 参考：主角是${CORE.age||'未知'}岁，当前魂力${CORE.soulPower}级。剧情没有明确修炼/战斗/时间跨越，不要随意提升魂力。
-⚠️ 物品操作铁律（违反会导致玩家背包混乱）：
-   1) 物品名必须与【主角档案】背包栏里的名字完全一致，禁止缩写/替换。
-      ❌ 背包写"金魂币"，状态块写"金币" → 匹配不到，扣不掉
-      ✅ 写"金魂币"
-   2) 用/吃/喝/卖/花掉物品，必须写"消耗物品：完整名×数量"一行，否则系统不扣。
-      叙事里写"你喝下药水"不算数。
-   3) 收/买/捡到物品，必须写"获得物品：完整名×数量（可选描述）"。
-   4) 交易时写两行：消耗物品：X×N + 获得物品：魂币×N。
-⚠️ 人物魂力变化时，用新魂力重写完整人物行（六段式）。
-⚠️ 人物行六段：【姓名 / 性别 / 武魂 / 魂力 / 关系 / 描述】。
-   - 第1段人名（2-4字），第3段武魂名，绝不能填人名！
-   - ❌ 错误：人物：觉醒师/男/林远/30级/觉醒引导者/…
-   - ✅ 正确：人物：林远/男/青风狼/30级/觉醒引导者/…
-   - 无武魂信息填"未知"，不要编造或把名字塞进来。
-
-【人物档案规则 - 极重要】
-人物分"现役"与"归档"两种：
-- 现役：当前时期活跃，用"人物：姓名/性别/武魂/魂力/关系/描述"更新（六段式，用 / 分隔；魂力写"XX级"或"未知"）
-- 归档：玩家离开某时期时（毕业、远行、换地图），用"归档时期：时期名"指令，该时期所有现役人物自动定格
-- 唤醒：多年后再遇归档人物时，必须考虑时间差重新描述其成长（外貌、魂力、性格、关系变化），用"人物："指令激活
-- 时期：用"时期：时期名"切换当前时期，如"史莱克学院（外院一年级）"
-示例：
-离开学院 → "归档时期：史莱克学院（外院一年级）"
-数年后再遇 → "人物：苏糖/女/海豚武魂/32级/旧友/（多年未见，她已成为一名气质沉稳的少女）"
-
-【选项 - 必须】
-在【状态更新】块之后，必须用【选项】引出2-3个玩家可选的行动，每项用"•"开头。
-这些选项要贴合当前剧情，能推进故事，让玩家有真实选择感。`;
 const narrativePrompts = {
-  concise: `【叙事风格 - 简洁】
-- 文字精炼，点到为止，不堆砌形容词
-- 对话为主，场景描写不超过 2 句
-- 关键信息优先，冗余抒情省略`,
-  standard: `【叙事风格 - 标准】
-- 平衡描写与对话，节奏舒适
-- 场景、感官、心理各一点，不铺陈
-- 不写华丽排比`,
-  ornate: `【叙事风格 - 华丽】
-- 用丰富的感官和意象，营造沉浸感
-- 场景描写可以铺陈，但不超过 6 句
-- 保留关键情节推进，不要只抒情不推动剧情`
+  concise: `## 叙事风格 · 简洁
+文字精炼，对话为主。场景描写不超过 2 句。`,
+  standard: `## 叙事风格 · 标准
+平衡描写与对话。场景、感官、心理各一点，不铺陈。`,
+  ornate: `## 叙事风格 · 华丽
+用丰富的感官和意象。场景描写可铺陈，但不超 6 句，且必须推动剧情。`
 };
 const styleBlock = narrativePrompts[SETTINGS.narrativeStyle] || narrativePrompts.standard;
-const proactiveBlock = SETTINGS.npcProactive !== false ? `
-【NPC 主动性 - 重要】
-- 每 2~3 轮至少让一个 NPC 主动说话或采取行动（送信、求助、挑衅、提议、打断等）
-- NPC 有自己的目标和情绪，不是玩家提问才存在
-- 让世界"活着"，即使玩家发呆也可能有事发生
-` : '';
-const fullPrompt = systemPrompt + '\n\n' + styleBlock + '\n' + proactiveBlock;
-const messages=[{role:"system",content:fullPrompt}];
+const proactiveBlock = SETTINGS.npcProactive !== false
+  ? `## NPC 主动性
+每 2~3 轮让一个 NPC 主动说话或行动（送信、求助、挑衅、提议、打断）。NPC 有自己的目标，世界是"活"的。`
+  : '';
+
+const systemPrompt = `## 你是谁
+你是斗罗大陆2（绝世唐门时代）背景的小说叙事者。玩家就是主角"你"。
+
+## 世界观
+${FIXED_WORLD}
+
+## 主角档案
+${coreSummary}
+
+## 当前处境
+${currentSituation}
+${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
+
+## 叙事范例（模仿此密度和节奏）
+你沿着石阶往上走，*掌心的旧徽章渐渐发烫*。山道尽头雾气散开，露出一座飞檐翘角的阁楼。
+（这里就是信上说的"蝶谷"？）
+一位白发老者倚着门槛翻书，听到脚步声抬眼看向你。"迷路了？"他问，声音像晒过的干草。
+
+【状态更新】
+时间：次日·下午
+获得物品：蝶形木牌×1（老者的入谷信物）
+人物：守门老者/男/未知/未知/引路人/白发苍苍，性情温和
+
+【选项】
+• 出示旧徽章，说明来意
+• 先询问蝶谷是什么地方
+• 直接请求入谷
+
+## 输出结构（严格按此顺序）
+1) 叙事正文（第二人称，含分层标记）
+2) 【状态更新】块（只在有变化时写该行）
+3) 【选项】块（2-3 个，每项以"•"开头）
+
+## 状态更新格式
+年龄:N / 魂力+N 或 魂力提升至N / 时间:xxx / 天气:晴阴雨雪雾雷风
+获得|消耗|删除物品：名×N（可选描述）
+获得|删除魂技：名（描述）
+获得|删除魂环：百年
+获得|删除特质：名(先天)（描述）
+人物：姓名/性别/武魂/魂力/关系/描述（六段，/分隔）
+删除人物：名 / 时期:名 / 归档时期:名
+
+## 硬约束
+- 时间每轮必写；其他字段仅在有变化时写，绝不写"无"。
+- 只有写进【状态更新】的才生效，叙事里提"魂力提升"不算。
+- 物品名必须与【主角档案】背包栏里完全一致（背包写"金魂币"就写"金魂币"，不能写"金币"）。
+- 用/吃/卖物品 → 消耗物品：名×N；收/买/捡 → 获得物品：名×N；交易写两行。
+- 人物行第 3 段是武魂名（不是人名）；无信息填"未知"。
+- 主角性别为 ${CORE.gender}，据此调整称呼、外貌、心理与社交描写。
+
+## 叙事要求
+- 日常 100-200 字，关键剧情 250-350 字，不超过 400 字。
+- 用"你"指代玩家，禁止用"他/她/角色名"指代玩家。
+- ${isContinue ? '玩家选择"继续"：自然推进剧情，可让 NPC 主动说话，不替玩家做重大决定。' : '根据玩家输入推进剧情。'}
+
+## 文本分层标记
+- 对话：用中文引号 “……” 或 「……」
+- 心理：（……）
+- 关键动作/戏剧性瞬间：*……*（每段最多 1 处）
+
+## 人物档案
+- 现役：人物：姓名/性别/武魂/魂力/关系/描述
+- 归档：离开时期时用"归档时期：时期名"，该时期所有现役自动定格
+- 唤醒：再遇归档人物用"人物："激活，须体现时间差的成长
+- 切换时期：时期：时期名
+
+${styleBlock}
+
+${proactiveBlock}
+
+## 选项
+【状态更新】后写 2-3 个玩家可执行的具体行动，每项以"•"开头。`;
+
+const messages=[{role:"system",content:systemPrompt}];
 const recent=PLOT.history.slice(-3);
 recent.forEach(m=>messages.push({role:m.role,content:stripStatus(m.content)}));
 messages.push({role:"user",content:isContinue?'（继续）':action});
+
 const reply=await streamAndProcess(messages);
 const updateInfo=parseStatusUpdate(reply);
 sniffNarrativeUpdates(reply, updateInfo);
@@ -1159,8 +1166,9 @@ chatBox.scrollTop=chatBox.scrollHeight;
 }
 finally{isGenerating=false;sendBtn.disabled=false;userInput.disabled=false;userInput.focus()}
 }
+
 // ============================================================
-//  Token 用量面板（模块 43）
+//  Token 用量面板
 // ============================================================
 function openTokenPanel(){
   const s = TOKEN_STATS;
@@ -1224,7 +1232,6 @@ PLOT.summaryCounter=0;
 chatBox.innerHTML+=`<div class="msg-summary">记忆精炼 · 摘要 ${CORE.summary.length} 字</div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
 saveToPhone();
-// 同步生成章节标题
 generateChapterTitle().then(title=>{
   if(!title) return;
   CORE.chapterNum = (CORE.chapterNum||0) + 1;
@@ -1238,7 +1245,7 @@ generateChapterTitle().then(title=>{
 }
 
 // ============================================================
-//  角色生成 / 觉醒
+//  角色生成 / 优化
 // ============================================================
 async function generateCharacter(){
 const name=document.getElementById('roleName').value.trim();
@@ -1254,6 +1261,50 @@ document.getElementById('roleDesc').value=reply.trim();
 }catch(e){alert("生成失败："+e.message)}
 }
 
+// 优化当前设定：无论长短都重写为 150 字左右的高密度版本，玩家可见
+async function refineCharacter(){
+  const desc = document.getElementById('roleDesc').value.trim();
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if(!desc){alert("角色设定为空，请先填写或点击上方「AI生成角色设定」");return}
+  if(!apiKey){alert("请先填写API Key");return}
+  const btn = document.querySelector('button[onclick="refineCharacter()"]');
+  const oldText = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = '优化中...'; }
+  const oldLen = desc.length;
+  try{
+    const refined = await callDeepSeekStream([{
+      role:"user",
+      content: `你是斗罗大陆2（绝世唐门时代）的角色设定编辑。
+把下面的角色设定重写为 150 字左右（120-180 字）的精炼版本。
+
+铁律：
+1) 严格保留原文的一切事实（姓名、年龄、外貌、性格、出身、特长、癖好），不得删改、不得凭空新增设定。
+2) 优化信息密度：用最少的字传达最多的关键信息，去掉排比、重复、抒情、废话。
+3) 若原文过短（<80字）：不改变原设定、不新增背景，围绕已有事实合理展开细节（例如把"温柔"写成具体行为），补到 120-180 字。
+4) 若原文过长（>200字）：压缩到 120-180 字，优先保留可复用的具体细节。
+5) 若原文已经合适（80-200字）：只做润色，字数保持在范围内。
+6) 输出：第三人称设定文，不是叙事。直接输出文本，无前缀、无标题、无引号。
+
+【原文】
+${desc}`
+    }], ()=>{});
+    if(refined && refined.trim().length >= 30){
+      const finalDesc = refined.trim();
+      document.getElementById('roleDesc').value = finalDesc;
+      alert(`已优化：${oldLen} 字 → ${finalDesc.length} 字`);
+    }else{
+      alert('优化结果异常，请重试');
+    }
+  }catch(e){
+    alert('优化失败：' + e.message);
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = oldText || 'AI优化当前设定'; }
+  }
+}
+
+// ============================================================
+//  觉醒
+// ============================================================
 async function awakenSoul(){
 if(isGenerating)return;
 const name=document.getElementById('roleName').value.trim();
@@ -1284,35 +1335,48 @@ updateAvatarPreview();
 const soulChoice=document.querySelector('input[name="soulChoice"]:checked').value;
 let customSoul='';
 if(soulChoice==='custom')customSoul=document.getElementById('customSoul').value.trim()||'未知武魂';
-const systemPrompt=`你是斗罗大陆2（绝世唐门时代）的武魂觉醒仪式引导者。玩家就是主角"你"，用第二人称"你"叙述。
 
-【角色】${name}，${gender}，6岁
-【设定】${CORE.roleDesc}
-【先天魂力】${innate}级（初始魂力=${CORE.soulPower}级）
-【世界观】${FIXED_WORLD}
-${customSoul?'指定武魂：'+customSoul:'请为角色设计一个独特武魂（避免蓝银草、昊天锤等常见武魂），给出名称和特性。'}
+const systemPrompt=`## 你的角色
+你是斗罗大陆2（绝世唐门时代）的武魂觉醒仪式引导者。玩家就是主角"你"，用第二人称叙述。
 
-【任务】
-1. 用"你"生动描述觉醒场景（400-600字）
-2. 初始魂力${CORE.soulPower}级
-3. 生成3-5个先天特质
-4. 末尾必须写【状态更新】块，含：年龄：6，时间：觉醒武魂当天·上午，天气：（根据场景合理选择晴天/阴天/雨天等），获得特质：xxx(先天)，人物：<觉醒师姓名，如"陈默">/男/<觉醒师的武魂名，如"青风狼"，不是人名！>/30级/觉醒引导者/天斗帝国魂师协会派驻觉醒师
+## 世界观
+${FIXED_WORLD}
 
-【文本分层标记】
-- 对话用 “……” 或 「……」
-- 心理活动用 （……）
-- 关键动作用 *……* 包裹
+## 本轮信息
+角色：${name}（${gender}，6岁）
+设定：${CORE.roleDesc}
+先天魂力：${innate}级（初始魂力=${CORE.soulPower}级）
+${customSoul?'指定武魂：'+customSoul:'请为角色设计一个独特武魂（避免蓝银草、昊天锤等常见武魂），给出名称与特性。'}
 
-【武魂格式 - 极重要】
-请在叙事中明确写出以下格式，缺一不可：
-武魂：xxx
-武魂描述：xxx（简短描述这个武魂的外观、来历、特性等）
-"武魂："后面直接跟武魂名称（2-8字），不要写角色名。
+## 叙事范例（模仿密度和节奏）
+一位穿着深蓝长袍的中年男人缓步走到你面前，掌心的魂导水晶泛着微光。
+"放松，孩子。"他说，"别怕。"
+你闭上眼睛，感觉到一股暖流顺着经脉游走，*在胸口汇聚成一个光点*。
+"呵——"男人眼神一亮，"有意思。"
+
+【状态更新】
+年龄：6
+时间：觉醒武魂当天·上午
+天气：晴
+获得特质：敏锐灵觉(先天)（对魂力波动感知较常人敏锐）
+人物：<你自己为觉醒师起一个2-3字的中文姓名>/男/<觉醒师的武魂名，2-6字，不是人名>/30级/觉醒引导者/天斗帝国魂师协会派驻觉醒师
 
 【选项】
-在【状态更新】后，用【选项】给出2-3个觉醒后的行动选项，每项用"•"开头。
+• 仔细感受体内的魂力流动
+• 向觉醒师询问武魂的来历
+• 看向院长奶奶，想告诉她结果
 
-格式：叙事 + 【状态更新】 + 【选项】`;
+## 输出结构（严格按顺序）
+1) 叙事正文 400-600 字（第二人称）
+2) 【状态更新】块（必须含上面示例中的所有字段）
+3) 【选项】块（2-3 个，每项以"•"开头）
+
+## 硬约束
+- 觉醒师姓名请你自由发挥，每次新游戏都换一个新名字，别用"陈默"这类常见示例名。名字要有斗罗大陆风格（如：苏牧、江晨、温良、洛青、沈岳…），不要用现代常见姓名。
+- 人物行必须严格六段，用 / 分隔。第 3 段是武魂名，绝不能填人名。
+- 叙事中明确写出"武魂：xxx"和"武魂描述：xxx"两行，缺一不可。
+- 对话用引号，心理用括号，关键动作用 *……* 包裹。`;
+
 isGenerating=true;sendBtn.disabled=true;userInput.disabled=true;
 try{
 const reply=await streamAndProcess([{role:"user",content:systemPrompt}]);
@@ -1322,7 +1386,6 @@ update.soulPowerBase=0;update.soulPowerAbsolute=null;
 let soulName = customSoul;
 let soulDesc = '';
 if(!soulName){
-    // 尝试多种表达：武魂：xxx / 武魂名为xxx / 你的武魂是xxx / 【武魂：xxx】
     const patterns = [
       /武魂[：:]\s*([^\n【]{2,15}?)(?=\s*武魂描述|【|$)/,
       /武魂(?:名[为叫]?|是|叫做?)[：:：]?\s*[「“"]?([^\n【，。、"」]{2,12})[」”"]?/,
