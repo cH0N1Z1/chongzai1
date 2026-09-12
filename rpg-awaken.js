@@ -4,6 +4,32 @@
 // ============================================================
 
 // ============================================================
+//  AI 处理中的浮动提示条
+// ============================================================
+function showAiLoading(text){
+  let el = document.getElementById('aiLoadingToast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'aiLoadingToast';
+    el.style.cssText = 'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#238636,#2ea043);color:#fff;padding:14px 26px;border-radius:30px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 6px 28px rgba(35,134,54,0.55);display:flex;align-items:center;gap:10px;pointer-events:none;opacity:0;transition:opacity .2s ease;';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;border-radius:50%;animation:aiSpin 0.8s linear infinite;flex-shrink:0;"></span><span>' + (text || 'AI 正在处理，请稍等…') + '</span>';
+  el.style.display = 'flex';
+  requestAnimationFrame(()=>{ el.style.opacity = '1'; });
+  if(!document.getElementById('aiSpinStyle')){
+    const style = document.createElement('style');
+    style.id = 'aiSpinStyle';
+    style.textContent = '@keyframes aiSpin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(style);
+  }
+}
+function hideAiLoading(){
+  const el = document.getElementById('aiLoadingToast');
+  if(el){ el.style.opacity = '0'; setTimeout(()=>{ el.style.display = 'none'; }, 200); }
+}
+
+// ============================================================
 //  角色生成 / 优化
 // ============================================================
 async function generateCharacter(){
@@ -13,11 +39,19 @@ const gender=document.querySelector('input[name="roleGender"]:checked').value;
 const innate=parseInt(document.getElementById('innatePower').value)||5;
 const apiKey=document.getElementById('apiKey').value.trim();
 if(!apiKey){alert("请先填写API Key");return}
+const btn = document.querySelector('button[onclick="generateCharacter()"]');
+const oldText = btn ? btn.textContent : '';
+if(btn){ btn.disabled = true; btn.textContent = '生成中...'; }
+showAiLoading('鱼鱼正在生成角色设定，请稍等…');
 const prompt=`为现代魔法学院「星辉学院」的学生角色"${name}"（${gender}）生成一份角色设定，术式适性${innate}级。包含：年龄、外貌、性格、出身背景、一个小癖好。约100-150字。直接输出描述。`;
 try{
 const reply=await callDeepSeekStream([{role:"user",content:prompt}],()=>{});
 document.getElementById('roleDesc').value=reply.trim();
 }catch(e){alert("生成失败："+e.message)}
+finally{
+  hideAiLoading();
+  if(btn){ btn.disabled = false; btn.textContent = oldText || 'AI生成角色设定'; }
+}
 }
 
 async function refineCharacter(){
@@ -28,6 +62,7 @@ async function refineCharacter(){
   const btn = document.querySelector('button[onclick="refineCharacter()"]');
   const oldText = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = '优化中...'; }
+  showAiLoading('鱼鱼正在优化角色设定，请稍等…');
   const oldLen = desc.length;
   try{
     const refined = await callDeepSeekStream([{
@@ -55,6 +90,7 @@ ${desc}`
   }catch(e){
     alert('优化失败：' + e.message);
   }finally{
+    hideAiLoading();
     if(btn){ btn.disabled = false; btn.textContent = oldText || 'AI优化当前设定'; }
   }
 }
