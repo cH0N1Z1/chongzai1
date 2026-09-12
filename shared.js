@@ -1,11 +1,7 @@
 // ============================================================
 //  shared.js - 公共工具、图标、设置、API 调用、通用 UI
-//  由 RPG 模式和模拟器模式共同使用
 // ============================================================
 
-// ============================================================
-//  工具函数
-// ============================================================
 function escapeHtml(text){
   if(text === null || text === undefined) return '';
   return String(text)
@@ -59,9 +55,6 @@ function smartSplit(text){
   return result;
 }
 
-// ============================================================
-//  图标库
-// ============================================================
 const SVG_ICONS={
 name:'<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>',
 soul:'<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>',
@@ -84,9 +77,6 @@ function icon(name,color){
   return svg;
 }
 
-// ============================================================
-//  素材库 + 动态世界书
-// ============================================================
 const MEDIA={worldbook:{}};
 function loadDefaultMedia(){
 fetch('./media.json').then(r=>r.json()).then(def=>{
@@ -137,17 +127,13 @@ function triggerLorebook(playerInput, recentHistory, maxEntries){
   return s;
 }
 
-// ============================================================
-//  设置
-// ============================================================
 const SETTINGS={useIcons:true,useRingsVisual:true,useSceneBg:true,chatTheme:'default',minimalMode:false,soundOn:true,soundVolume:0.2,narrativeStyle:'standard',npcProactive:true,fontScale:1,aiModel:'deepseek-v4-flash',peakAutoDowngrade:true};
 
-// 模型定价表（元/百万 token），来源：DeepSeek API 官方文档
 const MODEL_PRICING={
   'deepseek-v4-flash': {
-    inCacheHit: 0.05,    // 空闲时段
-    inCacheMiss: 1.5,    // 空闲时段
-    out: 4.5             // 空闲时段
+    inCacheHit: 0.05,
+    inCacheMiss: 1.5,
+    out: 4.5
   },
   'deepseek-v4-pro': {
     inCacheHit: 0.15,
@@ -156,8 +142,6 @@ const MODEL_PRICING={
   }
 };
 
-// 高峰时段判断（本地时间）
-// DeepSeek 高峰期：工作日 9:00-12:00 和 14:00-18:00；周末全天按空闲价
 function isPeakHour(){
   const now = new Date();
   const day = now.getDay();
@@ -168,7 +152,6 @@ function isPeakHour(){
   return false;
 }
 
-// 高峰期把 Pro 自动降级为 Flash，避免卡顿+省钱
 function getEffectiveModel(requestedModel){
   const req = requestedModel || SETTINGS.aiModel || 'deepseek-v4-flash';
   if(SETTINGS.peakAutoDowngrade !== false && isPeakHour() && req === 'deepseek-v4-pro'){
@@ -248,7 +231,6 @@ function toggleFontScale(v){
 function applyFontScale(){
   document.documentElement.style.setProperty('--font-scale', SETTINGS.fontScale||1);
 }
-
 function toggleSound(on){
   SETTINGS.soundOn = on;
   if(typeof soundEnsure==='function') soundEnsure();
@@ -299,9 +281,6 @@ function updateTokenDisplay(){}
 function openSettings(){loadSettings();openModal('settingsModal')}
 function openMore(){openModal('moreModal')}
 
-// ============================================================
-//  通用 UI
-// ============================================================
 function openModal(id){document.getElementById(id).classList.add('active')}
 function closeModal(id){document.getElementById(id).classList.remove('active')}
 function toggleExpand(el){el.classList.toggle('open')}
@@ -325,9 +304,6 @@ function renderExpandableList(container,items,options={}){
   container.innerHTML=html;
 }
 
-// ============================================================
-//  DeepSeek API 流式调用（支持模型切换 + JSON mode）
-// ============================================================
 async function callDeepSeekStream(messages,onChunk,opts){
 const apiKey=document.getElementById('apiKey').value.trim();
 if(!apiKey)throw new Error("请填入 DeepSeek API Key");

@@ -15,9 +15,9 @@
 <h2 style="text-align:center;margin-bottom:8px">豆虫模拟器</h2>
 <p style="text-align:center;font-size:14px;color:#9ca3af;margin-bottom:20px">选择游戏模式</p>
 <button class="mode-btn" onclick="selectMode('rpg')">
-<div class="mode-title">角色扮演模式</div>
+<div class="mode-title">星辉学院</div>
 <div class="mode-tag">测试版</div>
-<div class="mode-desc">扮演一名魂师，在斗罗大陆展开冒险</div>
+<div class="mode-desc">收到星辉信，踏入城市的第二层，成为术式师</div>
 </button>
 <button class="mode-btn" onclick="rogueEnter()">
 <div class="mode-title">魂兽猎杀</div>
@@ -27,7 +27,7 @@
 </div>
 
 <div id="config-panel" class="hidden">
-<h2 style="margin:0 0 16px;text-align:center;font-size:22px;letter-spacing:1px;">豆虫模拟器</h2>
+<h2 style="margin:0 0 16px;text-align:center;font-size:22px;letter-spacing:1px;">星辉学院</h2>
 <div id="slotSelector" class="slot-selector"></div>
 <div id="saveInfoBox" class="save-info hidden"></div>
 <label>头像（可选）</label>
@@ -41,40 +41,39 @@
 <input id="apiKey" type="password" placeholder="sk-..." value="">
 <div id="config-inputs">
 <label>角色名</label>
-<input id="roleName" placeholder="如：唐舞桐" value="唐舞桐">
+<input id="roleName" placeholder="如：林星" value="林星">
 <label>性别</label>
 <div class="radio-group">
 <label><input type="radio" name="roleGender" value="女" checked> 女</label>
 <label><input type="radio" name="roleGender" value="男"> 男</label>
 </div>
 <label>角色设定</label>
-<textarea id="roleDesc" placeholder="女，粉蓝色长发...">女，粉蓝色长发，容貌精致，性格温柔而坚韧，出身于史莱克学院，对魂导器有独特天赋。</textarea>
+<textarea id="roleDesc" placeholder="黑发，安静，喜欢看星星...">黑发，安静，喜欢看星星，随身带着一本旧笔记。</textarea>
 <button class="btn-generate" onclick="generateCharacter()">AI生成角色设定</button>
 <button class="btn-generate" onclick="refineCharacter()" style="background:#2563eb;margin-top:6px;">AI优化当前设定</button>
-<label>先天魂力（1-10）</label>
+<label>术式适性（1-10）</label>
 <input id="innatePower" type="number" min="1" max="10" value="5">
-<label>武魂选择</label>
+<label>术式选择</label>
 <div class="radio-group">
 <label><input type="radio" name="soulChoice" value="random" checked> 随机觉醒</label>
-<label><input type="radio" name="soulChoice" value="custom"> 自选武魂</label>
+<label><input type="radio" name="soulChoice" value="custom"> 自选术式</label>
 </div>
 <div id="customSoulDiv" class="hidden">
-<input id="customSoul" placeholder="输入武魂名称，如：光明女神蝶">
+<input id="customSoul" placeholder="输入术式名称，如：霜织">
 </div>
 </div>
 <button id="continueBtn" class="btn-continue hidden" onclick="continueGame()">继续游戏</button>
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
 <div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V86 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V89 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">
 <div id="top-bar">
 <div class="btn-group">
-<button class="ctrl-btn" onclick="openRings()">魂环</button>
-<button class="ctrl-btn" onclick="openSkills()">魂技</button>
-<button class="ctrl-btn" onclick="openTraits()">特质</button>
+<button class="ctrl-btn" onclick="openRings()">刻印</button>
+<button class="ctrl-btn" onclick="openSkills()">术式技</button>
 <button class="ctrl-btn" onclick="openNPCs()">人物</button>
 <button class="ctrl-btn" onclick="openMore()">⋯</button>
 </div>
@@ -83,13 +82,13 @@
 <span id="s-avatar" style="flex-shrink:0;display:inline-flex;"></span>
 <span class="stat"><span class="stat-label">姓名</span> <span id="s-name" class="stat-value">-</span></span>
 <span class="stat"><span class="stat-label">年龄</span> <span id="s-age" class="stat-value">-</span></span>
-<span class="stat"><span class="stat-label">武魂</span> <span id="s-soul" class="stat-value highlight">-</span></span>
-<span class="stat"><span class="stat-label">魂力</span> <span id="s-soulpower" class="stat-value">-</span></span>
+<span class="stat"><span class="stat-label">术式</span> <span id="s-soul" class="stat-value highlight">-</span></span>
+<span class="stat"><span class="stat-label">魔力</span> <span id="s-soulpower" class="stat-value">-</span></span>
 <span class="stat"><span class="stat-label">阶段</span> <span id="s-stage" class="stat-value">-</span></span>
 <span class="stat"><span class="stat-label">时间</span> <span id="s-time" class="stat-value">-</span></span>
 </div>
 <div id="scene-banner" class="hidden"></div>
-<div id="chat-box"><div class="msg-sys">准备觉醒武魂...</div></div>
+<div id="chat-box"><div class="msg-sys">准备收到星辉信...</div></div>
 <div id="options-area"></div>
 <div id="input-row">
 <input id="userInput" placeholder="输入动作，或 /调试 ..." onkeydown="if(event.keyCode==13) sendAction()">
@@ -97,22 +96,18 @@
 </div>
 </div>
 
-<!-- 属性面板弹窗 -->
-<div class="modal-overlay" id="ringsModal"><div class="modal-box"><h3>魂环</h3><div id="ringsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('ringsModal')">关闭</button></div></div></div>
-<div class="modal-overlay" id="skillsModal"><div class="modal-box"><h3>魂技</h3><div id="skillsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('skillsModal')">关闭</button></div></div></div>
-<div class="modal-overlay" id="traitsModal"><div class="modal-box"><h3>特质 / 称号</h3><div id="traitsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('traitsModal')">关闭</button></div></div></div>
+<div class="modal-overlay" id="ringsModal"><div class="modal-box"><h3>术式刻印</h3><div id="ringsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('ringsModal')">关闭</button></div></div></div>
+<div class="modal-overlay" id="skillsModal"><div class="modal-box"><h3>术式技</h3><div id="skillsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('skillsModal')">关闭</button></div></div></div>
 <div class="modal-overlay" id="npcsModal"><div class="modal-box"><h3>重要人物</h3><div id="npcsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('npcsModal')">关闭</button></div></div></div>
 
-<!-- 武魂介绍弹窗 -->
 <div class="modal-overlay" id="soulModal">
 <div class="modal-box">
-<h3>武魂介绍</h3>
+<h3>术式介绍</h3>
 <div id="soulDescContent" style="padding:12px;background:#0d1117;border-radius:8px;font-size:14px;line-height:1.6;color:#c9d1d9;"></div>
 <div class="btn-row"><button class="btn-close" onclick="closeModal('soulModal')">关闭</button></div>
 </div>
 </div>
 
-<!-- 更多菜单弹窗 -->
 <div class="modal-overlay" id="moreModal">
 <div class="modal-box">
 <h3>更多选项</h3>
@@ -130,7 +125,6 @@
 </div>
 </div>
 
-<!-- 设置弹窗 -->
 <div class="modal-overlay" id="settingsModal">
 <div class="modal-box">
 <h3>显示设置</h3>
@@ -147,7 +141,7 @@
 <label class="switch"><input type="checkbox" id="setIcons" onchange="toggleSetting('useIcons',this.checked)"><span class="slider"></span></label>
 </div>
 <div class="setting-row">
-<div class="setting-label"><div class="setting-title">魂环可视化</div><div class="setting-desc">魂环页面用同心圆展示年限</div></div>
+<div class="setting-label"><div class="setting-title">刻印可视化</div><div class="setting-desc">刻印页面用同心圆展示</div></div>
 <label class="switch"><input type="checkbox" id="setRingsVisual" onchange="toggleSetting('useRingsVisual',this.checked)"><span class="slider"></span></label>
 </div>
 <div class="setting-row">
@@ -201,7 +195,6 @@
 </div>
 </div>
 
-<!-- 摘要编辑弹窗 -->
 <div class="modal-overlay" id="summaryModal">
 <div class="modal-box">
 <h3>剧情摘要（可手动编辑）</h3>
@@ -213,7 +206,6 @@
 </div>
 </div>
 
-<!-- 角色档案编辑弹窗 -->
 <div class="modal-overlay" id="profileModal">
 <div class="modal-box">
 <h3>编辑角色档案</h3>
@@ -221,14 +213,14 @@
 <label>姓名</label>
 <input id="pfName" placeholder="角色名">
 <label>年龄</label>
-<input id="pfAge" type="number" min="1" max="999">
-<label>武魂</label>
-<input id="pfSoul" placeholder="如：光明女神蝶">
-<label>武魂描述</label>
-<textarea id="pfSoulDesc" placeholder="武魂的特性与来历" style="width:100%;height:80px;padding:10px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;font-size:13px;resize:vertical;line-height:1.6;"></textarea>
-<label>先天魂力（1-10）</label>
+<input id="pfAge" type="number" min="12" max="18">
+<label>本命术式</label>
+<input id="pfSoul" placeholder="如：霜织">
+<label>术式描述</label>
+<textarea id="pfSoulDesc" placeholder="术式的特性与来历" style="width:100%;height:80px;padding:10px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;font-size:13px;resize:vertical;line-height:1.6;"></textarea>
+<label>术式适性（1-10）</label>
 <input id="pfInnate" type="number" min="1" max="10">
-<label>当前魂力</label>
+<label>当前魔力</label>
 <input id="pfPower" type="number" min="1" max="100">
 <div class="btn-row">
 <button class="btn-close" onclick="closeModal('profileModal')">取消</button>
@@ -237,7 +229,6 @@
 </div>
 </div>
 
-<!-- Token 用量弹窗 -->
 <div class="modal-overlay" id="tokenModal">
 <div class="modal-box">
 <h3>Token 用量</h3>
@@ -248,11 +239,9 @@
 </div>
 </div>
 </div>
-<!-- 剧情回放 / 导出 / 导入 弹窗 -->
 <div class="modal-overlay" id="replayModal"></div>
 <div class="modal-overlay" id="exportModal"></div>
 <div class="modal-overlay" id="importModal"></div>
-<!-- 肉鸽模式容器 -->
 <div id="rogue-area" class="hidden"><div id="rogue-content"></div></div>
 
 <script src="sound.js"></script>
@@ -260,7 +249,6 @@
 <script src="rpg.js"></script>
 <script src="rogue.js"></script>
 <script>
-// —— 按钮点击脉冲动画（所有按钮渐大渐小） ——
 document.addEventListener('click', function(e){
   const btn = e.target.closest('.ctrl-btn, .btn-primary, .btn-secondary, .btn-generate, .btn-continue, .modal-box .btn-row button, .mode-btn, .rogue-btn, .rogue-btn-primary, .rogue-btn-ghost');
   if(!btn) return;
@@ -269,7 +257,6 @@ document.addEventListener('click', function(e){
   setTimeout(function(){ btn.classList.remove('btn-pressing'); }, 420);
 }, true);
 
-// —— 音效初始化：首次用户交互时激活 AudioContext（修复刷新后无声） ——
 (function(){
   let done = false;
   function init(){
@@ -290,7 +277,6 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     setInterval(function(){ reg.update(); }, 10 * 60 * 1000);
     reg.update();
   });
-  // controllerchange 自动刷新已移除
 }
 </script>
 </body>
