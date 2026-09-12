@@ -365,9 +365,9 @@ function addForm(name, type, desc){
     if(type) exist.type = type;
     return;
   }
-  CORE.forms.push({name, type: type || '觉醒', desc: desc || ''});
+CORE.forms.push({name, type: type || '觉醒', desc: desc || ''});
   chatBox.innerHTML += `<div class="msg-ring">获得形态：${escapeHtml(name)}</div>`;
-  if(typeof soundRing==='function') soundRing();
+  if(typeof soundRing==='function') soundRing(type);
 }
 
 function deleteForm(name){ CORE.forms = CORE.forms.filter(f => f.name !== name); }

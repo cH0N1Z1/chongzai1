@@ -299,7 +299,6 @@ Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 
 resetScene();
 
-document.getElementById('config-inputs').classList.remove('hidden');
 configPanel.style.display='none';
 gameArea.style.display='flex';
 try {

@@ -15,7 +15,6 @@ const SOUND = {
   bgm: { timer: null, current: null, noteIdx: 0 },
 };
 
-// 首次用户交互时初始化（浏览器要求）
 function soundEnsure(){
   if(SOUND.ctx) {
     if(SOUND.ctx.state === 'suspended') SOUND.ctx.resume();
@@ -43,7 +42,6 @@ function soundSetVolume(v){
 
 // ---- 具体音效 ----
 
-// 打字声：短促白噪音
 function soundType(){
   if(!SOUND.enabled || !SOUND.ctx) return;
   const now = performance.now();
@@ -62,7 +60,6 @@ function soundType(){
   src.start();
 }
 
-// 叮声（获得物品、按钮）
 function soundDing(freq, dur){
   if(!SOUND.enabled || !SOUND.ctx) return;
   freq = freq || 880;
@@ -79,14 +76,12 @@ function soundDing(freq, dur){
   osc.stop(ctx.currentTime + dur);
 }
 
-// 魂力提升：双音
 function soundPower(){
   if(!SOUND.enabled || !SOUND.ctx) return;
   soundDing(660, 0.15);
   setTimeout(()=>soundDing(880, 0.25), 100);
 }
 
-// 晋阶：上升和弦
 function soundUpgrade(){
   if(!SOUND.enabled || !SOUND.ctx) return;
   [523, 659, 784, 1047].forEach((f, i) => {
@@ -94,7 +89,6 @@ function soundUpgrade(){
   });
 }
 
-// 战斗：低频鼓点
 function soundDrum(){
   if(!SOUND.enabled || !SOUND.ctx) return;
   const ctx = SOUND.ctx;
@@ -110,7 +104,6 @@ function soundDrum(){
   osc.stop(ctx.currentTime + 0.25);
 }
 
-// 场景切换：柔和的滑音
 function soundSceneShift(){
   if(!SOUND.enabled || !SOUND.ctx) return;
   const ctx = SOUND.ctx;
@@ -126,15 +119,13 @@ function soundSceneShift(){
   osc.stop(ctx.currentTime + 0.4);
 }
 
-// 按钮点击：短促清响
 function soundClick(){
   soundDing(1200, 0.08);
 }
 
 // ============================================================
-//  🎵 BGM 场景音乐（新增）
+//  🎵 BGM 场景音乐
 // ============================================================
-// 通用单音播放
 function soundPlayNote(freq, dur, type, gain){
   if(!SOUND.enabled || !SOUND.ctx) return;
   const ctx = SOUND.ctx;
@@ -150,7 +141,6 @@ function soundPlayNote(freq, dur, type, gain){
   osc.stop(ctx.currentTime + dur + 0.05);
 }
 
-// 8 种场景的循环旋律
 const BGM_PATTERNS = {
   city:     { bpm: 92, type:'triangle', gain:0.045, notes:[262,330,392,523,392,330,294,330] },
   academy:  { bpm: 88, type:'triangle', gain:0.045, notes:[349,440,523,587,523,440,392,440] },
@@ -189,20 +179,19 @@ function soundStopBgm(){
 }
 
 // ============================================================
-//  🔔 魂环获得音效分层（新增）
+//  🔔 术式形态获得音效（按类型分层）
+//  觉醒=柔和，成长=明亮，关键=华丽，稀有=璀璨，传说=宏伟
 // ============================================================
-function soundRing(ringName){
+function soundRing(formType){
   if(!SOUND.enabled || !SOUND.ctx) return;
-  let base = 523;  // 十年 默认
-  if(ringName){
-    if(ringName.includes('百万年')) base = 1047;
-    else if(ringName.includes('十万年')) base = 880;
-    else if(ringName.includes('万年')) base = 784;
-    else if(ringName.includes('千年')) base = 659;
-    else if(ringName.includes('百年')) base = 587;
-    else if(ringName.includes('十年')) base = 523;
+  let base = 523;
+  if(formType){
+    if(formType.includes('传说')) base = 1047;
+    else if(formType.includes('稀有')) base = 880;
+    else if(formType.includes('关键')) base = 784;
+    else if(formType.includes('成长')) base = 659;
+    else if(formType.includes('觉醒')) base = 523;
   }
-  // 上行三音，年限越高越明亮
   soundDing(base, 0.35);
   setTimeout(()=>soundDing(base * 1.26, 0.4), 90);
   setTimeout(()=>soundDing(base * 1.5, 0.5), 180);
@@ -221,9 +210,7 @@ function soundStopAmbient(){
 
 function soundAmbient(sceneType){
   if(!SOUND.enabled || !SOUND.ctx) return;
-  // 先处理 BGM（无论场景是否命中环境音）
   soundBgm(sceneType);
-  // 再处理环境白噪音
   if(SOUND._lastAmbient === sceneType) return;
   SOUND._lastAmbient = sceneType;
   soundStopAmbient();

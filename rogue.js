@@ -39,11 +39,11 @@ const ROGUE_DATA = {
     { type: 'nest', weight: 2 },
   ],
   skills: {
-    '白初刻': [{ name: '术式冲击', dmg: 15, cost: 5 }],
-    '黄浅刻': [{ name: '魔力涌动', dmg: 25, cost: 10 }],
-    '紫深刻': [{ name: '元素斩', dmg: 40, cost: 18 }],
-    '黑夜刻': [{ name: '刻印共鸣', dmg: 65, cost: 25 }],
-    '红血刻': [{ name: '星辉破', dmg: 100, cost: 40 }],
+    '觉醒': [{ name: '术式冲击', dmg: 15, cost: 5 }],
+    '成长': [{ name: '魔力涌动', dmg: 25, cost: 10 }],
+    '关键': [{ name: '元素斩', dmg: 40, cost: 18 }],
+    '稀有': [{ name: '刻印共鸣', dmg: 65, cost: 25 }],
+    '传说': [{ name: '星辉破', dmg: 100, cost: 40 }],
   },
   upgrades: [
     { id: 'hp',     name: '体魄淬炼', desc: '初始生命 +20',   cost: 80,  value: 20 },
@@ -187,19 +187,31 @@ function rogueStartRun() {
       player.maxHp = 40 + sp * 8 + (up.hp||0)*20;
       player.hp = player.maxHp;
       player.atk = 8 + Math.floor(sp * 0.8) + (up.atk||0)*3;
-      const soul = c.arcane || c.martialSoul || '';
+      const soul = c.arcane || '';
       if (/火|炎|焰|凤|星|光/.test(soul)) player.element = '火';
       else if (/冰|水|海|雪|霜/.test(soul)) player.element = '水';
       else if (/木|草|花|藤|莲|生/.test(soul)) player.element = '木';
       else if (/土|石|岩|龟|铁/.test(soul)) player.element = '土';
-      const marks = c.marks || c.rings || [];
+
+      // 术式形态 → 战斗技能
+      const forms = Array.isArray(c.forms) ? c.forms : [];
+      const tierMap = {
+        '觉醒': ROGUE_DATA.skills['觉醒'][0],
+        '成长': ROGUE_DATA.skills['成长'][0],
+        '关键': ROGUE_DATA.skills['关键'][0],
+        '稀有': ROGUE_DATA.skills['稀有'][0],
+        '传说': ROGUE_DATA.skills['传说'][0],
+      };
       const skillList = [];
-      for (const tier of ['白初刻','黄浅刻','紫深刻','黑夜刻','红血刻','金星刻']) {
-        if (marks.some(r => (r.name || r || '').includes(tier))) {
-          (ROGUE_DATA.skills[tier] || []).forEach(s => skillList.push({ ...s }));
-        }
-      }
-      if (skillList.length === 0) skillList.push({ name: '术式冲击', dmg: 15, cost: 5 });
+      const seen = new Set();
+      forms.forEach(f => {
+        if(!f || !f.name) return;
+        if(seen.has(f.name)) return;
+        seen.add(f.name);
+        const tier = tierMap[f.type] || tierMap['觉醒'];
+        skillList.push({ name: f.name, dmg: tier.dmg, cost: tier.cost });
+      });
+      if (skillList.length === 0) skillList.push({ ...ROGUE_DATA.skills['觉醒'][0] });
       player.skills = skillList;
     }
   } catch (e) {}
@@ -499,7 +511,7 @@ function rogueRender() {
         <button class="rogue-btn rogue-btn-flee" onclick="rogueFlee()">逃跑</button>
       </div></div>`;
   } else if (s.phase === 'treasure') {
-    body = `<div class="rogue-event"><h3>💰 发现宝箱</h3><p>一个古老的魂导宝箱静静躺在树根下。</p><button class="rogue-btn-primary" onclick="rogueOpenTreasure()">打开</button></div>`;
+    body = `<div class="rogue-event"><h3>💰 发现宝箱</h3><p>一个古老的宝箱静静躺在树根下。</p><button class="rogue-btn-primary" onclick="rogueOpenTreasure()">打开</button></div>`;
   } else if (s.phase === 'spring') {
     body = `<div class="rogue-event"><h3>💧 生命泉</h3><p>清澈的泉水泛着微光，喝一口感觉浑身舒畅。</p><button class="rogue-btn-primary" onclick="rogueDrinkSpring()">饮下</button></div>`;
   } else if (s.phase === 'shrine') {

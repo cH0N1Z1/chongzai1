@@ -1,6 +1,6 @@
 {
-  "name": "豆虫模拟器",
-  "short_name": "豆虫",
+  "name": "星辉学院",
+  "short_name": "星辉",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
