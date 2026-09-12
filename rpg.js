@@ -1124,8 +1124,12 @@ const oldLen=oldSummary.length;
 const START=200,STEP=20,MAX=500;
 const targetLen=oldLen===0?START:Math.min(oldLen+STEP,MAX);
 const prompt=`把「旧摘要」和「新对话」融合成一份新摘要。
-目标长度约${targetLen}字，第三人称，保留有后续影响的内容（人物、地点、目标、承诺、身份、能力），丢弃琐事。
-直接输出正文，不要任何前缀。
+第三人称，保留有后续影响的内容（人物、地点、目标、承诺、身份、能力），丢弃琐事。
+
+【硬性要求】
+输出必须严格控制在 ${targetLen} 字以内（±30字）。宁可丢掉细节，也不要超字数。
+不要把新对话里的每个事件都列一遍，只提炼对后续剧情有影响的。
+直接输出正文，不要任何前缀、不要小标题。
 
 【旧摘要】${oldSummary||'（开头）'}
 【新对话】
@@ -1133,9 +1137,17 @@ ${historyText}`;
 try{
 const summary=await callDeepSeekStream([{role:'user',content:prompt}],()=>{});
 if(summary&&summary.trim().length>20){
-CORE.summary=summary.trim();
+let finalSummary=summary.trim();
+// 硬截断兜底：超过 MAX+50 字就切到 MAX，且尽量在句末收尾
+if(finalSummary.length>MAX+50){
+  let cut=finalSummary.slice(0,MAX);
+  const lastPunc=Math.max(cut.lastIndexOf('。'),cut.lastIndexOf('！'),cut.lastIndexOf('？'),cut.lastIndexOf('；'));
+  if(lastPunc>MAX*0.6)cut=cut.slice(0,lastPunc+1);
+  finalSummary=cut;
+}
+CORE.summary=finalSummary;
 PLOT.summaryCounter=0;
-chatBox.innerHTML+=`<div class="msg-summary">记忆精炼 · 摘要 ${CORE.summary.length} 字</div>`;
+chatBox.innerHTML+=`<div class="msg-summary">记忆精炼 · 摘要 ${finalSummary.length} 字</div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
 saveToPhone();
 generateChapterTitle().then(title=>{
