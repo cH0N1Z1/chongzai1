@@ -1192,26 +1192,25 @@ async function refineCharacter(){
   try{
     const refined = await callDeepSeekStream([{
       role:"user",
-      content: `你是斗罗大陆2（绝世唐门时代）的角色设定编辑。
-把下面的角色设定重写为 150 字左右（120-180 字）的精炼版本。
+      content: `你是斗罗大陆2（绝世唐门时代）的角色设定编辑。请把下面的角色设定重写为一份 120-180 字的高密度精炼版本。
 
-铁律：
-1) 严格保留原文的一切事实（姓名、年龄、外貌、性格、出身、特长、癖好），不得删改、不得凭空新增设定。
-2) 优化信息密度：用最少的字传达最多的关键信息，去掉排比、重复、抒情、废话。
-3) 若原文过短（<80字）：不改变原设定、不新增背景，围绕已有事实合理展开细节（例如把"温柔"写成具体行为），补到 120-180 字。
-4) 若原文过长（>200字）：压缩到 120-180 字，优先保留可复用的具体细节。
-5) 若原文已经合适（80-200字）：只做润色，字数保持在范围内。
-6) 输出：第三人称设定文，不是叙事。直接输出文本，无前缀、无标题、无引号。
+要求：
+- 完整保留原文的所有事实：姓名、年龄、外貌、性格、出身、特长、癖好
+- 用最少的字传达最多的关键信息
+- 若原文较短（<80字），围绕已有事实合理展开细节，补到 120-180 字
+- 若原文较长（>200字），压缩到 120-180 字
+- 第三人称设定文，语言简洁具体
+- 直接输出优化后的设定文
 
 【原文】
 ${desc}`
     }], ()=>{});
-    if(refined && refined.trim().length >= 30){
-      const finalDesc = refined.trim();
-      document.getElementById('roleDesc').value = finalDesc;
-      alert(`已优化：${oldLen} 字 → ${finalDesc.length} 字`);
+    const cleaned = String(refined || '').replace(/^```[\s\S]*?\n/, '').replace(/\n?```\s*$/, '').trim();
+    if(cleaned.length >= 10){
+      document.getElementById('roleDesc').value = cleaned;
+      alert(`已优化：${oldLen} 字 → ${cleaned.length} 字`);
     }else{
-      alert('优化结果异常，请重试');
+      alert('AI 未返回有效内容（长度 ' + cleaned.length + ' 字），请再点一次试试～');
     }
   }catch(e){
     alert('优化失败：' + e.message);
