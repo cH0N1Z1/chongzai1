@@ -1,7 +1,5 @@
 // ============================================================
 //  rpg-ui.js - 星辉学院 UI 层
-//  摘要编辑 / 角色档案 / 头像 / 刻印可视化 / 场景氛围 / 天气 /
-//  属性变化 / 状态栏 / 业务弹窗 / 选项 / Token 面板
 //  依赖：shared.js → rpg-core.js
 // ============================================================
 
@@ -102,23 +100,93 @@ function userMsgHtml(text,isDebug){
 }
 
 // ============================================================
-//  刻印可视化
+//  术式星图
 // ============================================================
-function renderRingsVisual(marks){
-if(marks.length===0)return '<div style="text-align:center;padding:24px;color:#8b949e;">暂无刻印</div>';
-const total=Math.min(marks.length,9);const cx=100,cy=100;
-let svg=`<svg viewBox="0 0 200 200">`;
-for(let i=0;i<total;i++){
-  const r=92-i*9;const color=getMarkColorHex(marks[i].name);const isGold=marks[i].name.includes('星刻');
-  svg+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="5" opacity="0.95"${isGold?' filter="url(#goldGlow)"':''}/>`;
+let _starSelectedIdx = null;
+
+function openArcane(){
+  _starSelectedIdx = null;
+  renderArcanePanel();
+  openModal('arcaneModal');
 }
-svg+=`<defs><filter id="goldGlow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
-svg+=`<circle cx="${cx}" cy="${cy}" r="22" fill="#161b22" stroke="#30363d"/>`;
-svg+=`<text x="${cx}" y="${cy+5}" text-anchor="middle" fill="#f0f6fc" font-size="14" font-weight="bold">${total}印</text></svg>`;
-let legend='<div class="rings-legend">';
-marks.forEach((m,i)=>{const color=getMarkColorHex(m.name);legend+=`<span class="rings-legend-item" style="color:${color};">第${i+1}印 · ${escapeHtml(m.name)}${m.count>1?'×'+m.count:''}</span>`});
-legend+='</div>';
-return `<div class="rings-visual-container">${svg}${legend}</div>`;
+
+function renderArcanePanel(){
+  const container = document.getElementById('arcaneContent');
+  if(!container) return;
+  container.innerHTML = renderStarMap(CORE.forms, CORE.arcane || '未觉醒');
+}
+
+function renderStarMap(forms, arcaneName){
+  const cx = 150, cy = 150;
+  const orbitR = 100;
+  const centerR = 36;
+  const nodeR = 14;
+  const total = forms.length;
+
+  let html = '<div class="star-map">';
+
+  // SVG 连线 + 轨道
+  html += '<svg class="star-map-svg" viewBox="0 0 300 300">';
+  html += `<circle cx="${cx}" cy="${cy}" r="${orbitR}" fill="none" stroke="rgba(168,216,238,0.22)" stroke-width="1" stroke-dasharray="2 6"/>`;
+  forms.forEach((_, i) => {
+    const angle = (i / total) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(angle) * orbitR;
+    const y = cy + Math.sin(angle) * orbitR;
+    html += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" class="star-line"/>`;
+  });
+  html += '</svg>';
+
+  // 中心术式球
+  html += `<div class="star-center" style="left:${cx - centerR}px;top:${cy - centerR}px;width:${centerR*2}px;height:${centerR*2}px;">${escapeHtml(arcaneName)}</div>`;
+
+  // 形态星点
+  if(forms.length === 0){
+    html += `<div class="star-empty">尚未获得任何术式形态</div>`;
+  }
+  forms.forEach((f, i) => {
+    const angle = (i / total) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(angle) * orbitR;
+    const y = cy + Math.sin(angle) * orbitR;
+    const color = getFormColorHex(f.type);
+    const isSel = _starSelectedIdx === i;
+    html += `<div class="star-node${isSel?' selected':''}" style="left:${x - nodeR}px;top:${y - nodeR}px;width:${nodeR*2}px;height:${nodeR*2}px;--node-color:${color};" onclick="handleStarClick(${i})">`;
+    if(isSel){
+      html += `<div class="star-label">${escapeHtml(f.name)}</div>`;
+    }
+    html += `</div>`;
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function handleStarClick(idx){
+  if(_starSelectedIdx === idx){
+    // 二次点击 → 打开详情
+    openFormDetail(idx);
+  } else {
+    // 一次点击 → 显示名字
+    _starSelectedIdx = idx;
+    renderArcanePanel();
+  }
+}
+
+function openFormDetail(idx){
+  const f = CORE.forms[idx];
+  if(!f) return;
+  const color = getFormColorHex(f.type);
+  const html = `
+    <div class="form-detail">
+      <div class="form-detail-name" style="color:${color}">${escapeHtml(f.name)}</div>
+      <div class="form-detail-type">${escapeHtml(f.type || '觉醒')}</div>
+      <div class="form-detail-desc">${escapeHtml(f.desc || '暂无描述')}</div>
+    </div>
+  `;
+  const el = document.getElementById('formDetailContent');
+  if(el){
+    el.innerHTML = html;
+    openModal('formDetailModal');
+  }
 }
 
 // ============================================================
@@ -289,26 +357,20 @@ function triggerStageUpgrade(oldStage, newStage){
   setTimeout(()=>banner.remove(), 2200);
 }
 
-function addSkill(name, desc){
-  if(!CORE.arts) CORE.arts=[];
-  const exist = CORE.arts.find(s=>s.name === name);
-  if(exist){ if(desc) exist.desc = desc; return; }
-  CORE.arts.push({name, desc});
-  chatBox.innerHTML += `<div class="msg-skill">获得术式技：${escapeHtml(name)}</div>`;
-}
-
-function addRing(name, desc){
-  if(!CORE.marks) CORE.marks=[];
-  const exist = CORE.marks.find(r=>r.name === name);
+function addForm(name, type, desc){
+  if(!CORE.forms) CORE.forms=[];
+  const exist = CORE.forms.find(f=>f.name === name);
   if(exist){
-    exist.count = (exist.count||1) + 1;
     if(desc) exist.desc = desc;
+    if(type) exist.type = type;
     return;
   }
-  CORE.marks.push({name, count:1, desc});
-  chatBox.innerHTML += `<div class="msg-ring">获得刻印：${escapeHtml(name)}</div>`;
-  if(typeof soundRing==='function') soundRing(name);
+  CORE.forms.push({name, type: type || '觉醒', desc: desc || ''});
+  chatBox.innerHTML += `<div class="msg-ring">获得形态：${escapeHtml(name)}</div>`;
+  if(typeof soundRing==='function') soundRing();
 }
+
+function deleteForm(name){ CORE.forms = CORE.forms.filter(f => f.name !== name); }
 
 function addNPC(name, gender, arcane, mana, relation, desc, affinity){
   if(!CORE.npcs) CORE.npcs=[];
@@ -341,8 +403,6 @@ function addNPC(name, gender, arcane, mana, relation, desc, affinity){
   chatBox.innerHTML += `<div class="msg-npc">新人物：${escapeHtml(name)}</div>`;
 }
 
-function deleteSkill(name){ CORE.arts = CORE.arts.filter(s => s.name !== name); }
-function deleteRing(name){ CORE.marks = CORE.marks.filter(r => r.name !== name); }
 function deleteNPC(name){ CORE.npcs = CORE.npcs.filter(n => n.name !== name); }
 
 function setTerm(term){
@@ -369,7 +429,7 @@ function archiveTerm(term){
 }
 
 // ============================================================
-//  状态栏刷新
+//  状态栏刷新（时间限长显示）
 // ============================================================
 function updateStatus(){
 const avatarEl=document.getElementById('s-avatar');
@@ -399,7 +459,11 @@ if (soulText.length > 8) {
 
 document.getElementById('s-soulpower').innerHTML=icon('power','#f0f6fc')+(CORE.mana||0);
 document.getElementById('s-stage').innerHTML=icon('stage','#8b949e')+getStage(CORE.mana);
-document.getElementById('s-time').innerHTML=icon('time','#8b949e')+escapeHtml(CORE.time||"未知");
+
+// 时间截断显示
+let shortTime = CORE.time || "未知";
+if(shortTime.length > 12) shortTime = shortTime.slice(0, 12) + '…';
+document.getElementById('s-time').innerHTML=icon('time','#8b949e')+escapeHtml(shortTime);
 saveToPhone();
 }
 
@@ -416,12 +480,8 @@ function showSoulDesc() {
 }
 
 // ============================================================
-//  业务弹窗
+//  人物弹窗
 // ============================================================
-function openRings(){const container=document.getElementById('ringsContent');if(SETTINGS.useRingsVisual&&CORE.marks.length>0){container.innerHTML=renderRingsVisual(CORE.marks)}else{renderExpandableList(container,CORE.marks,{emptyText:'无刻印',nameClassFn:(r)=>getMarkColorClass(r.name),removeFn:'removeRingItem'})}openModal('ringsModal')}
-function removeRingItem(idx){CORE.marks.splice(idx,1);updateStatus();openRings()}
-function openSkills(){renderExpandableList(document.getElementById('skillsContent'),CORE.arts,{emptyText:'无术式技',removeFn:'removeSkillItem'});openModal('skillsModal')}
-function removeSkillItem(idx){CORE.arts.splice(idx,1);updateStatus();openSkills()}
 function openNPCs(){
   renderExpandableList(document.getElementById('npcsContent'),CORE.npcs,{
     emptyText:'暂无重要人物',

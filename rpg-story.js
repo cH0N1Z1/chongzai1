@@ -1,15 +1,25 @@
 // ============================================================
 //  rpg-story.js - 星辉学院剧情主循环
-//  sendAction / 流式处理 / 状态解析 / applyUpdate / 摘要 / 调试
 //  依赖：shared.js → rpg-core.js → rpg-ui.js
 // ============================================================
 
 // ============================================================
 //  状态解析
 // ============================================================
-const STATUS_LINE_RE=/^(年龄[：:]|魔力\s*[+\-：:]|魔力\s*(提升|增加|提高|升至|达到|变为)|获得术式技[：:]|删除术式技[：:]|获得刻印[：:]|删除刻印[：:]|人物[：:]|重要人物[：:]|新人物[：:]|删除人物[：:]|时间[：:]|学期[：:]|归档学期[：:])/;
-function stripStatus(text){let result=text.replace(/【状态更新】[\s\S]*?(?=【选项】|$)/g,'');result=result.replace(/【选项】[\s\S]*/g,'');const lines=result.split('\n');const kept=lines.filter(line=>{const t=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();if(!t)return true;if(STATUS_LINE_RE.test(t))return false;return true});return kept.join('\n').trim()}
-function parseSeg(seg){let name=seg,count=1,desc='';const descM=seg.match(/^(.+?)[（(](.+?)[）)]\s*$/);if(descM){name=descM[1].trim();desc=descM[2].trim()}const cntM=name.match(/[×xX*](\d+)\s*(个|枚|颗|件|本|张|块|份)?\s*$/);if(cntM){count=parseInt(cntM[1])||1;name=name.replace(/[×xX*]\d+\s*(个|枚|颗|件|本|张|块|份)?\s*$/,'').trim()}const cnM=name.match(/^(.+?)([一二三四五六七八九十百千万]+)(个|枚|颗|件|本|张|块|份)\s*$/);if(cnM){count=chineseToNumber(cnM[2]);name=cnM[1].trim()}return{name,count,desc}}
+const STATUS_LINE_RE=/^(年龄[：:]|魔力\s*[+\-：:]|魔力\s*(提升|增加|提高|升至|达到|变为)|获得形态[：:]|删除形态[：:]|人物[：:]|重要人物[：:]|新人物[：:]|删除人物[：:]|时间[：:]|学期[：:]|归档学期[：:])/;
+
+function stripStatus(text){
+  let result=text.replace(/【状态更新】[\s\S]*?(?=【选项】|$)/g,'');
+  result=result.replace(/【选项】[\s\S]*/g,'');
+  const lines=result.split('\n');
+  const kept=lines.filter(line=>{
+    const t=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();
+    if(!t)return true;
+    if(STATUS_LINE_RE.test(t))return false;
+    return true;
+  });
+  return kept.join('\n').trim();
+}
 
 async function parseStructuredUpdate(narrative, userAction){
   const schemaExample = JSON.stringify({
@@ -17,10 +27,8 @@ async function parseStructuredUpdate(narrative, userAction){
     manaDelta: 0,
     manaAbsolute: null,
     time: "描述",
-    skills: [],
-    delSkills: [],
-    rings: [],
-    delRings: [],
+    forms: [],
+    delForms: [],
     npcs: [],
     delNpcs: [],
     term: null,
@@ -36,8 +44,7 @@ async function parseStructuredUpdate(narrative, userAction){
 - 魔力：${CORE.mana}级
 - 时间：${CORE.time}
 - 学期：${CORE.term}
-- 已有刻印：${CORE.marks.map(r=>r.name).join('、') || '无'}
-- 已有术式技：${CORE.arts.map(s=>s.name).join('、') || '无'}
+- 已有术式形态：${CORE.forms.map(f=>f.name).join('、') || '无'}
 - 现役人物：${CORE.npcs.filter(n=>n.status!=='archived').map(n=>n.name).join('、') || '无'}
 
 【本轮剧情】
@@ -53,11 +60,9 @@ ${schemaExample}
 - age：如果剧情中主角年龄变化，填新年龄（12-18）；否则 null。
 - manaDelta：如果魔力有增减，填增量；否则 0。
 - manaAbsolute：如果魔力提升到具体等级，填该等级；否则 null。
-- time：本轮剧情的时间描述，必须填。
-- skills：本轮获得的术式技列表，每项 {"name":"名称","desc":"描述"}。
-- delSkills：本轮删除的术式技名称列表。
-- rings：本轮获得的刻印列表，每项 {"name":"颜色+名称（如白初刻、黄浅刻）","desc":"描述"}。
-- delRings：本轮删除的刻印名称列表。
+- time：本轮剧情的时间描述，必须填。请保持简洁（不超过15字），复杂信息放括号里。
+- forms：本轮获得的术式形态列表，每项 {"name":"形态名（如霜织·初雪）","type":"觉醒/成长/关键/稀有/传说","desc":"描述"}。
+- delForms：本轮删除的术式形态名称列表。
 - npcs：本轮新增或更新的人物列表，每项 {"name":"姓名","gender":"性别","arcane":"术式","mana":"魔力","relation":"关系","desc":"描述","affinity":0-100}。
 - delNpcs：本轮删除的人物名称列表。
 - term：如果进入新学期，填学期名；否则 null。
@@ -83,10 +88,8 @@ ${schemaExample}
       age: (obj.age !== null && obj.age !== undefined) ? parseInt(obj.age) : null,
       soulPowerBase: parseInt(obj.manaDelta) || 0,
       soulPowerAbsolute: (obj.manaAbsolute !== null && obj.manaAbsolute !== undefined) ? parseInt(obj.manaAbsolute) : null,
-      skills: Array.isArray(obj.skills) ? obj.skills.filter(s=>s && s.name) : [],
-      delSkills: Array.isArray(obj.delSkills) ? obj.delSkills : [],
-      rings: Array.isArray(obj.rings) ? obj.rings.filter(r=>r && r.name) : [],
-      delRings: Array.isArray(obj.delRings) ? obj.delRings : [],
+      forms: Array.isArray(obj.forms) ? obj.forms.filter(f=>f && f.name) : [],
+      delForms: Array.isArray(obj.delForms) ? obj.delForms : [],
       npcs: Array.isArray(obj.npcs) ? obj.npcs.filter(n=>n && n.name) : [],
       delNpcs: Array.isArray(obj.delNpcs) ? obj.delNpcs : [],
       time: obj.time || null,
@@ -105,7 +108,7 @@ ${schemaExample}
 }
 
 function parseStatusUpdate(text){
-const update={age:null,soulPowerBase:0,soulPowerAbsolute:null,skills:[],delSkills:[],rings:[],delRings:[],npcs:[],delNpcs:[],time:null,term:null,archiveTerm:null};
+const update={age:null,soulPowerBase:0,soulPowerAbsolute:null,forms:[],delForms:[],npcs:[],delNpcs:[],time:null,term:null,archiveTerm:null};
 let block='';
 const m=text.match(/【状态更新】([\s\S]*?)(?=【选项】|$)/);
 if(m){block=m[1]}else{const lines=text.split('\n');const statusLines=[];for(const line of lines){const t=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();if(STATUS_LINE_RE.test(t))statusLines.push(t)}block=statusLines.join('\n')}
@@ -118,13 +121,21 @@ const lines=block.split('\n').map(l=>l.trim()).filter(Boolean);
 for(let line of lines){
 line=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();
 if(!line)continue;
-const km=line.match(/^(获得术式技|删除术式技|获得刻印|删除刻印|人物|重要人物|新人物|删除人物|时间|学期|归档学期)[：:]\s*(.+)$/);
+const km=line.match(/^(获得形态|删除形态|人物|重要人物|新人物|删除人物|时间|学期|归档学期)[：:]\s*(.+)$/);
 if(!km)continue;
 const kw=km[1];const content=km[2].trim();
-if(kw==='获得术式技')smartSplit(content).forEach(seg=>{const p=parseSeg(seg);if(!isPlaceholder(p.name))update.skills.push({name:p.name,desc:p.desc})});
-else if(kw==='删除术式技')smartSplit(content).forEach(seg=>{const n=seg.trim();if(!isPlaceholder(n))update.delSkills.push(n)});
-else if(kw==='获得刻印')smartSplit(content).forEach(seg=>{const p=parseSeg(seg);if(!isPlaceholder(p.name))update.rings.push({name:p.name,desc:p.desc})});
-else if(kw==='删除刻印')smartSplit(content).forEach(seg=>{const n=seg.trim();if(!isPlaceholder(n))update.delRings.push(n)});
+if(kw==='获得形态'){
+  // 格式：名字 | 类型 | 描述
+  smartSplit(content).forEach(seg=>{
+    const parts = seg.split('|').map(s=>s.trim());
+    const name = parts[0];
+    if(!name || isPlaceholder(name)) return;
+    const type = parts[1] || '觉醒';
+    const desc = parts[2] || '';
+    update.forms.push({name, type, desc});
+  });
+}
+else if(kw==='删除形态')smartSplit(content).forEach(seg=>{const n=seg.trim();if(!isPlaceholder(n))update.delForms.push(n)});
 else if(kw==='人物'||kw==='重要人物'||kw==='新人物'){
   smartSplit(content).forEach(seg=>{
     const parts=seg.split('/').map(s=>s.trim());
@@ -168,10 +179,8 @@ if(CORE.mana!==oldSP){
 }
 if(update.term)setTerm(update.term);
 if(update.archiveTerm)archiveTerm(update.archiveTerm);
-(update.skills||[]).forEach(s=>addSkill(s.name,s.desc));
-(update.delSkills||[]).forEach(n=>deleteSkill(n));
-(update.rings||[]).forEach(r=>addRing(r.name,r.desc));
-(update.delRings||[]).forEach(n=>deleteRing(n));
+(update.forms||[]).forEach(f=>addForm(f.name,f.type,f.desc));
+(update.delForms||[]).forEach(n=>deleteForm(n));
 (update.npcs||[]).forEach(n=>addNPC(n.name,n.gender,n.arcane,n.mana,n.relation,n.desc,n.affinity));
 (update.delNpcs||[]).forEach(n=>deleteNPC(n));
 if(update.time){CORE.time=update.time;chatBox.innerHTML+=`<div class="msg-time">${icon('time','#94a3b8')}${escapeHtml(update.time)}</div>`}
@@ -188,32 +197,7 @@ updateStatus();
 function sniffNarrativeUpdates(fullReply, update){
   const narrative = stripStatus(fullReply);
   if(!narrative) return;
-
-  if(update.rings.length === 0){
-    const colorRe = /(白初刻|黄浅刻|紫深刻|黑夜刻|红血刻|金星刻)/;
-    const contextRe = /(刻印|解锁|获得|觉醒)/;
-    const cm = narrative.match(colorRe);
-    if(cm && contextRe.test(narrative)){
-      const exists = CORE.marks.some(r => r.name.includes(cm[1]));
-      if(!exists){
-        update.rings.push({ name: cm[1], desc: '' });
-        chatBox.innerHTML += `<div class="msg-sys" style="font-size:12px;color:#a78bfa;">⚠️ 正文检测到刻印但状态块未写，已自动补录：${escapeHtml(cm[1])}</div>`;
-      }
-    }
-  }
-
-  if(update.soulPowerBase === 0 && update.soulPowerAbsolute === null){
-    const lvlRe = /魔力(?:提升|突破|达到|升至|涨到|到达)\s*(?:到|至)?\s*(\d+)\s*级/g;
-    let m;
-    while((m = lvlRe.exec(narrative)) !== null){
-      const v = parseInt(m[1]);
-      if(v > CORE.mana && v <= 100){
-        update.soulPowerAbsolute = v;
-        chatBox.innerHTML += `<div class="msg-sys" style="font-size:12px;color:#a78bfa;">⚠️ 正文检测到魔力提升但状态块未写，已自动补录：${CORE.mana} → ${v}</div>`;
-        break;
-      }
-    }
-  }
+  // 保留兜底逻辑，但不做刻印检测（形态需要明确写入）
 }
 
 function buildCoreSummary(playerInput){
@@ -225,8 +209,7 @@ if(CORE.arcaneDesc) s+=`术式描述：${CORE.arcaneDesc}\n`;
 s+=`魔力：${CORE.mana}级（${getStage(CORE.mana)}）\n`;
 s+=`时间：${CORE.time}\n`;
 s+=`当前学期：${CORE.term}\n`;
-s+=`刻印：${CORE.marks.map(r=>r.name).join('、')||'无'}\n`;
-s+=`术式技：${CORE.arts.map(x=>x.name).join('、')||'无'}\n`;
+s+=`术式形态：${CORE.forms.map(f=>`${f.name}（${f.type}）`).join('、')||'无'}\n`;
 const activeNPCs=CORE.npcs.filter(n=>n.status!=='archived');
 const archivedNPCs=CORE.npcs.filter(n=>n.status==='archived');
 if(activeNPCs.length>0)s+=`【现役人物】\n${activeNPCs.map(n=>`- ${n.name}（${n.gender}·${n.arcane}·魔力${n.mana||'?'}·${n.relation}·好感${n.affinity||0}）：${n.desc||''}`).join('\n')}\n`;
@@ -277,11 +260,6 @@ function buildRecentEvents(){
   const unique = [...new Set(events)].slice(-3);
   if(unique.length === 0) return '';
   return unique.map(e => '- ' + e).join('\n');
-}
-
-function isNearBottom(threshold){
-  threshold = threshold || 100;
-  return chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < threshold;
 }
 
 function extractOptions(text){
@@ -375,12 +353,12 @@ throw e;
 // ============================================================
 function handleDebugCommand(rawText){
 let text=rawText.trim();
-if(!text){chatBox.innerHTML+=`<div class="msg-debug">用法：/调试 获得刻印 白初刻</div>`;return}
+if(!text){chatBox.innerHTML+=`<div class="msg-debug">用法：/调试 获得形态 霜织·初雪 | 觉醒 | 描述</div>`;return}
 text=normalizeDebugText(text);
 const pseudo=`【状态更新】\n${text}\n`;
 const update=parseStatusUpdate(pseudo);
-const hasAny=update.skills.length>0||update.delSkills.length>0||update.rings.length>0||update.delRings.length>0||update.npcs.length>0||update.delNpcs.length>0||update.time!==null||update.term!==null||update.archiveTerm!==null||update.soulPowerAbsolute!==null||update.soulPowerBase!==0||update.age!==null;
-if(!hasAny){chatBox.innerHTML+=`<div class="msg-debug">无法识别，请用：/调试 获得刻印 白初刻</div>`;return}
+const hasAny=update.forms.length>0||update.delForms.length>0||update.npcs.length>0||update.delNpcs.length>0||update.time!==null||update.term!==null||update.archiveTerm!==null||update.soulPowerAbsolute!==null||update.soulPowerBase!==0||update.age!==null;
+if(!hasAny){chatBox.innerHTML+=`<div class="msg-debug">无法识别，请用：/调试 获得形态 霜织·初雪 | 觉醒 | 描述</div>`;return}
 applyUpdate(update);
 chatBox.innerHTML+=`<div class="msg-debug">调试已应用</div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
@@ -397,15 +375,14 @@ function handleLoreTest(testInput){
 }
 
 function normalizeDebugText(text){
-if(/^(获得术式技|删除术式技|获得刻印|删除刻印|人物|重要人物|新人物|删除人物|时间|魔力|年龄|学期|归档学期)[：:]/.test(text))return text;
+if(/^(获得形态|删除形态|人物|重要人物|新人物|删除人物|时间|魔力|年龄|学期|归档学期)[：:]/.test(text))return text;
 let m;
 if((m=text.match(/^年龄\s*(\d+)\s*$/)))return `年龄：${m[1]}`;
 if((m=text.match(/^魔力\s*([+-]?\d+)\s*$/)))return `魔力 ${m[1]}`;
 if((m=text.match(/^魔力\s*(?:提升至|提升到|达到|变为)\s*(\d+)\s*$/)))return `魔力 提升至${m[1]}`;
 if((m=text.match(/^(?:认识|遇见|遇到|结识|加入|新增)\s*(?:人物|npc|NPC)?\s*(.+?)\s*$/))){const n=m[1].trim();if(n)return `人物：${n}/未知/未知/未知/相识/`}
 if((m=text.match(/^删除人物\s+(.+?)\s*$/)))return `删除人物：${m[1]}`;
-if((m=text.match(/^获得\s*(.+?)\s*刻印\s*$/)))return `获得刻印：${m[1]}`;
-if((m=text.match(/^获得\s*(.+?)\s*术式技\s*$/)))return `获得术式技：${m[1]}`;
+if((m=text.match(/^获得\s*(.+?)\s*形态\s*$/)))return `获得形态：${m[1]} | 觉醒 |`;
 return '';
 }
 
@@ -457,65 +434,49 @@ ${coreSummary}
 ${currentSituation}
 ${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
 
-## 叙事范例（模仿此密度、节奏与用语）
-地铁到站的风掀起你的衣角。你按信上的地址走出闸机，*抬头看见一栋白色的建筑*。
-（就是这里吗……）
-口袋里那封信微微发烫。你把它拿出来，背面那枚星辉印记正在发光。
-眼前的老楼像水波一样晃了一下。再定睛看时，一座白色校门安静地立在晨光里。
-
-【状态更新】
-时间：入学第一天·上午
-学期：一年级上学期
-人物：校门口的学生会成员/女/镜台/30级/学生会/穿深蓝长外套，笑容温和/好感:20
-
-【选项】
-• 走上前，把信递过去
-• 先在校门口站一会儿，看看周围
-• 低头检查信上的字迹
-
 ## 输出结构（严格按此顺序）
 1) 叙事正文（第二人称，含分层标记）
 2) 【状态更新】块（只在有变化时写该行）
 3) 【选项】块（2-3 个，每项以"•"开头）
 
 ## 状态更新格式
-年龄:N / 魔力+N 或 魔力提升至N / 时间:xxx
-获得|删除术式技：名（描述）
-获得|删除刻印：白初刻（描述）
+年龄:N / 魔力+N 或 魔力提升至N / 时间:xxx（不超过15字）
+获得形态：形态名 | 觉醒/成长/关键/稀有/传说 | 描述
+删除形态：形态名
 人物：姓名/性别/术式/魔力/关系/描述/好感:N
 删除人物：名 / 学期:名 / 归档学期:名
 
+## 术式形态说明
+- 术式形态 = 术式的演化阶段，每个形态有独立名字
+- 名字通常带术式本名，如「霜织·初雪」「霜织·冰棱」
+- 类型分五类：觉醒、成长、关键、稀有、传说
+- 觉醒：入学觉醒时获得的初始形态
+- 成长：随魔力提升自然演化出的新形态
+- 关键：剧情重大节点获得
+- 稀有：极难获得，往往有代价
+- 传说：几乎没人见过的形态
+- 每获得一个新形态，说明术式在这条路上走得更远了
+
 ## 硬约束
-- 时间每轮必写；其他字段仅在有变化时写，绝不写"无"。
+- 时间每轮必写，且简洁（不超过15字）。
 - 只有写进【状态更新】的才生效。
 - 人物行第 3 段是术式名（不是人名）；无信息填"未知"。
-- 主角性别为 ${CORE.gender}，据此调整称呼、外貌、心理与社交描写。
+- 主角性别为 ${CORE.gender}。
 
 ## 叙事要求
 - 场景优先使用现代都市 + 魔法学院的元素：高楼、地铁、便利店、术式商店、发光的铭牌、晶体玻璃、刻印手环。
-- 日常 80-120 字，像轻小说那样，一句一段，节奏轻快。关键剧情 200-300 字，但不要堆砌形容词，多用动词和对话。每轮至少有一句对话。
+- 日常 80-120 字，像轻小说那样，一句一段，节奏轻快。关键剧情 200-300 字。
 - 用"你"指代玩家，禁止用"他/她/角色名"指代玩家。
-- ${isContinue ? '玩家选择"继续"：自然推进剧情，可让 NPC 主动说话，不替玩家做重大决定。' : '根据玩家输入推进剧情。'}
+- ${isContinue ? '玩家选择"继续"：自然推进剧情，可让 NPC 主动说话。' : '根据玩家输入推进剧情。'}
 
 ## 文本分层标记
 - 对话：用中文引号 “……” 或 「……」
 - 心理：（……）
-- 关键动作/戏剧性瞬间：*……*（每段最多 1 处）
-
-## 人物档案
-- 现役：人物：姓名/性别/术式/魔力/关系/描述/好感:N
-- 归档：离开学期时用"归档学期：学期名"，该学期所有现役自动定格
-- 唤醒：再遇归档人物用"人物："激活，须体现时间差的成长
-- 切换学期：学期：学期名
+- 关键动作：*……*（每段最多 1 处）
 
 ## 人物与好感度
 - 好感度 0-100。陌生 0-20，认识 21-40，友好 41-60，亲近 61-80，特别 81-100。
-- NPC 主动互动的方式：借你笔记、拉你去食堂、放学等你、在训练场递水、发消息问你作业。好感度越高，互动越频繁、越私密。
-- 好感度档位对应的互动：
-  21-40（认识）：打招呼、借东西
-  41-60（友好）：一起吃饭、分享小秘密
-  61-80（亲近）：天台独处、主动帮忙、关心你的状态
-  81-100（特别）：专属称呼、关键时刻站你这边、会因为你受伤而生气
+- NPC 主动互动随好感度变化。好感度高的 NPC 会主动找你、关心你。
 - 叙事要自然，不要刻意刷好感。
 
 ${styleBlock}
@@ -523,7 +484,7 @@ ${styleBlock}
 ${proactiveBlock}
 
 ## 选项
-【状态更新】后写 2-3 个玩家可执行的具体行动，每项以"•"开头。`;
+【状态更新】后写 2-3 个玩家可执行的具体行动。`;
 
 const messages=[{role:"system",content:systemPrompt}];
 const recent=PLOT.history.slice(-3);

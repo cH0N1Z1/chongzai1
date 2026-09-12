@@ -66,14 +66,13 @@
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
 <div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V93 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V94 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">
 <div id="top-bar">
 <div class="btn-group">
-<button class="ctrl-btn" onclick="openRings()">刻印</button>
-<button class="ctrl-btn" onclick="openSkills()">术式技</button>
+<button class="ctrl-btn" onclick="openArcane()">术式</button>
 <button class="ctrl-btn" onclick="openNPCs()">人物</button>
 <button class="ctrl-btn" onclick="openMore()">⋯</button>
 </div>
@@ -96,8 +95,23 @@
 </div>
 </div>
 
-<div class="modal-overlay" id="ringsModal"><div class="modal-box"><h3>术式刻印</h3><div id="ringsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('ringsModal')">关闭</button></div></div></div>
-<div class="modal-overlay" id="skillsModal"><div class="modal-box"><h3>术式技</h3><div id="skillsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('skillsModal')">关闭</button></div></div></div>
+<!-- 术式星图弹窗 -->
+<div class="modal-overlay" id="arcaneModal">
+<div class="modal-box">
+<h3>术式星图</h3>
+<div id="arcaneContent"></div>
+<div class="btn-row"><button class="btn-close" onclick="closeModal('arcaneModal')">关闭</button></div>
+</div>
+</div>
+
+<!-- 术式形态详情弹窗 -->
+<div class="modal-overlay" id="formDetailModal">
+<div class="modal-box">
+<div id="formDetailContent"></div>
+<div class="btn-row"><button class="btn-close" onclick="closeModal('formDetailModal')">关闭</button></div>
+</div>
+</div>
+
 <div class="modal-overlay" id="npcsModal"><div class="modal-box"><h3>重要人物</h3><div id="npcsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('npcsModal')">关闭</button></div></div></div>
 
 <div class="modal-overlay" id="soulModal">
@@ -141,7 +155,7 @@
 <label class="switch"><input type="checkbox" id="setIcons" onchange="toggleSetting('useIcons',this.checked)"><span class="slider"></span></label>
 </div>
 <div class="setting-row">
-<div class="setting-label"><div class="setting-title">刻印可视化</div><div class="setting-desc">刻印页面用同心圆展示</div></div>
+<div class="setting-label"><div class="setting-title">术式星图可视化</div><div class="setting-desc">术式页面用星图展示形态</div></div>
 <label class="switch"><input type="checkbox" id="setRingsVisual" onchange="toggleSetting('useRingsVisual',this.checked)"><span class="slider"></span></label>
 </div>
 <div class="setting-row">
@@ -157,14 +171,14 @@
 </select>
 </div>
 <div class="setting-row">
-<div class="setting-label"><div class="setting-title">AI 模型</div><div class="setting-desc">Flash 快而便宜 / Pro 强而贵（觉醒轮自动用 Pro）</div></div>
+<div class="setting-label"><div class="setting-title">AI 模型</div><div class="setting-desc">Flash 快而便宜 / Pro 强而贵</div></div>
 <select id="setAiModel" onchange="toggleAiModel(this.value)">
 <option value="deepseek-v4-flash">V4 Flash</option>
 <option value="deepseek-v4-pro">V4 Pro</option>
 </select>
 </div>
 <div class="setting-row">
-<div class="setting-label"><div class="setting-title">高峰期自动降级</div><div class="setting-desc">工作日 9-12 点 / 14-18 点，Pro 自动切 Flash 防卡顿</div></div>
+<div class="setting-label"><div class="setting-title">高峰期自动降级</div><div class="setting-desc">工作日 9-12 点 / 14-18 点，Pro 自动切 Flash</div></div>
 <label class="switch"><input type="checkbox" id="setPeakDowngrade" onchange="togglePeakDowngrade(this.checked)"><span class="slider"></span></label>
 </div>
 <div class="setting-row">

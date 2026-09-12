@@ -14,7 +14,7 @@ const FIXED_WORLD=`现代都市 · 星辉学院时代。
 
 【星辉学院】
 城市的核心，也是唯一能处理迷雾的机构。建在城市里，但普通人看不见——只有收到星辉信的人才能看见真正的校门。
-没有教师。完全由学生自治。课程由高年级学生开设，一届传一届。学生会管理日常事务。
+没有教师。完全由学生自治。课程由高年级学生开设，一届传一届。学生会管理日常事务。每届12名学生。
 学院正中有座星辉塔，塔顶常年亮着一盏灯。塔顶是学院的最高决策层，从不露面，只发布任务。
 
 【入学】
@@ -26,11 +26,13 @@ const FIXED_WORLD=`现代都市 · 星辉学院时代。
 【校服与手环】
 手环戴在手腕上，平时可以收起校服穿便装。校服是术式产物，由手环生成。
 校服分级：低年级（1-2年级）藏青短外套、白衬衫、深蓝细丝带；中年级（3-4年级）深蓝长外套、白衬衫、深蓝领带、星辉纹腰带；高年级（5-6年级）黑色长大衣、白衬衫、黑领带、右胸刻印徽章。
-手环颜色对应当前最高刻印色。
+手环颜色对应当前术式的最高形态色。
 
-【术式与刻印】
-每个人都有独特的本命术式，形似具象化的概念。术式有强弱（S/A/B/C/D），适性1-10。适性高成长快，适性低成长慢。术式随魔力提升解锁「刻印」，每个刻印带一个术式技。
-刻印颜色：白初刻、黄浅刻、紫深刻、黑夜刻、红血刻、金星刻。
+【术式与形态】
+每个人都有独特的本命术式，形似具象化的概念。术式有强弱（S/A/B/C/D），适性1-10。适性高成长快，适性低成长慢。
+术式本身是一个核心，随成长演化出不同的「形态」。每个形态有独立的名字与效果，像一颗星在图谱上亮起。
+形态分五类：觉醒（白）、成长（蓝）、关键（紫）、稀有（金）、传说（红）。颜色越靠后越难得。
+术式形态的名字通常带有术式本名，如「霜织·初雪」「霜织·冰棱」。
 
 【任务与重修】
 塔顶发布任务。分两种：学院任务（一人完成即可，全员无事）、个人任务（每人必做）。
@@ -53,30 +55,46 @@ const FIXED_WORLD=`现代都市 · 星辉学院时代。
 // ============================================================
 //  核心数据
 // ============================================================
-const CORE={name:'',avatar:'',gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',aptitude:5,mana:1,marks:[],arts:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''};
+const CORE={
+  name:'', avatar:'', gender:'女', age:12, roleDesc:'',
+  arcane:'未觉醒', arcaneDesc:'',
+  aptitude:5, mana:1,
+  forms:[],           // 术式形态
+  npcs:[], flags:{}, summary:'',
+  time:'入学第一天', term:'一年级上学期', weather:'',
+  chapterNum:0, chapterTitle:''
+};
 const PLOT={history:[],turn:0,isFirst:true,summaryCounter:0};
 let isGenerating=false;
 
 // ============================================================
 //  工具函数
 // ============================================================
-function getStage(power){if(power<=10)return"见习";if(power<=25)return"初级";if(power<=40)return"中级";if(power<=55)return"高级";if(power<=70)return"精英";if(power<=85)return"首席";return"大导师"}
-function getSpeedFactor(){return 1+(CORE.aptitude-1)*0.15}
-function getMarkColorClass(name){
-  if(name.includes('星刻'))return'ring-gold';
-  if(name.includes('血刻'))return'ring-red';
-  if(name.includes('夜刻'))return'ring-black';
-  if(name.includes('深刻'))return'ring-purple';
-  if(name.includes('浅刻'))return'ring-yellow';
-  return'ring-white';
+function getStage(power){
+  if(power<=10)return"见习";
+  if(power<=25)return"初级";
+  if(power<=40)return"中级";
+  if(power<=55)return"高级";
+  if(power<=70)return"精英";
+  if(power<=85)return"首席";
+  return"大导师";
 }
-function getMarkColorHex(name){
-  if(name.includes('星刻'))return '#fbbf24';
-  if(name.includes('血刻'))return '#ef4444';
-  if(name.includes('夜刻'))return '#4b5563';
-  if(name.includes('深刻'))return '#a855f7';
-  if(name.includes('浅刻'))return '#facc15';
-  return '#f0f0f0';
+function getSpeedFactor(){return 1+(CORE.aptitude-1)*0.15}
+
+// 术式形态颜色（按类型）
+function getFormColorHex(type){
+  if(type==='传说') return '#ef4444';
+  if(type==='稀有') return '#fbbf24';
+  if(type==='关键') return '#a855f7';
+  if(type==='成长') return '#60a5fa';
+  return '#a8d8ee';  // 觉醒
+}
+function getFormColorClass(type){
+  if(type==='传说') return 'ring-red';
+  if(type==='稀有') return 'ring-gold';
+  if(type==='关键') return 'ring-purple';
+  if(type==='成长') return 'ring-yellow';
+  return 'ring-white';
 }
 
 // ============================================================
@@ -89,7 +107,11 @@ const configPanel=document.getElementById('config-panel');
 const gameArea=document.getElementById('game-area');
 const sendBtn=document.getElementById('sendBtn');
 
-document.querySelectorAll('input[name="soulChoice"]').forEach(radio=>{radio.addEventListener('change',function(){document.getElementById('customSoulDiv').classList.toggle('hidden',this.value!=='custom')})});
+document.querySelectorAll('input[name="soulChoice"]').forEach(radio=>{
+  radio.addEventListener('change',function(){
+    document.getElementById('customSoulDiv').classList.toggle('hidden',this.value!=='custom');
+  });
+});
 
 // ============================================================
 //  存档
@@ -146,112 +168,58 @@ function renderSlotSelector(){
   el.innerHTML = html;
 }
 function loadSave(){
-try{const savedKey=localStorage.getItem('douro2ApiKey');if(savedKey)document.getElementById('apiKey').value=savedKey;
-const legacy = localStorage.getItem('douro2Save');
-if(legacy && !localStorage.getItem('douro2Save_1')){
-  localStorage.setItem('douro2Save_1', legacy);
-  localStorage.removeItem('douro2Save');
-}
-loadCurrentSlot();
-const raw=localStorage.getItem(slotKey());
-if(raw){const data=JSON.parse(raw);Object.assign(CORE,data.core);
-if(!CORE.gender)CORE.gender='女';
-if(!CORE.age)CORE.age=12;
-if(!CORE.arcaneDesc)CORE.arcaneDesc='';
-if(CORE.marks&&CORE.marks.length>0&&typeof CORE.marks[0]==='string')CORE.marks=CORE.marks.map(r=>({name:r,count:1,desc:''}));
-if(CORE.arts&&CORE.arts.length>0&&typeof CORE.arts[0]==='string')CORE.arts=CORE.arts.map(s=>({name:s,desc:''}));
-if(!CORE.npcs)CORE.npcs=[];
-if(!CORE.time)CORE.time='入学第一天';
-if(!CORE.term)CORE.term='一年级上学期';
-if(CORE.avatar===undefined)CORE.avatar='';
-if(CORE.weather===undefined)CORE.weather='';
-if(CORE.chapterNum===undefined)CORE.chapterNum=0;
-if(CORE.chapterTitle===undefined)CORE.chapterTitle='';
-CORE.npcs.forEach(n=>{
-  if(!n.status)n.status='active';
-  if(n.term===undefined)n.term='一年级上学期';
-  if(n.affinity===undefined)n.affinity=0;
-  if(n.archTime===undefined)n.archTime='';
-  if(n.snapshot===undefined)n.snapshot=null;
-  if(n.arcane===undefined)n.arcane='';
-});
-delete CORE.hp;delete CORE.maxHp;delete CORE.inventory;
-delete CORE.traits;
-Object.assign(PLOT,data.plot);return true}}catch(e){console.error('读档失败',e)}
+try{
+  const savedKey=localStorage.getItem('douro2ApiKey');
+  if(savedKey)document.getElementById('apiKey').value=savedKey;
+  const legacy = localStorage.getItem('douro2Save');
+  if(legacy && !localStorage.getItem('douro2Save_1')){
+    localStorage.setItem('douro2Save_1', legacy);
+    localStorage.removeItem('douro2Save');
+  }
+  loadCurrentSlot();
+  const raw=localStorage.getItem(slotKey());
+  if(raw){
+    const data=JSON.parse(raw);
+    Object.assign(CORE,data.core);
+    if(!CORE.gender)CORE.gender='女';
+    if(!CORE.age)CORE.age=12;
+    if(!CORE.arcaneDesc)CORE.arcaneDesc='';
+    // 兼容旧存档：marks/arts → forms
+    if(!CORE.forms){
+      CORE.forms = [];
+      if(Array.isArray(CORE.marks)){
+        CORE.marks.forEach(m=>{
+          const name = typeof m === 'string' ? m : (m.name||'');
+          if(name) CORE.forms.push({name, type:'觉醒', desc:(m.desc||'')});
+        });
+      }
+      delete CORE.marks;
+    }
+    delete CORE.arts;
+    if(!CORE.npcs)CORE.npcs=[];
+    if(!CORE.time)CORE.time='入学第一天';
+    if(!CORE.term)CORE.term='一年级上学期';
+    if(CORE.avatar===undefined)CORE.avatar='';
+    if(CORE.weather===undefined)CORE.weather='';
+    if(CORE.chapterNum===undefined)CORE.chapterNum=0;
+    if(CORE.chapterTitle===undefined)CORE.chapterTitle='';
+    CORE.npcs.forEach(n=>{
+      if(!n.status)n.status='active';
+      if(n.term===undefined)n.term='一年级上学期';
+      if(n.affinity===undefined)n.affinity=0;
+      if(n.archTime===undefined)n.archTime='';
+      if(n.snapshot===undefined)n.snapshot=null;
+      if(n.arcane===undefined)n.arcane='';
+    });
+    delete CORE.hp;delete CORE.maxHp;delete CORE.inventory;
+    delete CORE.traits;
+    Object.assign(PLOT,data.plot);
+    return true;
+  }
+}catch(e){console.error('读档失败',e)}
 return false;
 }
 function resetSave(){if(confirm("清空当前存档？")){localStorage.removeItem(slotKey());document.getElementById('config-inputs').classList.remove('hidden');location.reload()}}
-
-// ============================================================
-//  剧情回放
-// ============================================================
-function openReplay(){
-  const el = document.getElementById('replayModal');
-  if(!el) return;
-  el.innerHTML = '<div class="modal-box"><h3>剧情回放</h3>'
-    + '<input id="replaySearch" placeholder="搜索关键词..." oninput="renderReplayList(this.value)" style="width:100%;padding:8px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;margin-bottom:10px;">'
-    + '<div id="replayList" class="replay-list"></div>'
-    + '<div class="btn-row"><button class="btn-close" onclick="closeModal(\'replayModal\')">关闭</button></div></div>';
-  openModal('replayModal');
-  renderReplayList('');
-}
-function renderReplayList(keyword){
-  const list = document.getElementById('replayList');
-  if(!list) return;
-  const kw = String(keyword||'').trim();
-  const items = PLOT.history.filter(m => m.role === 'assistant').map((m, i) => {
-    const t = stripStatus(m.content);
-    return { idx: i, text: t };
-  }).filter(x => !kw || x.text.includes(kw));
-  if(items.length === 0){ list.innerHTML = '<div style="text-align:center;color:#8b949e;padding:20px;">无匹配记录</div>'; return; }
-  list.innerHTML = items.slice(-50).reverse().map(x =>
-    '<div class="replay-item" onclick="scrollToReply(' + x.idx + ')">' + escapeHtml(x.text.slice(0,80)) + (x.text.length>80?'…':'') + '</div>'
-  ).join('');
-}
-function scrollToReply(idx){
-  const allMsg = chatBox.querySelectorAll('.msg-ai');
-  if(allMsg[idx]){ allMsg[idx].scrollIntoView({behavior:'smooth', block:'center'}); allMsg[idx].style.background='rgba(88,166,255,0.15)'; setTimeout(function(){ allMsg[idx].style.background=''; },1500); }
-  closeModal('replayModal');
-}
-
-// ============================================================
-//  导出 / 导入存档
-// ============================================================
-function openExport(){
-  const raw = localStorage.getItem(slotKey()) || '{}';
-  const code = btoa(unescape(encodeURIComponent(raw)));
-  const el = document.getElementById('exportModal');
-  el.innerHTML = '<div class="modal-box"><h3>导出存档 ' + CURRENT_SLOT + '</h3>'
-    + '<p style="font-size:12px;color:#8b949e;margin-bottom:8px;">复制下面全部文字，即可在别的设备导入。</p>'
-    + '<textarea readonly style="width:100%;height:180px;padding:10px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;font-size:12px;font-family:monospace;line-height:1.5;">' + code + '</textarea>'
-    + '<div class="btn-row"><button class="btn-close" onclick="closeModal(\'exportModal\')">关闭</button>'
-    + '<button class="btn-save" onclick="copyExport()">复制</button></div></div>';
-  openModal('exportModal');
-}
-function copyExport(){
-  const ta = document.querySelector('#exportModal textarea');
-  if(ta){ ta.select(); document.execCommand('copy'); alert('已复制到剪贴板'); }
-}
-function openImport(){
-  const el = document.getElementById('importModal');
-  el.innerHTML = '<div class="modal-box"><h3>导入存档到槽 ' + CURRENT_SLOT + '</h3>'
-    + '<p style="font-size:12px;color:#8b949e;margin-bottom:8px;">把之前导出的文字粘贴到下面，会覆盖当前槽。</p>'
-    + '<textarea id="importText" placeholder="粘贴存档字符串..." style="width:100%;height:180px;padding:10px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;font-size:12px;font-family:monospace;line-height:1.5;"></textarea>'
-    + '<div class="btn-row"><button class="btn-close" onclick="closeModal(\'importModal\')">取消</button>'
-    + '<button class="btn-save" onclick="doImport()">导入</button></div></div>';
-  openModal('importModal');
-}
-function doImport(){
-  const t = document.getElementById('importText').value.trim();
-  if(!t) return alert('请先粘贴内容');
-  try{
-    const raw = decodeURIComponent(escape(atob(t)));
-    JSON.parse(raw);
-    localStorage.setItem(slotKey(), raw);
-    alert('导入成功，即将刷新');
-    location.reload();
-  }catch(e){ alert('导入失败：' + e.message); }
-}
 
 // ============================================================
 //  导航
@@ -287,7 +255,7 @@ if(hasSave && (!CORE.name || CORE.arcane === '未觉醒')){
     localStorage.removeItem(slotKey());
     hasSave = false;
     const _keepAvatar2 = CORE.avatar || '';
-    Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',aptitude:5,mana:1,marks:[],arts:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''});
+    Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',aptitude:5,mana:1,forms:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''});
     Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 }
 
@@ -326,7 +294,7 @@ if(hasValidSave && !confirm("已有存档，开始新游戏会覆盖。确定？
 
 localStorage.removeItem(slotKey());
 const _keepAvatar = CORE.avatar || '';
-Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',aptitude:5,mana:1,marks:[],arts:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''});
+Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',aptitude:5,mana:1,forms:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''});
 Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 
 resetScene();
