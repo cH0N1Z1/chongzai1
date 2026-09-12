@@ -3,9 +3,6 @@
 //  依赖：shared.js → rpg-core.js → rpg-ui.js → rpg-story.js
 // ============================================================
 
-// ============================================================
-//  AI 处理中的浮动提示条
-// ============================================================
 function showAiLoading(text){
   let el = document.getElementById('aiLoadingToast');
   if(!el){
@@ -36,14 +33,13 @@ async function generateCharacter(){
 const name=document.getElementById('roleName').value.trim();
 if(!name){alert("请先填写角色名");return}
 const gender=document.querySelector('input[name="roleGender"]:checked').value;
-const innate=parseInt(document.getElementById('innatePower').value)||5;
 const apiKey=document.getElementById('apiKey').value.trim();
 if(!apiKey){alert("请先填写API Key");return}
 const btn = document.querySelector('button[onclick="generateCharacter()"]');
 const oldText = btn ? btn.textContent : '';
 if(btn){ btn.disabled = true; btn.textContent = '生成中...'; }
 showAiLoading('鱼鱼正在生成角色设定，请稍等…');
-const prompt=`为现代魔法学院「星辉学院」的学生角色"${name}"（${gender}）生成一份角色设定，术式适性${innate}级。包含：年龄、外貌、性格、出身背景、一个小癖好。约100-150字。直接输出描述。`;
+const prompt=`为现代魔法学院「星辉学院」的学生角色"${name}"（${gender}）生成一份角色设定。包含：年龄、外貌、性格、出身背景、一个小癖好。约100-150字。直接输出描述。`;
 try{
 const reply=await callDeepSeekStream([{role:"user",content:prompt}],()=>{});
 document.getElementById('roleDesc').value=reply.trim();
@@ -103,7 +99,6 @@ if(isGenerating)return;
 const name=document.getElementById('roleName').value.trim();
 const gender=document.querySelector('input[name="roleGender"]:checked').value;
 const roleDesc=document.getElementById('roleDesc').value.trim();
-const innate=parseInt(document.getElementById('innatePower').value)||1;
 
 if(!name){
     chatBox.innerHTML+=`<div class="msg-lose">请填写角色名！请回到主界面配置面板填写。</div>`;
@@ -115,8 +110,6 @@ CORE.name=name;
 CORE.gender=gender;
 CORE.age=12;
 CORE.roleDesc=roleDesc||"无详细设定";
-CORE.aptitude=Math.min(Math.max(innate,1),10);
-CORE.mana=CORE.aptitude;
 CORE.summary='';
 CORE.forms=[];
 CORE.npcs=[];
@@ -140,7 +133,6 @@ ${FIXED_WORLD}
 ## 本轮信息
 新生：${name}（${gender}，12岁）
 设定：${CORE.roleDesc}
-术式适性：${innate}级（初始魔力=${CORE.mana}级）
 ${customSoul?'指定术式：'+customSoul:'请为角色设计一个独特的本命术式，给出名称与特性。'}
 
 ## 开场叙事（写成一段连贯的小说，700-1000字）
@@ -148,13 +140,14 @@ ${customSoul?'指定术式：'+customSoul:'请为角色设计一个独特的本�
 1. 主角在邮箱或手机里收到一封没有署名的信，信上只有一行字和一个地址。
 2. 主角按地址找过去，看见一栋白色的、安静的、从没见过的建筑。
 3. 推门进去，里面站着几个同龄人，手里都攥着信。踏进学院的瞬间，术式自动觉醒。
-4. 一个高年级学生从楼梯上下来，自我介绍是学生会的。他/她用简短的话说明学院规则：
-   - 没有教师，完全学生自治
-   - 课程由高年级学生开设
-   - 每届12名学生
+4. 一个高年级学生从楼梯上下来。他/她按流程说明学院规则：
+   - 没有教师，完全学生自治，课程由学生开设
+   - 每届 6 名学生，6 个年级
+   - 一年级上学期没有任务，下学期塔顶发第一个任务
+   - 未完成个人任务者重修，回到一年级
 5. 学生会成员递来一枚手环，让主角戴上。戴上的瞬间，校服自动变出来，自动合身。
-6. 术式在踏进学院的瞬间就已觉醒。
-7. 结尾让学生会成员说一句方向性的话，告诉主角接下来去哪（去宿舍 / 去教室 / 去学生会报到 / 去食堂吃点东西 / 去训练场看看）。
+6. 结尾让学生会成员说一句方向性的话，告诉主角接下来去哪（去宿舍 / 去教室 / 去学院各处看看）。
+7. 全程可让主角在心里或行动上自然注意到：学院安静、礼貌、有一点距离感；周围的同龄人各自安静地站着，没人多话。
 
 ## 输出结构（严格按此顺序）
 1) 小说正文（700-1000字，连贯叙事，不分幕）
@@ -165,18 +158,44 @@ ${customSoul?'指定术式：'+customSoul:'请为角色设计一个独特的本�
 年龄：12
 时间：入学第一天·上午
 学期：一年级上学期
-获得形态：<术式名>·初 | 觉醒 | <描述>
-人物：学生会成员姓名/性别/术式/魔力/学生会/描述/好感:20
+获得形态：<形态名> | <类型> | <描述>
+人物：<姓名>/<性别>/<术式>/<关系>/<年级>/<部门>/<描述>/好感:N
+
+## 人物行格式
+- 严格八段，用 / 分隔。
+- 段序：姓名 / 性别 / 术式 / 关系 / 年级 / 部门 / 描述 / 好感:N
+- 第 3 段是术式名，不是人名。
+- 第 5 段是年级：一年级上学期～六年级下学期 / 留校。
+- 第 6 段是部门：学生会的具体分工 / 社团名 / 无。
+- 第 8 段是好感度，格式"好感:N"。
+- 缺信息填"未知"或"无"，不能省略段位。
+
+## 术式形态
+- 命名结构：术式本名 + 分隔符 + 一个意象词。
+- 意象词一两字。
+- 类型分五类：觉醒、成长、关键、稀有、传说。
+- 必须写入【状态更新】块，格式：获得形态：<形态名> | <类型> | <描述>
 
 ## 硬约束
-- 学生会成员姓名请你自由发挥，每次新游戏都换一个新名字，名字要有现代感（如：苏晚、江晴、温言、洛宁、沈舟…）。
-- 人物行必须严格七段，用 / 分隔。第 3 段是术式名，绝不能填人名。第 7 段是好感度，格式"好感:N"。
-- 术式形态必须写入【状态更新】块，格式：「获得形态：霜织·初 | 觉醒 | 掌心凝出细霜」
-- 术式形态名字通常是「术式名·一个字或一个词」，如「霜织·初」「回声·听」「断章·锋」。
+- 学生会成员由你自由发挥生成一个全新角色。每次新游戏名字都不同。
 - 对话用引号，心理用括号，关键动作用 *……* 包裹。
 - 结尾必须给出明确去向。
 - 【选项】里必须包含 2-3 个具体可执行的下一步方向。
-- 每次新游戏的开场场景都从零构想：信的内容、地址、白色建筑的样子、在场的新生、学生会成员，全部全新设计。`;
+- 每次新游戏的开场场景都从零构想：信的内容、地址、白色建筑的样子、在场的新生、学生会成员，全部全新设计。
+
+## 命名规则
+- 姓名使用日系轻小说风格。姓氏 2-3 字，名字 1-2 字。
+- 整体气质克制、略冷、带一丝不祥感。
+- 不使用中文常见雅姓。
+- 同一届内同姓至多 1 人。
+- 主角的名字和 NPC 不撞姓撞名。
+- 不要给出示例名单。每次新游戏都即兴生成。
+
+## 氛围锚点
+- 秩序井然，但秩序是学生自己维持的。
+- 高年级对新生按流程接待，礼貌但不多话。
+- 每个人身上都有一点不想被问的事，其他人默契地不问。
+- 日常明亮，但安静的地方特别安静。`;
 
 isGenerating=true;sendBtn.disabled=true;userInput.disabled=true;
 try{
@@ -185,9 +204,7 @@ applyScene(stripStatus(reply));
 
 const parsed = await parseStructuredUpdate(stripStatus(reply), '术式觉醒');
 const update=parsed.update;
-update.soulPowerBase=0;update.soulPowerAbsolute=null;
 
-// 提取术式名和描述
 let soulName = customSoul;
 let soulDesc = '';
 if(!soulName){
@@ -209,7 +226,6 @@ CORE.arcane = soulName;
 CORE.arcaneDesc = soulDesc;
 
 applyUpdate(update);
-CORE.mana=CORE.aptitude;
 PLOT.history=[];PLOT.turn=0;PLOT.isFirst=false;PLOT.summaryCounter=0;
 PLOT.history.push({role:"assistant",content:reply});
 updateStatus();saveToPhone();

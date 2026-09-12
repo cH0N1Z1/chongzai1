@@ -29,8 +29,6 @@ function openProfileEditor(){
   g('pfAge').value = CORE.age || 12;
   g('pfSoul').value = (CORE.arcane && CORE.arcane !== '未觉醒') ? CORE.arcane : '';
   g('pfSoulDesc').value = CORE.arcaneDesc || '';
-  g('pfInnate').value = CORE.aptitude || 1;
-  g('pfPower').value = CORE.mana || 1;
   openModal('profileModal');
 }
 function saveProfileEdit(){
@@ -39,14 +37,10 @@ function saveProfileEdit(){
   const age = Math.min(Math.max(parseInt(g('pfAge').value) || CORE.age || 12, 12), 18);
   const soul = g('pfSoul').value.trim();
   const soulDesc = g('pfSoulDesc').value.trim();
-  const innate = Math.min(Math.max(parseInt(g('pfInnate').value)||1, 1), 10);
-  const power = Math.min(Math.max(parseInt(g('pfPower').value)||1, 1), 100);
   if(name) CORE.name = name;
   CORE.age = age;
   if(soul) CORE.arcane = soul;
   CORE.arcaneDesc = soulDesc;
-  CORE.aptitude = innate;
-  CORE.mana = power;
   updateStatus();
   saveToPhone();
   closeModal('profileModal');
@@ -125,7 +119,6 @@ function renderStarMap(forms, arcaneName){
 
   let html = '<div class="star-map">';
 
-  // SVG 连线 + 轨道
   html += '<svg class="star-map-svg" viewBox="0 0 300 300">';
   html += `<circle cx="${cx}" cy="${cy}" r="${orbitR}" fill="none" stroke="rgba(168,216,238,0.22)" stroke-width="1" stroke-dasharray="2 6"/>`;
   forms.forEach((_, i) => {
@@ -136,10 +129,8 @@ function renderStarMap(forms, arcaneName){
   });
   html += '</svg>';
 
-  // 中心术式球
   html += `<div class="star-center" style="left:${cx - centerR}px;top:${cy - centerR}px;width:${centerR*2}px;height:${centerR*2}px;">${escapeHtml(arcaneName)}</div>`;
 
-  // 形态星点
   if(forms.length === 0){
     html += `<div class="star-empty">尚未获得任何术式形态</div>`;
   }
@@ -162,10 +153,8 @@ function renderStarMap(forms, arcaneName){
 
 function handleStarClick(idx){
   if(_starSelectedIdx === idx){
-    // 二次点击 → 打开详情
     openFormDetail(idx);
   } else {
-    // 一次点击 → 显示名字
     _starSelectedIdx = idx;
     renderArcanePanel();
   }
@@ -331,28 +320,12 @@ function resetScene(){
 }
 
 // ============================================================
-//  属性变化
+//  属性变化（形态获得动画保留）
 // ============================================================
-function triggerStatPowerPulse(){
-  const el = document.getElementById('status-bar');
-  if(!el) return;
-  el.classList.remove('stat-power-pulse');
-  void el.offsetWidth;
-  el.classList.add('stat-power-pulse');
-  setTimeout(()=>el.classList.remove('stat-power-pulse'), 1200);
-}
-
-function triggerStageUpgrade(oldStage, newStage){
-  const el = document.getElementById('status-bar');
-  if(el){
-    el.classList.remove('stage-upgrade');
-    void el.offsetWidth;
-    el.classList.add('stage-upgrade');
-    setTimeout(()=>el.classList.remove('stage-upgrade'), 1600);
-  }
+function triggerStageUpgrade(bannerText){
   const banner = document.createElement('div');
   banner.className = 'stage-banner';
-  banner.textContent = `${oldStage} → ${newStage}`;
+  banner.textContent = bannerText;
   document.body.appendChild(banner);
   setTimeout(()=>banner.remove(), 2200);
 }
@@ -365,21 +338,25 @@ function addForm(name, type, desc){
     if(type) exist.type = type;
     return;
   }
-CORE.forms.push({name, type: type || '觉醒', desc: desc || ''});
+  CORE.forms.push({name, type: type || '觉醒', desc: desc || ''});
   chatBox.innerHTML += `<div class="msg-ring">获得形态：${escapeHtml(name)}</div>`;
   if(typeof soundRing==='function') soundRing(type);
+  if(type === '关键' || type === '稀有' || type === '传说'){
+    triggerStageUpgrade(name);
+  }
 }
 
 function deleteForm(name){ CORE.forms = CORE.forms.filter(f => f.name !== name); }
 
-function addNPC(name, gender, arcane, mana, relation, desc, affinity){
+function addNPC(name, gender, arcane, relation, grade, dept, desc, affinity){
   if(!CORE.npcs) CORE.npcs=[];
   const exist = CORE.npcs.find(n=>n.name === name);
   if(exist){
     if(gender) exist.gender = gender;
     if(arcane) exist.arcane = arcane;
-    if(mana) exist.mana = mana;
     if(relation) exist.relation = relation;
+    if(grade) exist.grade = grade;
+    if(dept) exist.dept = dept;
     if(desc) exist.desc = desc;
     if(typeof affinity === 'number') exist.affinity = affinity;
     if(exist.status === 'archived'){
@@ -395,7 +372,8 @@ function addNPC(name, gender, arcane, mana, relation, desc, affinity){
   }
   CORE.npcs.push({
     name, gender: gender || '未知', arcane: arcane || '未知',
-    mana: mana || '', relation: relation || '中立',
+    relation: relation || '中立',
+    grade: grade || '一年级上学期', dept: dept || '无',
     desc: desc || '', term: CORE.term, status: 'active',
     affinity: typeof affinity === 'number' ? affinity : 0,
     archTime: '', snapshot: null
@@ -419,7 +397,7 @@ function archiveTerm(term){
     if(n.term === term && n.status !== 'archived'){
       n.status = 'archived';
       n.archTime = CORE.time;
-      n.snapshot = { arcane: n.arcane, mana: n.mana, relation: n.relation, desc: n.desc, affinity: n.affinity };
+      n.snapshot = { arcane: n.arcane, relation: n.relation, grade: n.grade, dept: n.dept, desc: n.desc, affinity: n.affinity };
       count++;
     }
   });
@@ -429,7 +407,7 @@ function archiveTerm(term){
 }
 
 // ============================================================
-//  状态栏刷新（时间限长显示）
+//  状态栏刷新
 // ============================================================
 function updateStatus(){
 const avatarEl=document.getElementById('s-avatar');
@@ -457,10 +435,6 @@ if (soulText.length > 8) {
     soulEl.onclick = null;
 }
 
-document.getElementById('s-soulpower').innerHTML=icon('power','#f0f6fc')+(CORE.mana||0);
-document.getElementById('s-stage').innerHTML=icon('stage','#8b949e')+getStage(CORE.mana);
-
-// 时间截断显示
 let shortTime = CORE.time || "未知";
 if(shortTime.length > 12) shortTime = shortTime.slice(0, 12) + '…';
 document.getElementById('s-time').innerHTML=icon('time','#8b949e')+escapeHtml(shortTime);
@@ -489,9 +463,9 @@ function openNPCs(){
     removeFn:'removeNPCItem',
     nameClassFn:(n)=>n.status==='archived'?'npc-archived':'',
     detailFn:(n)=>{
-      const tag = n.status==='archived' ? `<span style="color:#a78bfa;">【已归档 · 定格于「${escapeHtml(n.archTime||'')}」】</span>` : `<span style="color:#4ade80;">【现役 · ${escapeHtml(n.term||'一年级上学期')}】</span>`;
+      const tag = n.status==='archived' ? `<span style="color:#a78bfa;">【已归档 · 定格于「${escapeHtml(n.archTime||'')}」】</span>` : `<span style="color:#4ade80;">【现役】</span>`;
       const aff = typeof n.affinity === 'number' ? `<div>好感：<span style="color:${affinityColor(n.affinity)}">${n.affinity}</span> / 100</div>` : '';
-      return `${tag}<div style="margin-top:6px;">性别：${escapeHtml(n.gender||'?')}</div><div>术式：${escapeHtml(n.arcane||'?')}</div><div>魔力：${escapeHtml(n.mana||'未知')}</div>${aff}<div>关系：${escapeHtml(n.relation||'?')}</div><div style="margin-top:6px;color:#c9d1d9;">${escapeHtml(n.desc||'')}</div>`;
+      return `${tag}<div style="margin-top:6px;">性别：${escapeHtml(n.gender||'?')}</div><div>年级：${escapeHtml(n.grade||n.term||'?')}</div><div>部门：${escapeHtml(n.dept||'无')}</div><div>术式：${escapeHtml(n.arcane||'?')}</div>${aff}<div>关系：${escapeHtml(n.relation||'?')}</div><div style="margin-top:6px;color:#c9d1d9;">${escapeHtml(n.desc||'')}</div>`;
     }
   });
   openModal('npcsModal');

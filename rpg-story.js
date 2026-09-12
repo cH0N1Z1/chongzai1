@@ -6,7 +6,7 @@
 // ============================================================
 //  状态解析
 // ============================================================
-const STATUS_LINE_RE=/^(年龄[：:]|魔力\s*[+\-：:]|魔力\s*(提升|增加|提高|升至|达到|变为)|获得形态[：:]|删除形态[：:]|人物[：:]|重要人物[：:]|新人物[：:]|删除人物[：:]|时间[：:]|学期[：:]|归档学期[：:])/;
+const STATUS_LINE_RE=/^(年龄[：:]|获得形态[：:]|删除形态[：:]|人物[：:]|重要人物[：:]|新人物[：:]|删除人物[：:]|时间[：:]|学期[：:]|归档学期[：:])/;
 
 function stripStatus(text){
   let result=text.replace(/【状态更新】[\s\S]*?(?=【选项】|$)/g,'');
@@ -24,8 +24,6 @@ function stripStatus(text){
 async function parseStructuredUpdate(narrative, userAction){
   const schemaExample = JSON.stringify({
     age: null,
-    manaDelta: 0,
-    manaAbsolute: null,
     time: "描述",
     forms: [],
     delForms: [],
@@ -41,7 +39,6 @@ async function parseStructuredUpdate(narrative, userAction){
 
 当前主角状态：
 - 年龄：${CORE.age}
-- 魔力：${CORE.mana}级
 - 时间：${CORE.time}
 - 学期：${CORE.term}
 - 已有术式形态：${CORE.forms.map(f=>f.name).join('、') || '无'}
@@ -58,19 +55,19 @@ ${schemaExample}
 
 字段说明：
 - age：如果剧情中主角年龄变化，填新年龄（12-18）；否则 null。
-- manaDelta：如果魔力有增减，填增量；否则 0。
-- manaAbsolute：如果魔力提升到具体等级，填该等级；否则 null。
-- time：本轮剧情的时间描述，必须填。请保持简洁（不超过15字），复杂信息放括号里。
-- forms：本轮获得的术式形态列表，每项 {"name":"形态名（如霜织·初雪）","type":"觉醒/成长/关键/稀有/传说","desc":"描述"}。
+- time：本轮剧情的时间描述，必须填。保持简洁（不超过15字）。
+- forms：本轮获得的术式形态列表，每项 {"name":"形态名","type":"觉醒/成长/关键/稀有/传说","desc":"描述"}。
 - delForms：本轮删除的术式形态名称列表。
-- npcs：本轮新增或更新的人物列表，每项 {"name":"姓名","gender":"性别","arcane":"术式","mana":"魔力","relation":"关系","desc":"描述","affinity":0-100}。
+- npcs：本轮新增或更新的人物列表，每项 {"name":"姓名","gender":"性别","arcane":"术式","relation":"关系","grade":"年级","dept":"部门","desc":"描述","affinity":0-100}。
+  · grade：一年级上学期～六年级下学期 / 留校。
+  · dept：学生会（含具体分工）/ 社团名 / 无。不确定填"无"。
 - delNpcs：本轮删除的人物名称列表。
 - term：如果进入新学期，填学期名；否则 null。
 - archiveTerm：如果归档某个学期，填学期名；否则 null。
 - options：给玩家的 2-3 个可执行行动。
 
 注意：
-- 只填有变化的字段，没有变化就填 null 或 0 或 空数组。
+- 只填有变化的字段，没有变化就填 null 或空数组。
 - options 必须包含 2-3 个具体行动。
 - 直接输出 JSON，不要任何前缀说明。`;
 
@@ -86,8 +83,6 @@ ${schemaExample}
 
     const update = {
       age: (obj.age !== null && obj.age !== undefined) ? parseInt(obj.age) : null,
-      soulPowerBase: parseInt(obj.manaDelta) || 0,
-      soulPowerAbsolute: (obj.manaAbsolute !== null && obj.manaAbsolute !== undefined) ? parseInt(obj.manaAbsolute) : null,
       forms: Array.isArray(obj.forms) ? obj.forms.filter(f=>f && f.name) : [],
       delForms: Array.isArray(obj.delForms) ? obj.delForms : [],
       npcs: Array.isArray(obj.npcs) ? obj.npcs.filter(n=>n && n.name) : [],
@@ -101,22 +96,19 @@ ${schemaExample}
   } catch(e) {
     console.warn('JSON 状态解析失败，回退到文本解析', e);
     const update = parseStatusUpdate(narrative + '\n' + userAction);
-    sniffNarrativeUpdates(narrative + '\n' + userAction, update);
     const options = extractOptions(narrative);
     return {update, options, fallback: true};
   }
 }
 
 function parseStatusUpdate(text){
-const update={age:null,soulPowerBase:0,soulPowerAbsolute:null,forms:[],delForms:[],npcs:[],delNpcs:[],time:null,term:null,archiveTerm:null};
+const update={age:null,forms:[],delForms:[],npcs:[],delNpcs:[],time:null,term:null,archiveTerm:null};
 let block='';
 const m=text.match(/【状态更新】([\s\S]*?)(?=【选项】|$)/);
 if(m){block=m[1]}else{const lines=text.split('\n');const statusLines=[];for(const line of lines){const t=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();if(STATUS_LINE_RE.test(t))statusLines.push(t)}block=statusLines.join('\n')}
 if(!block)return update;
 let mm=block.match(/年龄\s*[：:]\s*(\d+)/);
 if(mm)update.age=parseInt(mm[1])||null;
-mm=block.match(/魔力\s*(?:提升|增加|提高|升至|达到|变为|变成)(?:至|到)?\s*(\d+)/i);
-if(mm){const v=parseInt(mm[1]);if(v>0)update.soulPowerAbsolute=v}else{mm=block.match(/魔力\s*[：:]?\s*([+-]\d+)/);if(mm){const v=parseInt(mm[1]);if(v!==0)update.soulPowerBase=v}}
 const lines=block.split('\n').map(l=>l.trim()).filter(Boolean);
 for(let line of lines){
 line=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();
@@ -125,7 +117,6 @@ const km=line.match(/^(获得形态|删除形态|人物|重要人物|新人物|�
 if(!km)continue;
 const kw=km[1];const content=km[2].trim();
 if(kw==='获得形态'){
-  // 格式：名字 | 类型 | 描述
   smartSplit(content).forEach(seg=>{
     const parts = seg.split('|').map(s=>s.trim());
     const name = parts[0];
@@ -140,9 +131,15 @@ else if(kw==='人物'||kw==='重要人物'||kw==='新人物'){
   smartSplit(content).forEach(seg=>{
     const parts=seg.split('/').map(s=>s.trim());
     if(parts.length<2||!parts[0]||isPlaceholder(parts[0])||parts[0].length>15)return;
-    let mana='',relation='中立',desc='',affinity=0;
-    if(parts.length>=6){
-      mana=parts[3]||'';
+    let relation='中立', grade='', dept='', desc='', affinity=0;
+    if(parts.length>=8){
+      // 新八段：姓名/性别/术式/关系/年级/部门/描述/好感:N
+      relation=parts[3]||'中立';
+      grade=parts[4]||'';
+      dept=parts[5]||'';
+      desc=parts.slice(6).join('/')||'';
+    }else if(parts.length>=6){
+      // 旧七段：姓名/性别/术式/魔力/关系/描述/好感:N
       relation=parts[4]||'中立';
       desc=parts.slice(5).join('/')||'';
     }else{
@@ -151,7 +148,7 @@ else if(kw==='人物'||kw==='重要人物'||kw==='新人物'){
     }
     const affM = desc.match(/好感[:：]?\s*(\d+)/);
     if(affM) affinity = parseInt(affM[1]);
-    update.npcs.push({name:parts[0],gender:parts[1]||'未知',arcane:parts[2]||'未知',mana,relation,desc,affinity});
+    update.npcs.push({name:parts[0],gender:parts[1]||'未知',arcane:parts[2]||'未知',relation,grade,dept,desc,affinity});
   });
 }
 else if(kw==='删除人物')smartSplit(content).forEach(seg=>{const n=seg.trim();if(!isPlaceholder(n))update.delNpcs.push(n)});
@@ -164,24 +161,11 @@ return update;
 
 function applyUpdate(update){
 if(update.age!==null&&update.age>0)CORE.age=Math.min(Math.max(update.age,12),18);
-const oldSP=CORE.mana,oldStage=getStage(oldSP);
-if(update.soulPowerAbsolute!==null&&update.soulPowerAbsolute>0)CORE.mana=Math.min(Math.max(update.soulPowerAbsolute,1),100);
-else if(update.soulPowerBase!==0){let base=update.soulPowerBase;if(base>20)base=20;if(base<-20)base=-20;let factor=(base>0)?getSpeedFactor():1;CORE.mana=Math.min(Math.max(CORE.mana+Math.round(base*factor),1),100)}
-if(CORE.mana!==oldSP){
-  const newStage=getStage(CORE.mana);
-  const diff=CORE.mana-oldSP;
-  let txt=`魔力 ${oldSP} → ${CORE.mana}（${diff>0?'+':''}${diff}）`;
-  if(newStage!==oldStage)txt+=` · 晋阶 ${oldStage} → ${newStage}`;
-  chatBox.innerHTML+=`<div class="msg-power">${icon('power','#fbbf24')}${escapeHtml(txt)}</div>`;
-  triggerStatPowerPulse();
-  if(typeof soundPower==='function') soundPower();
-  if(newStage!==oldStage) triggerStageUpgrade(oldStage,newStage);
-}
 if(update.term)setTerm(update.term);
 if(update.archiveTerm)archiveTerm(update.archiveTerm);
 (update.forms||[]).forEach(f=>addForm(f.name,f.type,f.desc));
 (update.delForms||[]).forEach(n=>deleteForm(n));
-(update.npcs||[]).forEach(n=>addNPC(n.name,n.gender,n.arcane,n.mana,n.relation,n.desc,n.affinity));
+(update.npcs||[]).forEach(n=>addNPC(n.name,n.gender,n.arcane,n.relation,n.grade,n.dept,n.desc,n.affinity));
 (update.delNpcs||[]).forEach(n=>deleteNPC(n));
 if(update.time){CORE.time=update.time;chatBox.innerHTML+=`<div class="msg-time">${icon('time','#94a3b8')}${escapeHtml(update.time)}</div>`}
 if(update.time){
@@ -194,30 +178,23 @@ if(update.time){
 updateStatus();
 }
 
-function sniffNarrativeUpdates(fullReply, update){
-  const narrative = stripStatus(fullReply);
-  if(!narrative) return;
-  // 保留兜底逻辑，但不做刻印检测（形态需要明确写入）
-}
-
 function buildCoreSummary(playerInput){
 let s='';
 s+=`姓名：${CORE.name}（${CORE.gender}），${CORE.age||'?'}岁。\n`;
 s+=`设定：${CORE.roleDesc}\n`;
-s+=`本命术式：${CORE.arcane}（术式适性${CORE.aptitude}级）\n`;
+s+=`本命术式：${CORE.arcane}\n`;
 if(CORE.arcaneDesc) s+=`术式描述：${CORE.arcaneDesc}\n`;
-s+=`魔力：${CORE.mana}级（${getStage(CORE.mana)}）\n`;
 s+=`时间：${CORE.time}\n`;
 s+=`当前学期：${CORE.term}\n`;
 s+=`术式形态：${CORE.forms.map(f=>`${f.name}（${f.type}）`).join('、')||'无'}\n`;
 const activeNPCs=CORE.npcs.filter(n=>n.status!=='archived');
 const archivedNPCs=CORE.npcs.filter(n=>n.status==='archived');
-if(activeNPCs.length>0)s+=`【现役人物】\n${activeNPCs.map(n=>`- ${n.name}（${n.gender}·${n.arcane}·魔力${n.mana||'?'}·${n.relation}·好感${n.affinity||0}）：${n.desc||''}`).join('\n')}\n`;
+if(activeNPCs.length>0)s+=`【现役人物】\n${activeNPCs.map(n=>`- ${n.name}（${n.gender}·${n.arcane}·${n.grade||n.term||'?'}·${n.dept||'无'}·${n.relation}·好感${n.affinity||0}）：${n.desc||''}`).join('\n')}\n`;
 if(archivedNPCs.length>0){
   s+=`【归档人物】（玩家过去时期的故人，再遇时须体现时间差并重新激活）\n`;
   s+=archivedNPCs.map(n=>{
     const snap=n.snapshot||{};
-    return `- ${n.name}（${n.gender}·${snap.arcane||n.arcane}·魔力${snap.mana||'?'}·${snap.relation||n.relation}·归档于「${n.archTime}」）：${snap.desc||n.desc||''}`;
+    return `- ${n.name}（${n.gender}·${snap.arcane||n.arcane}·${snap.grade||n.grade||n.term||'?'}·${snap.dept||n.dept||'无'}·${snap.relation||n.relation}·归档于「${n.archTime}」）：${snap.desc||n.desc||''}`;
   }).join('\n');
   s+='\n';
 }
@@ -353,12 +330,12 @@ throw e;
 // ============================================================
 function handleDebugCommand(rawText){
 let text=rawText.trim();
-if(!text){chatBox.innerHTML+=`<div class="msg-debug">用法：/调试 获得形态 霜织·初雪 | 觉醒 | 描述</div>`;return}
+if(!text){chatBox.innerHTML+=`<div class="msg-debug">用法：/调试 获得形态 霜织·初 | 觉醒 | 描述</div>`;return}
 text=normalizeDebugText(text);
 const pseudo=`【状态更新】\n${text}\n`;
 const update=parseStatusUpdate(pseudo);
-const hasAny=update.forms.length>0||update.delForms.length>0||update.npcs.length>0||update.delNpcs.length>0||update.time!==null||update.term!==null||update.archiveTerm!==null||update.soulPowerAbsolute!==null||update.soulPowerBase!==0||update.age!==null;
-if(!hasAny){chatBox.innerHTML+=`<div class="msg-debug">无法识别，请用：/调试 获得形态 霜织·初雪 | 觉醒 | 描述</div>`;return}
+const hasAny=update.forms.length>0||update.delForms.length>0||update.npcs.length>0||update.delNpcs.length>0||update.time!==null||update.term!==null||update.archiveTerm!==null||update.age!==null;
+if(!hasAny){chatBox.innerHTML+=`<div class="msg-debug">无法识别，请用：/调试 获得形态 霜织·初 | 觉醒 | 描述</div>`;return}
 applyUpdate(update);
 chatBox.innerHTML+=`<div class="msg-debug">调试已应用</div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
@@ -375,12 +352,10 @@ function handleLoreTest(testInput){
 }
 
 function normalizeDebugText(text){
-if(/^(获得形态|删除形态|人物|重要人物|新人物|删除人物|时间|魔力|年龄|学期|归档学期)[：:]/.test(text))return text;
+if(/^(获得形态|删除形态|人物|重要人物|新人物|删除人物|时间|年龄|学期|归档学期)[：:]/.test(text))return text;
 let m;
 if((m=text.match(/^年龄\s*(\d+)\s*$/)))return `年龄：${m[1]}`;
-if((m=text.match(/^魔力\s*([+-]?\d+)\s*$/)))return `魔力 ${m[1]}`;
-if((m=text.match(/^魔力\s*(?:提升至|提升到|达到|变为)\s*(\d+)\s*$/)))return `魔力 提升至${m[1]}`;
-if((m=text.match(/^(?:认识|遇见|遇到|结识|加入|新增)\s*(?:人物|npc|NPC)?\s*(.+?)\s*$/))){const n=m[1].trim();if(n)return `人物：${n}/未知/未知/未知/相识/`}
+if((m=text.match(/^(?:认识|遇见|遇到|结识|加入|新增)\s*(?:人物|npc|NPC)?\s*(.+?)\s*$/))){const n=m[1].trim();if(n)return `人物：${n}/未知/未知/相识/未知/无/`}
 if((m=text.match(/^删除人物\s+(.+?)\s*$/)))return `删除人物：${m[1]}`;
 if((m=text.match(/^获得\s*(.+?)\s*形态\s*$/)))return `获得形态：${m[1]} | 觉醒 |`;
 return '';
@@ -418,7 +393,7 @@ const narrativePrompts = {
 const styleBlock = narrativePrompts[SETTINGS.narrativeStyle] || narrativePrompts.standard;
 const proactiveBlock = SETTINGS.npcProactive !== false
   ? `## NPC 主动性
-每 2~3 轮让一个 NPC 主动说话或行动（递纸条、约饭、求助、提议、打断）。NPC 有自己的目标，世界是"活"的。`
+每 2~3 轮让一个 NPC 主动出现或说话（递东西、通知、约见、打断、擦肩而过）。NPC 有自己的目标和事，世界是"活"的。`
   : '';
 
 const systemPrompt = `## 你是谁
@@ -440,34 +415,37 @@ ${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
 3) 【选项】块（2-3 个，每项以"•"开头）
 
 ## 状态更新格式
-年龄:N / 魔力+N 或 魔力提升至N / 时间:xxx（不超过15字）
-获得形态：形态名 | 觉醒/成长/关键/稀有/传说 | 描述
-删除形态：形态名
-人物：姓名/性别/术式/魔力/关系/描述/好感:N
-删除人物：名 / 学期:名 / 归档学期:名
+年龄:N / 时间:xxx（不超过15字）
+获得形态：<形态名> | <类型> | <描述>
+删除形态：<形态名>
+人物：<姓名>/<性别>/<术式>/<关系>/<年级>/<部门>/<描述>/好感:N
+删除人物：<名> / 学期:<名> / 归档学期:<名>
 
-## 术式形态说明
-- 术式形态 = 术式的演化阶段，每个形态有独立名字
-- 名字通常带术式本名，如「霜织·初雪」「霜织·冰棱」
-- 类型分五类：觉醒、成长、关键、稀有、传说
-- 觉醒：入学觉醒时获得的初始形态
-- 成长：随魔力提升自然演化出的新形态
-- 关键：剧情重大节点获得
-- 稀有：极难获得，往往有代价
-- 传说：几乎没人见过的形态
-- 每获得一个新形态，说明术式在这条路上走得更远了
+## 人物行说明
+- 严格八段，用 / 分隔。
+- 段序：姓名 / 性别 / 术式 / 关系 / 年级 / 部门 / 描述 / 好感:N
+- 第 3 段是术式名，不是人名。
+- 第 5 段是年级：一年级上学期～六年级下学期 / 留校。
+- 第 6 段是部门：学生会的具体分工 / 社团名 / 无。
+- 第 8 段是好感度，格式"好感:N"。
+- 缺信息填"未知"或"无"，不能省略段位。
+
+## 术式形态
+- 命名结构：术式本名 + 分隔符 + 一个意象词。
+- 类型分五类：觉醒、成长、关键、稀有、传说。
+- 形态是术式成长的唯一体现。强弱、熟练、威力都用叙事描写体现，不进数值。
+- 觉醒形态是入学时获得的初始形态；成长随剧情自然演化；关键在剧情重大节点获得；稀有极难获得、往往有代价；传说几乎没人见过。
 
 ## 硬约束
 - 时间每轮必写，且简洁（不超过15字）。
 - 只有写进【状态更新】的才生效。
-- 人物行第 3 段是术式名（不是人名）；无信息填"未知"。
 - 主角性别为 ${CORE.gender}。
 
 ## 叙事要求
 - 场景优先使用现代都市 + 魔法学院的元素：高楼、地铁、便利店、术式商店、发光的铭牌、晶体玻璃、刻印手环。
 - 日常 80-120 字，像轻小说那样，一句一段，节奏轻快。关键剧情 200-300 字。
 - 用"你"指代玩家，禁止用"他/她/角色名"指代玩家。
-- ${isContinue ? '玩家选择"继续"：自然推进剧情，可让 NPC 主动说话。' : '根据玩家输入推进剧情。'}
+- ${isContinue ? '玩家选择"继续"：自然推进剧情，可让 NPC 主动出现。' : '根据玩家输入推进剧情。'}
 
 ## 文本分层标记
 - 对话：用中文引号 “……” 或 「……」
@@ -478,6 +456,16 @@ ${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
 - 好感度 0-100。陌生 0-20，认识 21-40，友好 41-60，亲近 61-80，特别 81-100。
 - NPC 主动互动随好感度变化。好感度高的 NPC 会主动找你、关心你。
 - 叙事要自然，不要刻意刷好感。
+
+## 学院氛围
+- 秩序是学生自己维持的。高年级按流程接待，礼貌但不多话。
+- 每个人身上都有一点不想被问的事，其他人默契地不问。
+- 日常明亮，但安静的地方特别安静。
+- 不写"温馨互助""大家相亲相爱"这类过家家式的热闹场景。
+
+## 实力与成长
+- 不写数值。实力对比、招式威力、熟练度都用具体描写体现。
+- 不写"你的魔力提升了""你变强了"这类抽象句。写"这一招你现在接得住了""对面比你稳得多"。
 
 ${styleBlock}
 
