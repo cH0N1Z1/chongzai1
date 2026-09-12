@@ -354,6 +354,142 @@ if(hasSave){
 }
 
 // ============================================================
+//  补全的助手函数：属性增减、动画、章节
+// ============================================================
+function triggerStatPowerPulse(){
+  const el = document.getElementById('status-bar');
+  if(!el) return;
+  el.classList.remove('stat-power-pulse');
+  void el.offsetWidth;
+  el.classList.add('stat-power-pulse');
+  setTimeout(()=>el.classList.remove('stat-power-pulse'), 1200);
+}
+
+function triggerStageUpgrade(oldStage, newStage){
+  const el = document.getElementById('status-bar');
+  if(el){
+    el.classList.remove('stage-upgrade');
+    void el.offsetWidth;
+    el.classList.add('stage-upgrade');
+    setTimeout(()=>el.classList.remove('stage-upgrade'), 1600);
+  }
+  const banner = document.createElement('div');
+  banner.className = 'stage-banner';
+  banner.textContent = `${oldStage} → ${newStage}`;
+  document.body.appendChild(banner);
+  setTimeout(()=>banner.remove(), 2200);
+}
+
+function addSkill(name, desc){
+  if(!CORE.skills) CORE.skills=[];
+  const exist = CORE.skills.find(s=>s.name === name);
+  if(exist){
+    if(desc) exist.desc = desc;
+    return;
+  }
+  CORE.skills.push({name, desc});
+  chatBox.innerHTML += `<div class="msg-skill">获得魂技：${escapeHtml(name)}</div>`;
+}
+
+function addRing(name, desc){
+  if(!CORE.rings) CORE.rings=[];
+  const exist = CORE.rings.find(r=>r.name === name);
+  if(exist){
+    exist.count = (exist.count||1) + 1;
+    if(desc) exist.desc = desc;
+    return;
+  }
+  CORE.rings.push({name, count:1, desc});
+  chatBox.innerHTML += `<div class="msg-ring">获得魂环：${escapeHtml(name)}</div>`;
+}
+
+function addTrait(name, type, desc){
+  if(!CORE.traits) CORE.traits=[];
+  const exist = CORE.traits.find(t=>t.name === name);
+  if(exist){
+    if(desc) exist.desc = desc;
+    if(type) exist.type = type;
+    return;
+  }
+  CORE.traits.push({name, type: type || '后天', desc});
+  chatBox.innerHTML += `<div class="msg-trait">获得特质：${escapeHtml(name)}</div>`;
+}
+
+function addNPC(name, gender, soul, soulPower, relation, desc){
+  if(!CORE.npcs) CORE.npcs=[];
+  const exist = CORE.npcs.find(n=>n.name === name);
+  if(exist){
+    if(gender) exist.gender = gender;
+    if(soul) exist.soul = soul;
+    if(soulPower) exist.soulPower = soulPower;
+    if(relation) exist.relation = relation;
+    if(desc) exist.desc = desc;
+    if(exist.status === 'archived'){
+      exist.status = 'active';
+      exist.era = CORE.era;
+      delete exist.archTime;
+      delete exist.snapshot;
+      chatBox.innerHTML += `<div class="msg-npc">再遇人物：${escapeHtml(name)}</div>`;
+    } else {
+      chatBox.innerHTML += `<div class="msg-npc">人物更新：${escapeHtml(name)}</div>`;
+    }
+    return;
+  }
+  CORE.npcs.push({
+    name, gender: gender || '未知', soul: soul || '未知',
+    soulPower: soulPower || '', relation: relation || '中立',
+    desc: desc || '', era: CORE.era, status: 'active',
+    archTime: '', snapshot: null
+  });
+  chatBox.innerHTML += `<div class="msg-npc">新人物：${escapeHtml(name)}</div>`;
+}
+
+function deleteSkill(name){ CORE.skills = CORE.skills.filter(s => s.name !== name); }
+function deleteRing(name){ CORE.rings = CORE.rings.filter(r => r.name !== name); }
+function deleteTrait(name){ CORE.traits = CORE.traits.filter(t => t.name !== name); }
+function deleteNPC(name){ CORE.npcs = CORE.npcs.filter(n => n.name !== name); }
+
+function setEra(era){
+  if(!era || CORE.era === era) return;
+  CORE.era = era;
+  chatBox.innerHTML += `<div class="msg-sys">时期推进：${escapeHtml(era)}</div>`;
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function archiveEra(era){
+  if(!era) return;
+  let count = 0;
+  CORE.npcs.forEach(n => {
+    if(n.era === era && n.status !== 'archived'){
+      n.status = 'archived';
+      n.archTime = CORE.time;
+      n.snapshot = { soul: n.soul, soulPower: n.soulPower, relation: n.relation, desc: n.desc };
+      count++;
+    }
+  });
+  if(count > 0){
+    chatBox.innerHTML += `<div class="msg-sys">时期归档：${escapeHtml(era)}（${count}人）</div>`;
+  }
+}
+
+function insertChapterDivider(num, title){
+  chatBox.innerHTML += `<div class="msg-chapter">第${num}章 · ${escapeHtml(title)}</div>`;
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+async function generateChapterTitle(){
+  try{
+    const recent = PLOT.history.slice(-6).map(m => stripStatus(m.content)).join('\n');
+    if(!recent) return '';
+    const prompt = `根据以下剧情，为这一章起一个 4-8 字的标题。只输出标题，无标点，无前缀。\n\n${recent}`;
+    const title = await callDeepSeekStream([{role:'user', content:prompt}], ()=>{});
+    return String(title).replace(/[《》【】\n]/g,'').trim().slice(0, 10);
+  } catch(e){
+    return '';
+  }
+}
+
+// ============================================================
 //  状态栏刷新
 // ============================================================
 function updateStatus(){
@@ -881,6 +1017,7 @@ let displayContent="";
 try{
 const fullReply=await callDeepSeekStream(messages,(delta,full)=>{
   displayContent = stripStatus(full);
+  if(!displayContent && full) displayContent = full; // 防卡死兜底
   twPush(displayContent);
 }, opts);
 tw.done = true;
@@ -1220,7 +1357,7 @@ ${desc}`
 }
 
 // ============================================================
-//  觉醒（用 Pro 模型，两阶段：叙事 + JSON角色识别）
+//  觉醒（用 Flash 模型，两阶段：叙事 + JSON角色识别）
 // ============================================================
 async function awakenSoul(){
 if(isGenerating)return;
@@ -1299,7 +1436,8 @@ ${customSoul?'指定武魂：'+customSoul:'请为角色设计一个独特武魂�
 
 isGenerating=true;sendBtn.disabled=true;userInput.disabled=true;
 try{
-const reply=await streamAndProcess([{role:"user",content:systemPrompt}], {model:'deepseek-v4-pro'});
+// 高峰期先用 Flash 跑，避免卡死；后续想换回 Pro 把 deepseek-v4-flash 改成 deepseek-v4-pro 即可
+const reply=await streamAndProcess([{role:"user",content:systemPrompt}], {model:'deepseek-v4-flash'});
 applyScene(stripStatus(reply));
 
 const parsed = await parseStructuredUpdate(stripStatus(reply), '觉醒武魂');
