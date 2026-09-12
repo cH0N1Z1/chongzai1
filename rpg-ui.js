@@ -152,16 +152,12 @@ const SCENE_TYPES = [
 ];
 
 // ============================================================
-//  天气本地随机（符合季节）
+//  天气本地随机
 // ============================================================
 function getSeason(term){
   const t = String(term||'');
-  if(/一年级上|二年级上|三年级上|四年级上|五年级上|六年级上/.test(t)){
-    return '秋';
-  }
-  if(/一年级下|二年级下|三年级下|四年级下|五年级下|六年级下/.test(t)){
-    return '春';
-  }
+  if(/一年级上|二年级上|三年级上|四年级上|五年级上|六年级上/.test(t)){ return '秋'; }
+  if(/一年级下|二年级下|三年级下|四年级下|五年级下|六年级下/.test(t)){ return '春'; }
   return '秋';
 }
 function rollWeather(term){
@@ -296,10 +292,7 @@ function triggerStageUpgrade(oldStage, newStage){
 function addSkill(name, desc){
   if(!CORE.arts) CORE.arts=[];
   const exist = CORE.arts.find(s=>s.name === name);
-  if(exist){
-    if(desc) exist.desc = desc;
-    return;
-  }
+  if(exist){ if(desc) exist.desc = desc; return; }
   CORE.arts.push({name, desc});
   chatBox.innerHTML += `<div class="msg-skill">获得术式技：${escapeHtml(name)}</div>`;
 }
@@ -491,4 +484,78 @@ function appendOptions(aiOptions){
       });
     }else{
       const btn=document.createElement('button');
-      btn.className=
+      btn.className='option-btn';
+      btn.dataset.type = '行动';
+      btn.innerHTML = `<span class="opt-icon">▶️</span><span class="opt-text">继续剧情</span>`;
+      btn.onclick=()=>{
+        if(isGenerating)return;
+        if(btn.disabled)return;
+        btn.disabled=true;
+        btn.classList.add('opt-picked');
+        setTimeout(()=>container.classList.add('opt-exit'), 180);
+        setTimeout(()=>sendAction('继续'), 360);
+      };
+      container.appendChild(btn);
+    }
+    optionsArea.appendChild(container);
+    optionsArea.scrollIntoView({behavior:'smooth',block:'nearest'});
+  };
+
+  if(old && old.parentNode){
+    old.classList.add('opt-exit');
+    let finished = false;
+    const finish = () => {
+      if(finished) return;
+      finished = true;
+      if(old.parentNode) old.remove();
+      doRender();
+    };
+    old.addEventListener('animationend', finish, {once:true});
+    setTimeout(finish, 350);
+  } else {
+    if(old) old.remove();
+    doRender();
+  }
+}
+
+// ============================================================
+//  Token 面板
+// ============================================================
+function openTokenPanel(){
+  const s = TOKEN_STATS;
+  const l = LIFETIME;
+  const modelName = SETTINGS.aiModel || 'deepseek-v4-flash';
+  const price = MODEL_PRICING[modelName] || MODEL_PRICING['deepseek-v4-flash'];
+  const IN_PRICE = ((price.inCacheHit + price.inCacheMiss) / 2) / 1000000;
+  const OUT_PRICE = price.out / 1000000;
+  const sCost = s.input * IN_PRICE + s.output * OUT_PRICE;
+  const lCost = l.input * IN_PRICE + l.output * OUT_PRICE;
+  const modelLabel = modelName === 'deepseek-v4-pro' ? 'V4 Pro' : 'V4 Flash';
+  const html = `
+    <div style="font-size:12px;color:#8b949e;margin-bottom:8px;">当前模型：<b style="color:#f0f6fc;">${modelLabel}</b></div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 18px;">
+      <div style="color:#8b949e;grid-column:1/3;font-weight:bold;margin:2px 0 6px;">本次会话</div>
+      <div style="color:#8b949e;">输入</div><div style="text-align:right;">${s.input.toLocaleString()}</div>
+      <div style="color:#8b949e;">输出</div><div style="text-align:right;">${s.output.toLocaleString()}</div>
+      <div style="color:#8b949e;">合计</div><div style="text-align:right;font-weight:bold;">${s.session.toLocaleString()}</div>
+      <div style="color:#8b949e;">预估费用</div><div style="text-align:right;color:#fbbf24;">¥${sCost.toFixed(4)}</div>
+      <div style="color:#8b949e;grid-column:1/3;font-weight:bold;margin:12px 0 6px;border-top:1px dashed #30363d;padding-top:10px;">累计</div>
+      <div style="color:#8b949e;">输入</div><div style="text-align:right;">${l.input.toLocaleString()}</div>
+      <div style="color:#8b949e;">输出</div><div style="text-align:right;">${l.output.toLocaleString()}</div>
+      <div style="color:#8b949e;">合计</div><div style="text-align:right;font-weight:bold;">${l.session.toLocaleString()}</div>
+      <div style="color:#8b949e;">预估费用</div><div style="text-align:right;color:#fbbf24;">¥${lCost.toFixed(4)}</div>
+    </div>
+    <div style="font-size:11px;color:#6b7280;margin-top:12px;line-height:1.5;">* 按 ${modelLabel} 空闲时段均价估算，实际以 DeepSeek 账单为准。</div>
+  `;
+  document.getElementById('tokenPanelContent').innerHTML = html;
+  openModal('tokenModal');
+}
+function resetTokenStats(){
+  if(!confirm('确定要清空累计 Token 数据吗？')) return;
+  LIFETIME.input = 0;
+  LIFETIME.output = 0;
+  LIFETIME.session = 0;
+  saveLifetimeTokens(LIFETIME);
+  openTokenPanel();
+  updateTokenDisplay();
+}
