@@ -2,6 +2,7 @@
 //  rpg.js - 角色扮演模式专属逻辑
 //  依赖 shared.js（必须先加载）
 //  本版本移除：物品/背包/货币系统
+//  新增：编辑角色档案（AI 识别失败时手动补正）
 // ============================================================
 
 // ============================================================
@@ -18,6 +19,41 @@ saveToPhone();
 closeModal('summaryModal');
 chatBox.innerHTML+=`<div class="msg-sys">已更新剧情摘要（${t.length}字）</div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+// ============================================================
+//  角色档案手动编辑
+// ============================================================
+function openProfileEditor(){
+  const g = id => document.getElementById(id);
+  if(!g('profileModal')) return;
+  g('pfName').value = CORE.name || '';
+  g('pfAge').value = CORE.age || 6;
+  g('pfSoul').value = (CORE.martialSoul && CORE.martialSoul !== '未觉醒') ? CORE.martialSoul : '';
+  g('pfSoulDesc').value = CORE.martialSoulDesc || '';
+  g('pfInnate').value = CORE.innatePower || 1;
+  g('pfPower').value = CORE.soulPower || 1;
+  openModal('profileModal');
+}
+function saveProfileEdit(){
+  const g = id => document.getElementById(id);
+  const name = g('pfName').value.trim();
+  const age = parseInt(g('pfAge').value) || CORE.age || 6;
+  const soul = g('pfSoul').value.trim();
+  const soulDesc = g('pfSoulDesc').value.trim();
+  const innate = Math.min(Math.max(parseInt(g('pfInnate').value)||1, 1), 10);
+  const power = Math.min(Math.max(parseInt(g('pfPower').value)||1, 1), 100);
+  if(name) CORE.name = name;
+  CORE.age = age;
+  if(soul) CORE.martialSoul = soul;
+  CORE.martialSoulDesc = soulDesc;
+  CORE.innatePower = innate;
+  CORE.soulPower = power;
+  updateStatus();
+  saveToPhone();
+  closeModal('profileModal');
+  chatBox.innerHTML += `<div class="msg-sys">角色档案已更新</div>`;
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 // ============================================================
@@ -68,18 +104,14 @@ function userMsgHtml(text,isDebug){
 // ============================================================
 //  游戏核心数据
 // ============================================================
-const FIXED_WORLD=`斗罗大陆 · 绝世唐门时代（一万年后）。这是魂导器工业文明——不是古代王朝，也不是民国乡土中国，更不是赛博朋克。它的气质是"魂导朋克"：工业化、金属感、魂导器驱动的近代社会。
-【核心科技 · 魂导器】以稀有金属和宝石为载体，雕刻核心法阵、注入魂力驱动。魂导师分10级，是社会中坚职业。民用魂导器已全面覆盖照明、通讯、交通、医疗。城市入夜后魂导路灯连成暖金色的光带，魂导通讯器像手环一样戴在腕上，魂导列车在铁轨上呼啸而过。
-【城市】柏油马路、魂导路灯、多层公寓、电梯、玻璃幕墙、魂导列车/汽车/飞艇、工厂烟囱、机械装置、魂导通讯塔。市民职业多元：魂导师、工人、商人、公务员、教师、记者、司机。霓虹招牌和金属质感的建筑交错。
-【乡村】朴素但有魂导灯、铁制农具、砖瓦房，不是古代农耕社会，村民也见过魂导器。
-【机构用语】交通枢纽=车站/中转站，学校=学院（不用"学府/书院"），旅馆=旅馆/酒店（不用"客栈"），执法者=城卫军/巡捕（不用"衙门/衙役"），药店=药房/诊所（不用"抓药"）。
-【NPC口语】用"我爸妈/上班/工资/买药/下班/多少钱/忙不忙"，不用"我娘/抓药/营生/月钱/活儿/晌午"。
-【店铺命名】叫"XX商店/XX铺子/XX事务所/XX公司/XX工坊"，不用"斋/观/坊/堂"作后缀。
-【禁用古词】马车、轿子、驿站、客栈、书院、私塾、学府、县令、衙门、蜡烛、油灯、长衫、儒袍、折扇、石阶、阁楼、门槛、柴门、铜钱、银两、喂鸡、挑水、砍柴。
-【货币】写全称"X金魂币/X银魂币/X铜魂币"，不简写成"金/银/铜"。
-【三大势力】日月帝国（魂导器最强）、天斗帝国、星罗帝国。史莱克学院为大陆第一学院。唐门衰落。
-【魂师体系】魂士→魂师→大魂师→魂尊→魂宗→魂王→魂帝→魂圣→魂斗罗→封号斗罗。
-具体设定见资料库，优先参考资料库。`;
+const FIXED_WORLD=`斗罗大陆 · 绝世唐门时代（一万年后）。这是魂导器工业文明，社会面貌接近近代工业社会，不是古代王朝。
+城市：柏油马路、魂导路灯、多层公寓、电梯、玻璃幕墙、魂导列车/汽车/飞艇、机械装置、金属质感建筑。市民穿制服、常服、魂师袍。
+乡村：朴素但有魂导灯、铁制农具、砖瓦房，不是古代农耕社会。
+机构用语：交通枢纽=车站/中转站，学校=学院（不用"学府/书院"），旅馆=旅馆/旅店（不用"客栈"），执法者=城卫军/巡捕（不用"衙门/衙役"）。
+禁用古词：马车、轿子、驿站、客栈、书院、私塾、学府、县令、衙门、蜡烛、油灯、长衫、儒袍、折扇、石阶、阁楼、门槛、柴门、铜钱、银两、喂鸡、挑水、砍柴。
+三大势力：日月帝国（魂导器最强）、天斗帝国、星罗帝国。史莱克学院为大陆第一学院。唐门衰落。
+魂师体系：魂士→魂师→大魂师→魂尊→魂宗→魂王→魂帝→魂圣→魂斗罗→封号斗罗。
+货币：金/银/铜魂币（1金=10银=100铜）。具体设定见资料库，优先参考资料库。`;
 
 const CORE={name:'',avatar:'',gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''};
 const PLOT={history:[],turn:0,isFirst:true,summaryCounter:0};
@@ -1247,7 +1279,7 @@ ${customSoul?'指定武魂：'+customSoul:'请为角色设计一个独特武魂�
 ## 硬约束
 - 觉醒师姓名请你自由发挥，每次新游戏都换一个新名字，别用"陈默"这类常见示例名。名字要有斗罗大陆风格（如：苏牧、江晨、温良、洛青、沈岳…），不要用现代常见姓名。
 - 人物行必须严格六段，用 / 分隔。第 3 段是武魂名，绝不能填人名。
-- 叙事中明确写出"武魂：xxx"和"武魂描述：xxx"两行，缺一不可。
+- **叙事正文中必须用独立一行明确写出「武魂：xxx」和「武魂描述：xxx」两行，缺一不可。这一行不要写进【状态更新】块里，而是写在正文结尾。**
 - 对话用引号，心理用括号，关键动作用 *……* 包裹。
 - 结尾必须给出明确去向：让觉醒师或在场长辈说一句方向性的话，告诉孩子接下来去哪。以下句式换着用，禁止每局都用同一条：
   · 去天斗城某学院报名，觉醒师已打过招呼
@@ -1290,6 +1322,12 @@ PLOT.history=[];PLOT.turn=0;PLOT.isFirst=false;PLOT.summaryCounter=0;
 PLOT.history.push({role:"assistant",content:reply});
 updateStatus();saveToPhone();
 appendOptions(extractOptions(reply));
+
+// AI 识别失败时，给玩家一个手动补正入口（不打扰正常流程）
+if(!soulName || soulName === '未知武魂' || soulName === '未觉醒'){
+  chatBox.innerHTML += `<div class="msg-sys" style="color:#fbbf24;font-size:12px;">⚠️ 未能从觉醒叙事中识别武魂，可点「⋯ → 编辑角色档案」手动补上。</div>`;
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
 }catch(e){
 console.error(e);
 chatBox.innerHTML+=`<div class="msg-lose">觉醒失败：${escapeHtml(e.message)}</div>`;

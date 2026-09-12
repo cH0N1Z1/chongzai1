@@ -65,7 +65,7 @@
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
 <div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V62 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V70 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">
@@ -116,6 +116,7 @@
 <div class="modal-box">
 <h3>更多选项</h3>
 <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+<button class="ctrl-btn" style="color:#e5e7eb;padding:14px;font-size:15px;background:#1f2937;border:1px solid #374151;border-radius:10px;text-align:left;" onclick="closeModal('moreModal');openProfileEditor()">编辑角色档案</button>
 <button class="ctrl-btn" style="color:#e5e7eb;padding:14px;font-size:15px;background:#1f2937;border:1px solid #374151;border-radius:10px;text-align:left;" onclick="closeModal('moreModal');openSummaryEditor()">剧情摘要</button>
 <button class="ctrl-btn" style="color:#e5e7eb;padding:14px;font-size:15px;background:#1f2937;border:1px solid #374151;border-radius:10px;text-align:left;" onclick="closeModal('moreModal');openSettings()">显示设置</button>
 <button class="ctrl-btn" style="color:#e5e7eb;padding:14px;font-size:15px;background:#1f2937;border:1px solid #374151;border-radius:10px;text-align:left;" onclick="closeModal('moreModal');goHome()">返回主界面</button>
@@ -196,6 +197,31 @@
 </div>
 </div>
 </div>
+
+<!-- 角色档案编辑弹窗 -->
+<div class="modal-overlay" id="profileModal">
+<div class="modal-box">
+<h3>编辑角色档案</h3>
+<p style="font-size:12px;color:#8b949e;margin:0 0 10px;line-height:1.5;">仅在 AI 未能正确写入时手动修正，正常剧情无需改动。</p>
+<label>姓名</label>
+<input id="pfName" placeholder="角色名">
+<label>年龄</label>
+<input id="pfAge" type="number" min="1" max="999">
+<label>武魂</label>
+<input id="pfSoul" placeholder="如：光明女神蝶">
+<label>武魂描述</label>
+<textarea id="pfSoulDesc" placeholder="武魂的特性与来历" style="width:100%;height:80px;padding:10px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;font-size:13px;resize:vertical;line-height:1.6;"></textarea>
+<label>先天魂力（1-10）</label>
+<input id="pfInnate" type="number" min="1" max="10">
+<label>当前魂力</label>
+<input id="pfPower" type="number" min="1" max="100">
+<div class="btn-row">
+<button class="btn-close" onclick="closeModal('profileModal')">取消</button>
+<button class="btn-save" onclick="saveProfileEdit()">保存</button>
+</div>
+</div>
+</div>
+
 <!-- Token 用量弹窗 -->
 <div class="modal-overlay" id="tokenModal">
 <div class="modal-box">
