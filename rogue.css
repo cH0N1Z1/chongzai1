@@ -1,5 +1,5 @@
 /* ============================================================
-   rogue.css - 魂兽猎杀模式样式
+   rogue.css - 迷雾讨伐模式样式
    ============================================================ */
 
 #rogue-area {
@@ -29,7 +29,7 @@
   padding: 10px 14px;
 }
 .rogue-title { font-weight: bold; color: #f0f6fc; font-size: 16px; }
-.rogue-exit-btn { padding: 4px 12px; font-size: 18px; line-height: 1; margin: 0; width: auto; }
+.rogue-exit-btn { padding: 4px 12px; font-size: 18px; line-height: 1; margin: 0; width: auto; display: inline-block; }
 
 /* 状态栏 */
 .rogue-status {
@@ -217,7 +217,37 @@
   line-height: 1.6;
 }
 
-/* 可爱主题适配 */
+/* ============================================================
+   魔物图鉴
+   ============================================================ */
+.codex-list{max-height:60vh;overflow-y:auto;margin:10px 0;display:flex;flex-direction:column;gap:6px;}
+.codex-item{background:#0d1117;border:1px solid #1f2937;border-radius:8px;padding:10px 12px;text-align:left;}
+.codex-item.known{border-color:#238636;background:rgba(35,134,54,0.06);}
+.codex-item.elite.known{border-color:#d4af37;background:rgba(212,175,55,0.06);}
+.codex-name{font-weight:600;color:#f0f6fc;font-size:14px;}
+.codex-info{font-size:12px;color:#8b949e;margin-top:3px;}
+.codex-count{font-size:11px;color:#58a6ff;margin-top:3px;}
+
+/* ============================================================
+   永久升级
+   ============================================================ */
+.upgrade-list{margin:10px 0;display:flex;flex-direction:column;gap:8px;}
+.upgrade-item{background:#0d1117;border:1px solid #1f2937;border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;}
+.upgrade-name{font-weight:600;color:#f0f6fc;font-size:14px;}
+.upgrade-lv{color:#4ade80;font-size:12px;}
+.upgrade-desc{font-size:12px;color:#8b949e;margin-top:2px;}
+.upgrade-btn{background:#238636;color:#fff;border:none;padding:8px 14px;border-radius:20px;font-weight:600;font-size:13px;cursor:pointer;}
+.upgrade-btn.disabled{background:#444c56;cursor:not-allowed;}
+
+/* ============================================================
+   商人按钮
+   ============================================================ */
+.merchant-btn{border-color:#d4af37 !important;background:#2a1a3a !important;}
+.merchant-btn:hover{background:#d4af37 !important;color:#1a1300 !important;}
+
+/* ============================================================
+   样式2 · 可爱主题适配
+   ============================================================ */
 body.theme-cute #rogue-area { background: #1a0f1a; }
 body.theme-cute .rogue-header,
 body.theme-cute .rogue-status,
@@ -235,42 +265,28 @@ body.theme-cute .rogue-enemy-name,
 body.theme-cute .rogue-event h3,
 body.theme-cute .rogue-dead h3,
 body.theme-cute .rogue-win h3 { color: #ffb6c1; }
+body.theme-cute .rogue-sub { color: #b08a9e; }
+body.theme-cute .rogue-meta { background: #1a0f1a; }
+body.theme-cute .rogue-meta-label { color: #b08a9e; }
+body.theme-cute .rogue-meta-value { color: #ffb6c1; }
+body.theme-cute .rogue-rules { background: #1a0f1a; color: #b08a9e; }
+body.theme-cute .rogue-rules h4 { color: #ffb6c1; }
+body.theme-cute .rogue-stats { color: #ffb6c1; }
+body.theme-cute .rogue-log { background: #1a0f1a; color: #ffb6c1; }
+body.theme-cute .rogue-log-line { border-bottom-color: #3d1e3d; }
+body.theme-cute .rogue-bar { background: #1a0f1a; border-color: #ff8da1; }
 body.theme-cute .rogue-btn { background: #3d1e3d; border-color: #ff8da1; color: #ffb6c1; }
 body.theme-cute .rogue-btn:hover { background: #ff8da1; color: #1a0f1a; }
+body.theme-cute .rogue-btn small { color: #b08a9e; }
+body.theme-cute .rogue-btn-skill { background: #4a1e4a; border-color: #c8a2ff; }
+body.theme-cute .rogue-btn-skill:hover { background: #c8a2ff; color: #1a0f1a; }
+body.theme-cute .rogue-btn-potion { background: #1f3d2a; border-color: #6ee7a8; }
+body.theme-cute .rogue-btn-potion:hover { background: #6ee7a8; color: #1a0f1a; }
 body.theme-cute .rogue-btn-primary { background: #ff8da1; color: #1a0f1a; }
 body.theme-cute .rogue-btn-primary:hover { background: #ffb6c1; }
 body.theme-cute .rogue-btn-ghost { border-color: #ff8da1; color: #ffb6c1; }
 body.theme-cute .rogue-btn-ghost:hover { border-color: #ffb6c1; color: #ffb6c1; }
-body.theme-cute .rogue-log { background: #1a0f1a; }
-/* ============================================================
-   模块 53：魂兽图鉴
-   ============================================================ */
-.codex-list{max-height:60vh;overflow-y:auto;margin:10px 0;display:flex;flex-direction:column;gap:6px;}
-.codex-item{background:#0d1117;border:1px solid #1f2937;border-radius:8px;padding:10px 12px;text-align:left;}
-.codex-item.known{border-color:#238636;background:rgba(35,134,54,0.06);}
-.codex-item.elite.known{border-color:#d4af37;background:rgba(212,175,55,0.06);}
-.codex-name{font-weight:600;color:#f0f6fc;font-size:14px;}
-.codex-info{font-size:12px;color:#8b949e;margin-top:3px;}
-.codex-count{font-size:11px;color:#58a6ff;margin-top:3px;}
-
-/* ============================================================
-   模块 54：永久升级
-   ============================================================ */
-.upgrade-list{margin:10px 0;display:flex;flex-direction:column;gap:8px;}
-.upgrade-item{background:#0d1117;border:1px solid #1f2937;border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;}
-.upgrade-name{font-weight:600;color:#f0f6fc;font-size:14px;}
-.upgrade-lv{color:#4ade80;font-size:12px;}
-.upgrade-desc{font-size:12px;color:#8b949e;margin-top:2px;}
-.upgrade-btn{background:#238636;color:#fff;border:none;padding:8px 14px;border-radius:20px;font-weight:600;font-size:13px;cursor:pointer;}
-.upgrade-btn.disabled{background:#444c56;cursor:not-allowed;}
-
-/* ============================================================
-   模块 55：商人按钮
-   ============================================================ */
-.merchant-btn{border-color:#d4af37 !important;background:#2a1a3a !important;}
-.merchant-btn:hover{background:#d4af37 !important;color:#1a1300 !important;}
-
-/* 样式2可爱主题适配 */
+body.theme-cute .rogue-el { background: #3d1e3d; color: #ffb6c1; }
 body.theme-cute .codex-item{background:#1a0f1a;border-color:#3d1e3d;}
 body.theme-cute .codex-item.known{background:rgba(255,141,161,0.1);border-color:#ff8da1;}
 body.theme-cute .codex-name{color:#ffb6c1;}
@@ -280,8 +296,51 @@ body.theme-cute .upgrade-name{color:#ffb6c1;}
 body.theme-cute .upgrade-lv{color:#ff8da1;}
 body.theme-cute .upgrade-btn{background:#ff8da1;color:#1a0f1a;}
 body.theme-cute .upgrade-btn.disabled{background:#3d1e3d;color:#8b6b7e;}
+body.theme-cute .merchant-btn{border-color:#ffb6c1 !important;background:#3d1e3d !important;color:#ffb6c1 !important;}
+body.theme-cute .merchant-btn:hover{background:#ffb6c1 !important;color:#1a0f1a !important;}
 
-/* 样式3水色主题适配 */
+/* ============================================================
+   样式3 · 水色主题适配
+   ============================================================ */
+body.theme-water #rogue-area { background: linear-gradient(170deg,#eef8fd 0%,#d9edf7 100%); }
+body.theme-water .rogue-header,
+body.theme-water .rogue-status,
+body.theme-water .rogue-lobby,
+body.theme-water .rogue-battle,
+body.theme-water .rogue-event,
+body.theme-water .rogue-dead,
+body.theme-water .rogue-win {
+  background: linear-gradient(180deg,#ffffff,#f2fafd);
+  border-color: #a8d8ee;
+}
+body.theme-water .rogue-title,
+body.theme-water .rogue-lobby h2,
+body.theme-water .rogue-enemy-name,
+body.theme-water .rogue-event h3,
+body.theme-water .rogue-dead h3,
+body.theme-water .rogue-win h3 { color: #3b7fbf; }
+body.theme-water .rogue-sub { color: #5a8fa8; }
+body.theme-water .rogue-meta { background: #f4fbff; }
+body.theme-water .rogue-meta-label { color: #7fa0b3; }
+body.theme-water .rogue-meta-value { color: #2c4a5c; }
+body.theme-water .rogue-rules { background: #f4fbff; color: #5a8fa8; }
+body.theme-water .rogue-rules h4 { color: #3b7fbf; }
+body.theme-water .rogue-stats { color: #3b5c70; }
+body.theme-water .rogue-log { background: #f4fbff; color: #2c4a5c; }
+body.theme-water .rogue-log-line { border-bottom-color: #d9edf7; }
+body.theme-water .rogue-bar { background: #f4fbff; border-color: #b3dcef; }
+body.theme-water .rogue-btn { background: linear-gradient(135deg,#ffffff,#f0f9fe); border-color: #b3dcef; color: #3b5c70; }
+body.theme-water .rogue-btn:hover { background: linear-gradient(135deg,#a8d8ee,#7ec8e3); color: #ffffff; border-color: #7ec8e3; }
+body.theme-water .rogue-btn small { color: #5a8fa8; }
+body.theme-water .rogue-btn-skill { background: linear-gradient(135deg,#f0e8ff,#e0d0ff); border-color: #c8a2ff; color: #6b4a9e; }
+body.theme-water .rogue-btn-skill:hover { background: linear-gradient(135deg,#c8a2ff,#b088ee); color: #ffffff; }
+body.theme-water .rogue-btn-potion { background: linear-gradient(135deg,#e8fff0,#d0ffe0); border-color: #6ee7a8; color: #2d7a52; }
+body.theme-water .rogue-btn-potion:hover { background: linear-gradient(135deg,#6ee7a8,#4ade80); color: #ffffff; }
+body.theme-water .rogue-btn-primary { background: linear-gradient(135deg,#7ec8e3,#a8d8ee); color: #ffffff; }
+body.theme-water .rogue-btn-primary:hover { background: linear-gradient(135deg,#a8d8ee,#c8e4f2); }
+body.theme-water .rogue-btn-ghost { border-color: #a8d8ee; color: #3b7fbf; background: #f4fbff; }
+body.theme-water .rogue-btn-ghost:hover { border-color: #7ec8e3; color: #2c4a5c; background: #eaf6fc; }
+body.theme-water .rogue-el { background: #eaf6fc; color: #3b7fbf; }
 body.theme-water .codex-item{background:#f4fbff;border-color:#b3dcef;}
 body.theme-water .codex-item.known{background:rgba(126,200,227,0.15);border-color:#3b7fbf;}
 body.theme-water .codex-name{color:#2c4a5c;}

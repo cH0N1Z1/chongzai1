@@ -104,33 +104,48 @@ function userMsgHtml(text,isDebug){
 // ============================================================
 const FIXED_WORLD=`现代都市 · 星辉学院时代。
 
-【世界本质】
-魔法是公开的，但只有拿到「星辉资格」的人才能看见城市的第二层。普通人只能看见一栋废弃老楼，收到星辉信的人才能看见真正的校门。第二层有结界、魔物、术式商店、深夜地铁的隐藏站台。
+【城市】
+一座被迷雾包围的现代都市。地铁、咖啡厅、便利店、学校、商圈，日常如常。迷雾在外面，进不来，也出不去。城市内部偶尔会有迷雾渗透，形成临时的「迷雾街区」。
 
 【星辉学院】
-建在城市第二层的术式师学院。六个年级，12岁入学，18岁毕业。校内分教学区、宿舍区、训练场、图书馆、学生会馆、星辉塔。最高机构为教师会，院长神秘，不常出现。学生会负责实习任务分配、社团管理、排名赛。
+城市的核心，也是唯一能处理迷雾的机构。建在城市里，但普通人看不见——只有收到星辉信的人才能看见真正的校门。
+没有教师。完全由学生自治。课程由高年级学生开设，一届传一届。学生会管理日常事务。
+学院正中有座星辉塔，塔顶常年亮着一盏灯。塔顶是学院的最高决策层，从不露面，只发布任务。
 
-【星辉信】
-12至18岁之间寄出的神秘信件。信封深蓝色，微微发烫。里面只有一行字和一个地址，那行字是收件人自己的名字，但笔迹不是自己的。信的背面有一枚星辉印记，会慢慢发光。寄件人不明。
+【入学】
+12至18岁之间，某天会在邮箱或手机里收到一封没有署名的信。信上只有一行字和一个地址。每个人的地址不一样，但到达时看见的是同一栋白色建筑。
+推门进去，里面已经站着几个同龄人，手里都攥着信。踏进学院的瞬间，术式自动觉醒。
+学生会发下一枚手环，戴上后校服自动变出来，自动合身。手环是星辉学生的标志。
+学生很少，在城市里也很少见。穿校服走在街上，会被人多看一眼。
+
+【校服与手环】
+手环戴在手腕上，平时可以收起校服穿便装。校服是术式产物，由手环生成。
+校服分级：低年级（1-2年级）藏青短外套、白衬衫、深蓝细丝带；中年级（3-4年级）深蓝长外套、白衬衫、深蓝领带、星辉纹腰带；高年级（5-6年级）黑色长大衣、白衬衫、黑领带、右胸刻印徽章。
+手环颜色对应当前最高刻印色。
 
 【术式与刻印】
-每个人都有独特的本命术式，形似具象化的概念。术式有强弱（S/A/B/C/D），适性1-10。适性高成长快，适性低成长慢。术式随魔力提升解锁「刻印」，每个刻印带一个术式技。刻印颜色：白初刻、黄浅刻、紫深刻、黑夜刻、红血刻、金星刻。
+每个人都有独特的本命术式，形似具象化的概念。术式有强弱（S/A/B/C/D），适性1-10。适性高成长快，适性低成长慢。术式随魔力提升解锁「刻印」，每个刻印带一个术式技。
+刻印颜色：白初刻、黄浅刻、紫深刻、黑夜刻、红血刻、金星刻。
+
+【任务与重修】
+塔顶发布任务。分两种：学院任务（一人完成即可，全员无事）、个人任务（每人必做）。
+未完成个人任务者重修，回到一年级。校服和徽章降回一年级，但年龄不变。
+一年级上学期是适应期，没有任务。下学期塔顶才发布第一个任务。
 
 【迷雾街区】
-星辉学院的校外实习区，第二层和第一层最接近的地方。终年薄雾，魔物从裂隙渗入。分安全区、中层、深层。低年级在安全区边缘实习，高年级深入深层。学生在此清理魔物、采集材料、完成实习任务，换取积分。
+迷雾渗透形成的临时危险区。可能出现在任何街角、巷子、地铁末班车。不固定。
+学生在此清理魔物、采集材料、完成实习任务，换取积分。
+
+【城市外面】
+能出去，但很容易迷失在迷雾里。需要星辉学生带队才能安全进出。
+星辉灯是塔顶星辉石的粉末，散落在迷雾中会自然凝聚成灯，能驱散迷雾、指引方向。
 
 【术式师等级】
 见习（1-10）、初级（11-25）、中级（26-40）、高级（41-55）、精英（56-70）、首席（71-85）、大导师（86-100）。
 
-【物件质感】
-城市有高楼、地铁、便利店、学校、商圈。第二层有发光的法阵铭牌、晶体玻璃、金属镶边的术式商店。术式刻印手环显示持有者的最高刻印色。深夜地铁有隐藏站台，通往第二层。
-
-【货币】
-现代货币，同时术式师之间有「实习积分」可兑换资源。
-
 具体设定见资料库，优先参考资料库。`;
 
-const CORE={name:'',avatar:'',gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',aptitude:5,mana:1,marks:[],arts:[],npcs:[],flags:{},summary:'',time:'收到星辉信当天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''};
+const CORE={name:'',avatar:'',gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',aptitude:5,mana:1,marks:[],arts:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''};
 const PLOT={history:[],turn:0,isFirst:true,summaryCounter:0};
 let isGenerating=false;
 
@@ -218,8 +233,7 @@ const SCENE_TYPES = [
 function getSeason(term){
   const t = String(term||'');
   if(/一年级上|二年级上|三年级上|四年级上|五年级上|六年级上/.test(t)){
-    const m = t.match(/[一二三四五六]年级上/);
-    if(m) return '秋';
+    return '秋';
   }
   if(/一年级下|二年级下|三年级下|四年级下|五年级下|六年级下/.test(t)){
     return '春';
@@ -398,7 +412,7 @@ if(!CORE.arcaneDesc)CORE.arcaneDesc='';
 if(CORE.marks&&CORE.marks.length>0&&typeof CORE.marks[0]==='string')CORE.marks=CORE.marks.map(r=>({name:r,count:1,desc:''}));
 if(CORE.arts&&CORE.arts.length>0&&typeof CORE.arts[0]==='string')CORE.arts=CORE.arts.map(s=>({name:s,desc:''}));
 if(!CORE.npcs)CORE.npcs=[];
-if(!CORE.time)CORE.time='收到星辉信当天';
+if(!CORE.time)CORE.time='入学第一天';
 if(!CORE.term)CORE.term='一年级上学期';
 if(CORE.avatar===undefined)CORE.avatar='';
 if(CORE.weather===undefined)CORE.weather='';
@@ -506,7 +520,7 @@ if(hasSave && (!CORE.name || CORE.arcane === '未觉醒')){
     localStorage.removeItem(slotKey());
     hasSave = false;
     const _keepAvatar2 = CORE.avatar || '';
-    Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',aptitude:5,mana:1,marks:[],arts:[],npcs:[],flags:{},summary:'',time:'收到星辉信当天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''});
+    Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',aptitude:5,mana:1,marks:[],arts:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''});
     Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 }
 
@@ -631,23 +645,6 @@ function archiveTerm(term){
   });
   if(count > 0){
     chatBox.innerHTML += `<div class="msg-sys">学期归档：${escapeHtml(term)}（${count}人）</div>`;
-  }
-}
-
-function insertChapterDivider(num, title){
-  chatBox.innerHTML += `<div class="msg-chapter">第${num}章 · ${escapeHtml(title)}</div>`;
-  chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-async function generateChapterTitle(){
-  try{
-    const recent = PLOT.history.slice(-6).map(m => stripStatus(m.content)).join('\n');
-    if(!recent) return '';
-    const prompt = `根据以下剧情，为这一章起一个 4-8 字的标题。只输出标题，无标点，无前缀。\n\n${recent}`;
-    const title = await callDeepSeekStream([{role:'user', content:prompt}], ()=>{});
-    return String(title).replace(/[《》【】\n]/g,'').trim().slice(0, 10);
-  } catch(e){
-    return '';
   }
 }
 
@@ -1251,7 +1248,7 @@ ${currentSituation}
 ${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
 
 ## 叙事范例（模仿此密度、节奏与用语）
-地铁到站的风掀起你的衣角。你按信上的地址走出闸机，*抬头看见一栋废弃老楼*。
+地铁到站的风掀起你的衣角。你按信上的地址走出闸机，*抬头看见一栋白色的建筑*。
 （就是这里吗……）
 口袋里那封信微微发烫。你把它拿出来，背面那枚星辉印记正在发光。
 眼前的老楼像水波一样晃了一下。再定睛看时，一座白色校门安静地立在晨光里。
@@ -1259,10 +1256,10 @@ ${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
 【状态更新】
 时间：入学第一天·上午
 学期：一年级上学期
-人物：校门口的接待老师/女/镜台/30级/接待老师/穿深蓝长外套，笑容温和/好感:20
+人物：校门口的学生会成员/女/镜台/30级/学生会/穿深蓝长外套，笑容温和/好感:20
 
 【选项】
-• 走上前，把信递给接待老师
+• 走上前，把信递过去
 • 先在校门口站一会儿，看看周围
 • 低头检查信上的字迹
 
@@ -1286,7 +1283,7 @@ ${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
 
 ## 叙事要求
 - 场景优先使用现代都市 + 魔法学院的元素：高楼、地铁、便利店、术式商店、发光的铭牌、晶体玻璃、刻印手环。
-- 日常 80-150 字，关键剧情 200-300 字，不超过 350 字。
+- 日常 80-120 字，像轻小说那样，一句一段，节奏轻快。关键剧情 200-300 字，但不要堆砌形容词，多用动词和对话。每轮至少有一句对话。
 - 用"你"指代玩家，禁止用"他/她/角色名"指代玩家。
 - ${isContinue ? '玩家选择"继续"：自然推进剧情，可让 NPC 主动说话，不替玩家做重大决定。' : '根据玩家输入推进剧情。'}
 
@@ -1303,8 +1300,12 @@ ${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
 
 ## 人物与好感度
 - 好感度 0-100。陌生 0-20，认识 21-40，友好 41-60，亲近 61-80，特别 81-100。
-- NPC 的语气和主动程度随好感度变化。好感度高的 NPC 会主动找你、关心你、在关键时刻帮你。
-- 日常互动、共同经历、送小礼物都能提升好感度。
+- NPC 主动互动的方式：借你笔记、拉你去食堂、放学等你、在训练场递水、发消息问你作业。好感度越高，互动越频繁、越私密。
+- 好感度档位对应的互动：
+  21-40（认识）：打招呼、借东西
+  41-60（友好）：一起吃饭、分享小秘密
+  61-80（亲近）：天台独处、主动帮忙、关心你的状态
+  81-100（特别）：专属称呼、关键时刻站你这边、会因为你受伤而生气
 - 叙事要自然，不要刻意刷好感。
 
 ${styleBlock}
@@ -1421,14 +1422,6 @@ PLOT.summaryCounter=0;
 chatBox.innerHTML+=`<div class="msg-summary">记忆精炼 · 摘要 ${finalSummary.length} 字</div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
 saveToPhone();
-generateChapterTitle().then(title=>{
-  if(!title) return;
-  CORE.chapterNum = (CORE.chapterNum||0) + 1;
-  CORE.chapterTitle = title;
-  insertChapterDivider(CORE.chapterNum, title);
-  if(typeof soundChapter==='function') soundChapter();
-  saveToPhone();
-});
 }
 }catch(e){PLOT.summaryCounter=0}
 }
@@ -1490,7 +1483,7 @@ ${desc}`
 }
 
 // ============================================================
-//  术式觉醒
+//  术式觉醒（弹丸论破式开场）
 // ============================================================
 async function awakenArcane(){
 if(isGenerating)return;
@@ -1513,7 +1506,7 @@ CORE.aptitude=Math.min(Math.max(innate,1),10);
 CORE.mana=CORE.aptitude;
 CORE.summary='';
 CORE.marks=[];CORE.arts=[];CORE.npcs=[];
-CORE.time='收到星辉信当天';
+CORE.time='入学第一天';
 CORE.term='一年级上学期';
 CORE.weather=rollWeather(CORE.term);
 CORE.chapterNum=0;
@@ -1524,48 +1517,79 @@ let customSoul='';
 if(soulChoice==='custom')customSoul=document.getElementById('customSoul').value.trim()||'未知术式';
 
 const systemPrompt=`## 你的角色
-你是现代魔法学院「星辉学院」的入学觉醒仪式引导者。玩家就是主角"你"，用第二人称叙述。
+你是「星辉学院」入学开场的叙事者。玩家就是主角"你"，用第二人称叙述。
+风格参考弹丸论破式开场：仪式感、悬疑感、节奏感。但不要照抄。
 
 ## 世界观
 ${FIXED_WORLD}
 
 ## 本轮信息
-角色：${name}（${gender}，12岁）
+新生：${name}（${gender}，12岁）
 设定：${CORE.roleDesc}
 术式适性：${innate}级（初始魔力=${CORE.mana}级）
 ${customSoul?'指定术式：'+customSoul:'请为角色设计一个独特的本命术式，给出名称与特性。'}
 
-## 叙事范例（只学密度、节奏与用语，具体内容每次全新构想）
-接待老师领你穿过白色校门。门后是一条铺着青石的路，两侧的树在风里轻轻摇。
-"到了。"她推开一扇门，"入学测试，从觉醒术式开始。"
-房间里只有一张桌子、一盏灯。桌上一枚晶体正安静地悬着。
-*你把手放上去的瞬间，晶体内部亮起一道细小的光*。
-"哦？"接待老师微微抬眼，"有意思。"
+## 开场结构（严格按顺序，用【第X幕】标注）
+【第一幕 · 信】80字以内
+  某天，主角在邮箱或手机里收到一封没有署名的信。
+  信上只有一行字和一个地址。
+  地址请你自由发挥，要具体、有生活感（如"城南旧书店三楼"、"地铁七号线末班车终点"、"老图书馆后巷"）。
 
-【状态更新】
+【第二幕 · 抵达】100字以内
+  主角按地址找过去。
+  看见一栋白色的、安静的、从没见过的建筑。
+  门口没有招牌，但主角知道"就是这里"。
+
+【第三幕 · 相遇】120字以内
+  推门进去。里面站着几个同龄人，手里都攥着信。
+  没人说话。空气有点紧。
+  可以写一个细节：有人抬头看了主角一眼，又低下头。
+
+【第四幕 · 学生会登场】150字以内
+  一个高年级学生从楼梯上下来，自我介绍是学生会的。
+  他/她用简短的话说明学院规则：
+  - 没有教师，完全学生自治
+  - 课程由高年级学生开设
+  - 入学后术式自动觉醒
+  语气随意但认真，不啰嗦。
+
+【第五幕 · 手环与校服】120字以内
+  学生会成员递来一枚手环，让主角戴上。
+  戴上的瞬间，校服自动变出来，自动合身。
+  *主角低头看着自己身上的藏青短外套*。
+  "这是你的校服。从今天起，你就是星辉的学生了。"
+
+【第六幕 · 术式觉醒】150字以内
+  踏进学院的瞬间，术式自动觉醒。
+  在正文结尾用独立一行写出：
+  术式：xxx
+  术式描述：xxx
+
+【第七幕 · 一年级开始】80字以内
+  学生会成员说一句方向性的话，告诉主角接下来去哪
+  （去宿舍 / 去教室 / 去学生会报到 / 去食堂吃点东西 / 去训练场看看）。
+  结尾给出明确方向。
+
+## 输出结构（严格按顺序）
+1) 叙事正文（七幕，每幕用【第X幕】标注）
+2) 【状态更新】块
+3) 【选项】块（2-3 个，每项以"•"开头）
+
+## 状态更新格式
 年龄：12
 时间：入学第一天·上午
 学期：一年级上学期
-人物：接待老师/女/镜台/30级/接待老师/穿深蓝长外套，笑容温和/好感:20
-
-【选项】
-• 仔细感受体内涌动的魔力
-• 向接待老师询问术式的来历
-• 看看晶体里那道光的形状
-
-## 输出结构（严格按顺序）
-1) 叙事正文 300-500 字（第二人称）
-2) 【状态更新】块（必须含上面示例中的所有字段）
-3) 【选项】块（2-3 个，每项以"•"开头）
+人物：学生会成员姓名/性别/术式/魔力/学生会/描述/好感:20
 
 ## 硬约束
-- 接待老师姓名请你自由发挥，每次新游戏都换一个新名字，名字要有现代感（如：苏晚、江晴、温言、洛宁、沈舟…）。
+- 学生会成员姓名请你自由发挥，每次新游戏都换一个新名字，名字要有现代感（如：苏晚、江晴、温言、洛宁、沈舟…）。
 - 人物行必须严格七段，用 / 分隔。第 3 段是术式名，绝不能填人名。第 7 段是好感度，格式"好感:N"。
 - 叙事正文中必须用独立一行明确写出「术式：xxx」和「术式描述：xxx」两行，缺一不可。这两行写在正文结尾，不写进【状态更新】块。
 - 对话用引号，心理用括号，关键动作用 *……* 包裹。
-- 结尾给出明确去向：让接待老师或在场长辈说一句方向性的话，告诉孩子接下来去哪（去宿舍 / 去教室 / 去学生会报到 / 去食堂吃点东西 / 去训练场看看）。
-- 【选项】里必须包含 2-3 个具体可执行的下一步方向，让玩家清楚知道该往哪走。
-- 每次新游戏的觉醒场景都从零构想：房间形制、接待老师（性别/年龄/外貌/术式）、使用的器材、开场动作、在场者，全部全新设计。范例只用来感受叙事密度和节奏。`;
+- 每幕用【第X幕】标注，节奏轻快，不要拖沓。
+- 第七幕结尾必须给出明确去向，让玩家知道接下来往哪走。
+- 【选项】里必须包含 2-3 个具体可执行的下一步方向。
+- 每次新游戏的开场场景都从零构想：信的内容、地址、白色建筑的样子、在场的新生、学生会成员（性别/年龄/外貌/术式），全部全新设计。`;
 
 isGenerating=true;sendBtn.disabled=true;userInput.disabled=true;
 try{
@@ -1636,7 +1660,7 @@ if(hasValidSave && !confirm("已有存档，开始新游戏会覆盖。确定？
 
 localStorage.removeItem(slotKey());
 const _keepAvatar = CORE.avatar || '';
-Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',aptitude:5,mana:1,marks:[],arts:[],npcs:[],flags:{},summary:'',time:'收到星辉信当天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''});
+Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',aptitude:5,mana:1,marks:[],arts:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''});
 Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 
 resetScene();

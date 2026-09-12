@@ -1,26 +1,25 @@
 // ============================================================
-//  rogue.js - 魂兽猎杀 Roguelike 模式（增强版）
+//  rogue.js - 迷雾讨伐 Roguelike 模式
 //  纯本地逻辑，不调用 API
-//  新增：商人/诅咒宝箱/迷雾岔路/魂兽巢穴；魂兽图鉴；永久升级
 // ============================================================
 
 const ROGUE_DATA = {
   monsters: [
-    [1, 3, '森林兔', 3, 15, [1, 3], '草药', '风'],
-    [1, 3, '幼年灰狼', 5, 22, [2, 5], '兽皮', '土'],
-    [2, 5, '毒蛛', 7, 26, [3, 6], '蛛丝', '毒'],
-    [3, 6, '赤虎', 10, 38, [5, 10], '虎骨', '火'],
-    [4, 7, '铁背熊', 12, 55, [6, 12], '熊胆', '土'],
-    [5, 9, '雷纹豹', 16, 48, [8, 15], '雷晶', '雷'],
-    [6, 10, '冰蟒', 18, 70, [10, 18], '冰魄', '冰'],
-    [7, 12, '暗影狼王', 24, 90, [15, 25], '暗晶', '暗'],
-    [9, 14, '烈焰狮', 30, 120, [20, 35], '炎石', '火'],
-    [11, 16, '雷霆巨鹰', 38, 140, [28, 45], '雷羽', '雷'],
+    [1, 3, '影犬', 3, 15, [1, 3], '暗晶碎片', '暗'],
+    [1, 3, '镜妖', 5, 22, [2, 5], '镜片', '幻'],
+    [2, 5, '雨女', 7, 26, [3, 6], '雨滴石', '水'],
+    [3, 6, '纸人', 10, 38, [5, 10], '纸符', '土'],
+    [4, 7, '石像鬼', 12, 55, [6, 12], '石核', '土'],
+    [5, 9, '电光虫', 16, 48, [8, 15], '电晶', '雷'],
+    [6, 10, '冰霜巨蟒', 18, 70, [10, 18], '冰魄', '冰'],
+    [7, 12, '暗影魔狼', 24, 90, [15, 25], '暗晶', '暗'],
+    [9, 14, '焰尾猫', 30, 120, [20, 35], '炎石', '火'],
+    [11, 16, '雷羽鸟', 38, 140, [28, 45], '雷羽', '雷'],
   ],
   elites: [
-    [5, 10, '千年树精', 28, 180, [40, 70], '千年木心', '木'],
-    [8, 14, '万年龟王', 35, 280, [60, 100], '龟甲', '水'],
-    [10, 18, '幽冥虎王', 55, 320, [80, 150], '幽冥虎魂', '暗'],
+    [5, 10, '千年树魔', 28, 180, [40, 70], '千年木心', '木'],
+    [8, 14, '万年龟灵', 35, 280, [60, 100], '龟甲', '水'],
+    [10, 18, '幽冥魔虎', 55, 320, [80, 150], '幽冥虎魂', '暗'],
   ],
   elements: {
     '火': { strong: '木', weak: '水' },
@@ -40,17 +39,17 @@ const ROGUE_DATA = {
     { type: 'nest', weight: 2 },
   ],
   skills: {
-    '十年': [{ name: '基础冲击', dmg: 15, cost: 5 }],
-    '百年': [{ name: '魂力爆发', dmg: 25, cost: 10 }],
-    '千年': [{ name: '元素斩', dmg: 40, cost: 18 }],
-    '万年': [{ name: '魂环共鸣', dmg: 65, cost: 25 }],
-    '十万年': [{ name: '天雷破', dmg: 100, cost: 40 }],
+    '白初刻': [{ name: '术式冲击', dmg: 15, cost: 5 }],
+    '黄浅刻': [{ name: '魔力涌动', dmg: 25, cost: 10 }],
+    '紫深刻': [{ name: '元素斩', dmg: 40, cost: 18 }],
+    '黑夜刻': [{ name: '刻印共鸣', dmg: 65, cost: 25 }],
+    '红血刻': [{ name: '星辉破', dmg: 100, cost: 40 }],
   },
   upgrades: [
     { id: 'hp',     name: '体魄淬炼', desc: '初始生命 +20',   cost: 80,  value: 20 },
-    { id: 'atk',    name: '魂力凝锋', desc: '初始攻击 +3',    cost: 120, value: 3 },
-    { id: 'potion', name: '药囊扩充', desc: '初始药水 +1',    cost: 60,  value: 1 },
-    { id: 'soul',   name: '魂力积淀', desc: '初始魂力 +10',   cost: 100, value: 10 },
+    { id: 'atk',    name: '魔力凝锋', desc: '初始攻击 +3',    cost: 120, value: 3 },
+    { id: 'potion', name: '药剂袋扩充', desc: '初始药剂 +1',   cost: 60,  value: 1 },
+    { id: 'soul',   name: '魔力积淀', desc: '初始魔力 +10',   cost: 100, value: 10 },
   ]
 };
 
@@ -96,25 +95,26 @@ function rogueShowLobby() {
   const el = document.getElementById('rogue-content');
   el.innerHTML = `
     <div class="rogue-lobby">
-      <h2>魂兽猎杀</h2>
-      <p class="rogue-sub">深入魂兽森林，猎杀魂兽，满载而归或是横死荒野。</p>
+      <h2>迷雾讨伐</h2>
+      <p class="rogue-sub">深入迷雾街区，讨伐魔物，满载而归或是横死荒野。</p>
       <div class="rogue-meta">
-        <div><span class="rogue-meta-label">金币</span><span class="rogue-meta-value">${m.gold}</span></div>
+        <div><span class="rogue-meta-label">魔晶</span><span class="rogue-meta-value">${m.gold}</span></div>
         <div><span class="rogue-meta-label">最深层数</span><span class="rogue-meta-value">${m.bestDepth}</span></div>
         <div><span class="rogue-meta-label">总场次</span><span class="rogue-meta-value">${m.runs}</span></div>
       </div>
-      <button class="rogue-btn-primary" onclick="rogueStartRun()">开始狩猎</button>
-      <button class="rogue-btn-ghost" onclick="rogueOpenCodex()">魂兽图鉴</button>
+      <button class="rogue-btn-primary" onclick="rogueStartRun()">开始讨伐</button>
+      <button class="rogue-btn-ghost" onclick="rogueOpenCodex()">魔物图鉴</button>
       <button class="rogue-btn-ghost" onclick="rogueOpenUpgrades()">永久升级</button>
+      <button class="rogue-btn-ghost" onclick="openSettings()">显示设置</button>
       <button class="rogue-btn-ghost" onclick="rogueExit()">返回主界面</button>
       <div class="rogue-rules">
         <h4>玩法</h4>
         <ul>
-          <li>每深入一层，魂兽更强，掉落更好</li>
+          <li>每深入一层，魔物更强，掉落更好</li>
           <li>随时可以「撤退」，保留收获</li>
           <li>阵亡 = 本局收获清零</li>
           <li>属性克制：火→木→土→水→火（+50%伤害）</li>
-          <li>金币可在「永久升级」处消费，跨局生效</li>
+          <li>魔晶可在「永久升级」处消费，跨局生效</li>
         </ul>
       </div>
     </div>`;
@@ -135,7 +135,7 @@ function rogueOpenCodex(){
     }
     return `<div class="codex-item"><div class="codex-name">？？？${isElite?' ★':''}</div><div class="codex-info">未记录</div></div>`;
   }).join('');
-  el.innerHTML = `<div class="rogue-lobby"><h2>魂兽图鉴</h2><p class="rogue-sub">记录你遇到过的魂兽</p><div class="codex-list">${rows}</div><button class="rogue-btn-ghost" onclick="rogueShowLobby()">返回大厅</button></div>`;
+  el.innerHTML = `<div class="rogue-lobby"><h2>魔物图鉴</h2><p class="rogue-sub">记录你遇到过的魔物</p><div class="codex-list">${rows}</div><button class="rogue-btn-ghost" onclick="rogueShowLobby()">返回大厅</button></div>`;
 }
 function rogueOpenUpgrades(){
   const el = document.getElementById('rogue-content');
@@ -146,18 +146,18 @@ function rogueOpenUpgrades(){
     const can = gold >= cost;
     return `<div class="upgrade-item">
       <div><div class="upgrade-name">${u.name} <span class="upgrade-lv">Lv.${lv}</span></div>
-      <div class="upgrade-desc">${u.desc} · 升级需 ${cost} 金币</div></div>
+      <div class="upgrade-desc">${u.desc} · 升级需 ${cost} 魔晶</div></div>
       <button class="upgrade-btn${can?'':' disabled'}" ${can?'':'disabled'} onclick="rogueBuyUpgrade('${u.id}')">升级</button>
     </div>`;
   }).join('');
-  el.innerHTML = `<div class="rogue-lobby"><h2>永久升级</h2><p class="rogue-sub">当前金币：<b>${gold}</b>（跨局累积）</p><div class="upgrade-list">${rows}</div><button class="rogue-btn-ghost" onclick="rogueShowLobby()">返回大厅</button></div>`;
+  el.innerHTML = `<div class="rogue-lobby"><h2>永久升级</h2><p class="rogue-sub">当前魔晶：<b>${gold}</b>（跨局累积）</p><div class="upgrade-list">${rows}</div><button class="rogue-btn-ghost" onclick="rogueShowLobby()">返回大厅</button></div>`;
 }
 function rogueBuyUpgrade(id){
   const u = ROGUE_DATA.upgrades.find(x => x.id === id);
   if(!u) return;
   const lv = ROGUE.upgrades[id] || 0;
   const cost = u.cost * (lv + 1);
-  if(ROGUE.meta.gold < cost) return alert('金币不足');
+  if(ROGUE.meta.gold < cost) return alert('魔晶不足');
   ROGUE.meta.gold -= cost;
   ROGUE.upgrades[id] = lv + 1;
   rogueSaveMeta(); rogueSaveUpgrades();
@@ -172,7 +172,7 @@ function rogueStartRun() {
     atk: 12 + (up.atk||0)*3,
     soulPower: 10 + (up.soul||0)*10,
     element: '火',
-    skills: [{ name: '基础冲击', dmg: 15, cost: 5 }],
+    skills: [{ name: '术式冲击', dmg: 15, cost: 5 }],
     potions: 2 + (up.potion||0),
     inventory: [], gold: 0,
   };
@@ -182,24 +182,24 @@ function rogueStartRun() {
       const data = JSON.parse(raw);
       const c = data.core || {};
       if (c.name) player.name = c.name;
-      const sp = c.soulPower || 10;
+      const sp = c.mana || c.soulPower || 10;
       player.soulPower = sp + (up.soul||0)*10;
       player.maxHp = 40 + sp * 8 + (up.hp||0)*20;
       player.hp = player.maxHp;
       player.atk = 8 + Math.floor(sp * 0.8) + (up.atk||0)*3;
-      const soul = c.martialSoul || '';
-      if (/火|炎|焰|凤/.test(soul)) player.element = '火';
-      else if (/冰|水|海|雪/.test(soul)) player.element = '水';
-      else if (/木|草|花|藤|莲/.test(soul)) player.element = '木';
-      else if (/土|石|岩|龟/.test(soul)) player.element = '土';
-      const rings = c.rings || [];
+      const soul = c.arcane || c.martialSoul || '';
+      if (/火|炎|焰|凤|星|光/.test(soul)) player.element = '火';
+      else if (/冰|水|海|雪|霜/.test(soul)) player.element = '水';
+      else if (/木|草|花|藤|莲|生/.test(soul)) player.element = '木';
+      else if (/土|石|岩|龟|铁/.test(soul)) player.element = '土';
+      const marks = c.marks || c.rings || [];
       const skillList = [];
-      for (const tier of ['十年','百年','千年','万年','十万年']) {
-        if (rings.some(r => (r.name || r || '').includes(tier))) {
+      for (const tier of ['白初刻','黄浅刻','紫深刻','黑夜刻','红血刻','金星刻']) {
+        if (marks.some(r => (r.name || r || '').includes(tier))) {
           (ROGUE_DATA.skills[tier] || []).forEach(s => skillList.push({ ...s }));
         }
       }
-      if (skillList.length === 0) skillList.push({ name: '基础冲击', dmg: 15, cost: 5 });
+      if (skillList.length === 0) skillList.push({ name: '术式冲击', dmg: 15, cost: 5 });
       player.skills = skillList;
     }
   } catch (e) {}
@@ -256,17 +256,17 @@ function rogueCreateEvent(type) {
     const bonuses = [
       { type: 'atk', value: 2, name: '力量神龛' },
       { type: 'maxHp', value: 15, name: '生命神龛' },
-      { type: 'potion', value: 1, name: '药水神龛' },
+      { type: 'potion', value: 1, name: '药剂神龛' },
     ];
     return { kind: 'shrine', ...roguePick(bonuses) };
   }
   if (type === 'merchant') {
     const pool = [
-      { name:'药水', desc:'恢复 40 HP', cost: 15, kind:'potion' },
-      { name:'魂力药剂', desc:'+30 魂力', cost: 25, kind:'soul', value:30 },
-      { name:'磨刀石', desc:'攻击 +2', cost: 30, kind:'atk', value:2 },
-      { name:'护心甲', desc:'最大生命 +20', cost: 35, kind:'maxHp', value:20 },
-      { name:'魂技卷轴', desc:'随机魂技', cost: 50, kind:'skill' },
+      { name:'治疗药剂', desc:'恢复 40 HP', cost: 15, kind:'potion' },
+      { name:'魔力药剂', desc:'+30 魔力', cost: 25, kind:'soul', value:30 },
+      { name:'术式强化石', desc:'攻击 +2', cost: 30, kind:'atk', value:2 },
+      { name:'守护符', desc:'最大生命 +20', cost: 35, kind:'maxHp', value:20 },
+      { name:'术式卷轴', desc:'随机术式技', cost: 50, kind:'skill' },
     ];
     const chosen = []; const cp = [...pool];
     for(let i=0;i<3 && cp.length;i++){
@@ -304,7 +304,7 @@ function rogueUseSkill(idx) {
   const s = ROGUE.state; const p = s.player;
   if (!s.current || s.current.kind !== 'battle' || s.phase === 'dead') return;
   const sk = p.skills[idx]; if (!sk) return;
-  if (p.soulPower < sk.cost) { alert('魂力不足'); return; }
+  if (p.soulPower < sk.cost) { alert('魔力不足'); return; }
   p.soulPower -= sk.cost;
   const m = s.current;
   const dmg = Math.max(1, Math.round((sk.dmg + rogueRoll(-3, 5)) * rogueElementMult(p.element, m.element)));
@@ -315,9 +315,9 @@ function rogueUseSkill(idx) {
 }
 function rogueUsePotion() {
   const s = ROGUE.state; const p = s.player;
-  if (p.potions <= 0) { alert('没有药水了'); return; }
+  if (p.potions <= 0) { alert('没有药剂了'); return; }
   p.potions--; p.hp = Math.min(p.maxHp, p.hp + 40);
-  s.log.unshift('你喝下药水，恢复 40 点生命。');
+  s.log.unshift('你喝下治疗药剂，恢复 40 点生命。');
   rogueEnemyTurn();
 }
 function rogueFlee() {
@@ -345,7 +345,7 @@ function rogueVictory() {
   s.loot.gold += g;
   s.loot.materials.push(m.material);
   if(m.name && ROGUE.codex[m.name]){ ROGUE.codex[m.name].kills++; rogueSaveCodex(); }
-  s.log.unshift(`击败【${m.name}】！获得 ${g} 金币 和 ${m.material} ×1。`);
+  s.log.unshift(`击败【${m.name}】！获得 ${g} 魔晶 和 ${m.material} ×1。`);
   s.phase = 'reward'; s.current = null;
   rogueRender();
 }
@@ -359,7 +359,7 @@ function rogueDeath() {
 function rogueOpenTreasure() {
   const s = ROGUE.state;
   s.loot.gold += s.current.gold;
-  s.log.unshift(`打开宝箱，获得 ${s.current.gold} 金币。`);
+  s.log.unshift(`打开宝箱，获得 ${s.current.gold} 魔晶。`);
   s.phase = 'reward'; s.current = null; rogueRender();
 }
 function rogueDrinkSpring() {
@@ -372,25 +372,25 @@ function rogueUseShrine() {
   const s = ROGUE.state; const c = s.current; const p = s.player;
   if (c.type === 'atk') { p.atk += c.value; s.log.unshift(`你触摸${c.name}，攻击力 +${c.value}。`); }
   if (c.type === 'maxHp') { p.maxHp += c.value; p.hp += c.value; s.log.unshift(`你触摸${c.name}，最大生命 +${c.value}。`); }
-  if (c.type === 'potion') { p.potions += c.value; s.log.unshift(`你获得 ${c.value} 瓶药水。`); }
+  if (c.type === 'potion') { p.potions += c.value; s.log.unshift(`你获得 ${c.value} 瓶药剂。`); }
   s.phase = 'reward'; s.current = null; rogueRender();
 }
 function rogueBuyMerchant(idx){
   const s = ROGUE.state; const c = s.current;
   if(!c || c.kind !== 'merchant') return;
   const it = c.items[idx]; if(!it) return;
-  if(s.loot.gold < it.cost) return alert('本局金币不足');
+  if(s.loot.gold < it.cost) return alert('本局魔晶不足');
   s.loot.gold -= it.cost;
   const p = s.player;
-  if(it.kind === 'potion'){ p.potions += 1; s.log.unshift('购买药水 ×1。'); }
-  else if(it.kind === 'soul'){ p.soulPower += it.value; s.log.unshift(`购买魂力药剂，魂力 +${it.value}。`); }
-  else if(it.kind === 'atk'){ p.atk += it.value; s.log.unshift(`购买磨刀石，攻击 +${it.value}。`); }
-  else if(it.kind === 'maxHp'){ p.maxHp += it.value; p.hp += it.value; s.log.unshift(`购买护心甲，最大生命 +${it.value}。`); }
+  if(it.kind === 'potion'){ p.potions += 1; s.log.unshift('购买治疗药剂 ×1。'); }
+  else if(it.kind === 'soul'){ p.soulPower += it.value; s.log.unshift(`购买魔力药剂，魔力 +${it.value}。`); }
+  else if(it.kind === 'atk'){ p.atk += it.value; s.log.unshift(`购买术式强化石，攻击 +${it.value}。`); }
+  else if(it.kind === 'maxHp'){ p.maxHp += it.value; p.hp += it.value; s.log.unshift(`购买守护符，最大生命 +${it.value}。`); }
   else if(it.kind === 'skill'){
     const pool = Object.values(ROGUE_DATA.skills).flat();
     const sk = roguePick(pool);
     p.skills.push({...sk});
-    s.log.unshift(`购买魂技卷轴，学会【${sk.name}】。`);
+    s.log.unshift(`购买术式卷轴，学会【${sk.name}】。`);
   }
   c.items.splice(idx,1);
   rogueRender();
@@ -403,7 +403,7 @@ function rogueOpenCurse(){
   const s = ROGUE.state; const c = s.current;
   s.loot.gold += c.gold;
   s.player.hp = Math.max(1, s.player.hp - c.dmg);
-  s.log.unshift(`宝箱有诅咒！失去 ${c.dmg} 生命，获得 ${c.gold} 金币。`);
+  s.log.unshift(`宝箱有诅咒！失去 ${c.dmg} 生命，获得 ${c.gold} 魔晶。`);
   s.phase = 'reward'; s.current = null; rogueRender();
 }
 function rogueForkChoice(choice){
@@ -421,7 +421,7 @@ function rogueForkChoice(choice){
   } else {
     const g = rogueRoll(5 + s.depth * 2, 12 + s.depth * 3);
     s.loot.gold += g;
-    s.log.unshift(`你走右侧平坦小路，捡到 ${g} 金币。`);
+    s.log.unshift(`你走右侧平坦小路，捡到 ${g} 魔晶。`);
     s.phase = 'reward';
   }
   rogueRender();
@@ -429,7 +429,7 @@ function rogueForkChoice(choice){
 function rogueEnterNest(){
   const s = ROGUE.state;
   s.nestRemaining = s.current.remaining;
-  s.log.unshift(`你踏入魂兽巢穴，共 ${s.nestRemaining} 波魂兽来袭！`);
+  s.log.unshift(`你踏入魔物巢穴，共 ${s.nestRemaining} 波魔物来袭！`);
   s.phase = 'battle';
   s.current = rogueCreateEvent('battle');
   s.current.isNest = true;
@@ -444,7 +444,7 @@ function rogueSkipNest(){
   const s = ROGUE.state;
   const g = rogueRoll(10 + s.depth * 3, 20 + s.depth * 5);
   s.loot.gold += g;
-  s.log.unshift(`你绕开巢穴，获得 ${g} 金币。`);
+  s.log.unshift(`你绕开巢穴，获得 ${g} 魔晶。`);
   s.phase = 'reward'; s.current = null; rogueRender();
 }
 
@@ -475,12 +475,12 @@ function rogueRender() {
   let body = '';
   if (s.phase === 'dead') {
     body = `<div class="rogue-dead"><h3>☠ 你倒下了</h3>
-      <p>本局收获（${s.loot.gold} 金币、${s.loot.materials.length} 件材料）全部丢失。</p>
+      <p>本局收获（${s.loot.gold} 魔晶、${s.loot.materials.length} 件材料）全部丢失。</p>
       <button class="rogue-btn-primary" onclick="rogueShowLobby()">回到大厅</button></div>`;
   } else if (s.phase === 'retreat-success') {
     body = `<div class="rogue-win"><h3>🏆 满载而归</h3>
       <p>最深抵达第 ${s.maxDepth} 层。</p>
-      <p>带回金币：<b>${s.loot.gold}</b>；材料：${s.loot.materials.length ? s.loot.materials.join('、') : '无'}</p>
+      <p>带回魔晶：<b>${s.loot.gold}</b>；材料：${s.loot.materials.length ? s.loot.materials.join('、') : '无'}</p>
       <button class="rogue-btn-primary" onclick="rogueShowLobby()">回到大厅</button></div>`;
   } else if (s.phase === 'battle' && s.current) {
     const m = s.current;
@@ -494,8 +494,8 @@ function rogueRender() {
       <div class="rogue-log">${s.log.slice(0, 4).map(l => `<div class="rogue-log-line">${escapeHtml(l)}</div>`).join('')}</div>
       <div class="rogue-actions">
         <button class="rogue-btn" onclick="rogueAttack()">普通攻击</button>
-        ${p.skills.map((sk, i) => `<button class="rogue-btn rogue-btn-skill" onclick="rogueUseSkill(${i})">${escapeHtml(sk.name)}<small>${sk.cost}魂力</small></button>`).join('')}
-        <button class="rogue-btn rogue-btn-potion" onclick="rogueUsePotion()">药水 ×${p.potions}</button>
+        ${p.skills.map((sk, i) => `<button class="rogue-btn rogue-btn-skill" onclick="rogueUseSkill(${i})">${escapeHtml(sk.name)}<small>${sk.cost}魔力</small></button>`).join('')}
+        <button class="rogue-btn rogue-btn-potion" onclick="rogueUsePotion()">药剂 ×${p.potions}</button>
         <button class="rogue-btn rogue-btn-flee" onclick="rogueFlee()">逃跑</button>
       </div></div>`;
   } else if (s.phase === 'treasure') {
@@ -506,24 +506,24 @@ function rogueRender() {
     body = `<div class="rogue-event"><h3>⛩ ${s.current.name}</h3><p>一座古老神龛，散发着温和的力量。</p><button class="rogue-btn-primary" onclick="rogueUseShrine()">祈祷</button></div>`;
   } else if (s.phase === 'merchant') {
     const items = s.current.items.map((it, i) =>
-      `<button class="rogue-btn merchant-btn" onclick="rogueBuyMerchant(${i})">${escapeHtml(it.name)}<small>${it.desc} · ${it.cost}金</small></button>`
+      `<button class="rogue-btn merchant-btn" onclick="rogueBuyMerchant(${i})">${escapeHtml(it.name)}<small>${it.desc} · ${it.cost}晶</small></button>`
     ).join('');
     body = `<div class="rogue-event"><h3>🧳 神秘商人</h3><p>他递给你一张货单：「看看有什么中意的。」</p>
       <div class="rogue-actions">${items}</div>
       <button class="rogue-btn-ghost" onclick="rogueLeaveMerchant()">离开</button></div>`;
   } else if (s.phase === 'curseBox') {
     body = `<div class="rogue-event"><h3>🩸 诅咒宝箱</h3><p>宝箱表面刻着扭曲的符文，似乎以生命为代价。</p>
-      <p style="color:#f87171;font-size:13px;">代价：${s.current.dmg} 生命 · 奖励：${s.current.gold} 金币</p>
+      <p style="color:#f87171;font-size:13px;">代价：${s.current.dmg} 生命 · 奖励：${s.current.gold} 魔晶</p>
       <button class="rogue-btn-primary" onclick="rogueOpenCurse()">打开（承伤）</button>
       <button class="rogue-btn-ghost" onclick="rogueLeaveMerchant()">绕开</button></div>`;
   } else if (s.phase === 'fork') {
     body = `<div class="rogue-event"><h3>🌫 迷雾岔路</h3><p>前方两条路被浓雾笼罩，看不清尽头。</p>
       <div class="rogue-actions">
         <button class="rogue-btn" onclick="rogueForkChoice('left')">走左侧（危险·奖励×2）</button>
-        <button class="rogue-btn" onclick="rogueForkChoice('right')">走右侧（安全·少量金币）</button>
+        <button class="rogue-btn" onclick="rogueForkChoice('right')">走右侧（安全·少量魔晶）</button>
       </div></div>`;
   } else if (s.phase === 'nest') {
-    body = `<div class="rogue-event"><h3>🕳 魂兽巢穴</h3><p>洞穴深处传来低沉的兽吼，${s.current.remaining} 波魂兽盘踞其间。</p>
+    body = `<div class="rogue-event"><h3>🕳 魔物巢穴</h3><p>洞穴深处传来低沉的兽吼，${s.current.remaining} 波魔物盘踞其间。</p>
       <div class="rogue-actions">
         <button class="rogue-btn-primary" onclick="rogueEnterNest()">闯入（奖励×2）</button>
         <button class="rogue-btn-ghost" onclick="rogueSkipNest()">绕行</button>
@@ -541,17 +541,21 @@ function rogueRender() {
       : `<button class="rogue-btn-primary" onclick="rogueAdvance()">继续深入第 ${s.depth + 1} 层</button>`;
     const retreatBtn = s.nestRemaining > 0 ? '' : `<button class="rogue-btn-ghost" onclick="rogueRetreat()">撤退，保留收获</button>`;
     body = `<div class="rogue-event"><h3>✓ 收获</h3>
-      <p>${nestAdvance} · 金币 ${s.loot.gold} · 材料 ${s.loot.materials.length} 件</p>
+      <p>${nestAdvance} · 魔晶 ${s.loot.gold} · 材料 ${s.loot.materials.length} 件</p>
       <div class="rogue-actions">${advanceBtn}${retreatBtn}</div></div>`;
   }
   el.innerHTML = `
     <div class="rogue-header"><div class="rogue-title">第 ${s.depth} 层</div>
-      <button class="rogue-btn-ghost rogue-exit-btn" onclick="rogueExit()">×</button></div>
+      <div style="display:flex;gap:6px;">
+        <button class="rogue-btn-ghost rogue-exit-btn" onclick="openSettings()">⚙</button>
+        <button class="rogue-btn-ghost rogue-exit-btn" onclick="rogueExit()">×</button>
+      </div>
+    </div>
     <div class="rogue-status">
       <div class="rogue-bar rogue-bar-hp"><div class="rogue-bar-fill rogue-hp-player" style="width:${hpPct}%"></div>
         <span class="rogue-bar-text">❤ ${p.hp} / ${p.maxHp}</span></div>
       <div class="rogue-stats">
-        <span>⚔ 攻击 ${p.atk}</span><span>⚡ 魂力 ${p.soulPower}</span>
+        <span>⚔ 攻击 ${p.atk}</span><span>⚡ 魔力 ${p.soulPower}</span>
         <span>💰 ${s.loot.gold}</span><span>🧪 ${p.potions}</span>
       </div>
     </div>
