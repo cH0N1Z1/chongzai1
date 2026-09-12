@@ -1023,6 +1023,10 @@ const fullReply=await callDeepSeekStream(messages,(delta,full)=>{
 tw.done = true;
 if(tw.timer){ clearTimeout(tw.timer); tw.timer = null; }
 tw.shown = tw.pending.length;
+if(!tw.pending && fullReply){
+  tw.pending = stripStatus(fullReply) || '（AI 未返回叙事，请继续）';
+  tw.shown = tw.pending.length;
+}
 aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending)) || '...';
 aiMsgDiv.classList.remove('streaming');
 chatBox.removeEventListener('scroll', onStreamScroll);

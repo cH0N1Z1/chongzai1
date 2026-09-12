@@ -140,7 +140,7 @@ function triggerLorebook(playerInput, recentHistory, maxEntries){
 // ============================================================
 //  设置
 // ============================================================
-const SETTINGS={useIcons:true,useRingsVisual:true,useSceneBg:true,chatTheme:'default',minimalMode:false,soundOn:true,soundVolume:0.2,narrativeStyle:'standard',npcProactive:true,fontScale:1,aiModel:'deepseek-v4-flash'};
+const SETTINGS={useIcons:true,useRingsVisual:true,useSceneBg:true,chatTheme:'default',minimalMode:false,soundOn:true,soundVolume:0.2,narrativeStyle:'standard',npcProactive:true,fontScale:1,aiModel:'deepseek-v4-flash',peakAutoDowngrade:true};
 
 // 模型定价表（元/百万 token），来源：DeepSeek API 官方文档
 const MODEL_PRICING={
@@ -155,6 +155,27 @@ const MODEL_PRICING={
     out: 13.5
   }
 };
+
+// 高峰时段判断（本地时间）
+// DeepSeek 高峰期：工作日 9:00-12:00 和 14:00-18:00；周末全天按空闲价
+function isPeakHour(){
+  const now = new Date();
+  const day = now.getDay();
+  if(day === 0 || day === 6) return false;
+  const h = now.getHours();
+  if(h >= 9 && h < 12) return true;
+  if(h >= 14 && h < 18) return true;
+  return false;
+}
+
+// 高峰期把 Pro 自动降级为 Flash，避免卡顿+省钱
+function getEffectiveModel(requestedModel){
+  const req = requestedModel || SETTINGS.aiModel || 'deepseek-v4-flash';
+  if(SETTINGS.peakAutoDowngrade !== false && isPeakHour() && req === 'deepseek-v4-pro'){
+    return 'deepseek-v4-flash';
+  }
+  return req;
+}
 
 const TOKEN_STATS={input:0,output:0,session:0};
 function loadLifetimeTokens(){
@@ -194,6 +215,8 @@ if(styleSel)styleSel.value=SETTINGS.narrativeStyle||'standard';
 if(npcSwitch)npcSwitch.checked=SETTINGS.npcProactive!==false;
 if(fontRange)fontRange.value=Math.round((SETTINGS.fontScale||1)*100);
 if(modelSel)modelSel.value=SETTINGS.aiModel||'deepseek-v4-flash';
+const peakSwitch=document.getElementById('setPeakDowngrade');
+if(peakSwitch)peakSwitch.checked=SETTINGS.peakAutoDowngrade!==false;
 if(typeof soundSetEnabled==='function') soundSetEnabled(SETTINGS.soundOn!==false);
 if(typeof soundSetVolume==='function') soundSetVolume(SETTINGS.soundVolume||0.2);
 applyFontScale();
@@ -211,6 +234,10 @@ function toggleNpcProactive(on){
 }
 function toggleAiModel(v){
   SETTINGS.aiModel = (v==='deepseek-v4-pro') ? 'deepseek-v4-pro' : 'deepseek-v4-flash';
+  saveSettings();
+}
+function togglePeakDowngrade(on){
+  SETTINGS.peakAutoDowngrade = !!on;
   saveSettings();
 }
 function toggleFontScale(v){
@@ -305,10 +332,10 @@ async function callDeepSeekStream(messages,onChunk,opts){
 const apiKey=document.getElementById('apiKey').value.trim();
 if(!apiKey)throw new Error("请填入 DeepSeek API Key");
 
-const model = (opts && opts.model) || SETTINGS.aiModel || 'deepseek-v4-flash';
+const model = getEffectiveModel((opts && opts.model) || SETTINGS.aiModel);
 const useJson = !!(opts && opts.jsonMode);
 const temperature = useJson ? 0.3 : 0.8;
-const maxTokens = useJson ? 1500 : 2000;
+const maxTokens = useJson ? 2500 : 4000;
 
 const controller = new AbortController();
 const timeoutId = setTimeout(() => controller.abort(), 90000);
