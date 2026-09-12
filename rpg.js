@@ -285,14 +285,66 @@ function resetScene(){
 // ============================================================
 //  存档
 // ============================================================
+let CURRENT_SLOT = 1;
+function slotKey(s){ return 'douro2Save_' + (s||CURRENT_SLOT); }
+function loadCurrentSlot(){
+  try{
+    const s = parseInt(localStorage.getItem('douro2CurrentSlot'));
+    if(s >= 1 && s <= 3) CURRENT_SLOT = s;
+  }catch(e){}
+}
 function saveToPhone(){
-try{const apiKey=document.getElementById('apiKey').value.trim();if(apiKey)localStorage.setItem('douro2ApiKey',apiKey);
-localStorage.setItem('douro2Save',JSON.stringify({core:CORE,plot:{history:PLOT.history.slice(-20),turn:PLOT.turn,isFirst:PLOT.isFirst,summaryCounter:PLOT.summaryCounter}}));
+try{
+  const apiKey=document.getElementById('apiKey').value.trim();
+  if(apiKey)localStorage.setItem('douro2ApiKey',apiKey);
+  localStorage.setItem('douro2CurrentSlot', String(CURRENT_SLOT));
+  const hist = PLOT.history.slice(-100);
+  localStorage.setItem(slotKey(), JSON.stringify({
+    core: CORE,
+    plot: { history: hist, turn: PLOT.turn, isFirst: PLOT.isFirst, summaryCounter: PLOT.summaryCounter },
+    saveTime: Date.now()
+  }));
 }catch(e){console.error('存档失败',e)}
+}
+function switchSlot(n){
+  n = parseInt(n);
+  if(n < 1 || n > 3) n = 1;
+  if(n === CURRENT_SLOT) return;
+  if(!confirm('切换到存档 ' + n + '？未保存的进度会先保存。')) return;
+  saveToPhone();
+  CURRENT_SLOT = n;
+  localStorage.setItem('douro2CurrentSlot', String(n));
+  location.reload();
+}
+function slotInfo(n){
+  try{
+    const raw = localStorage.getItem('douro2Save_' + n);
+    if(!raw) return { empty: true, slot: n };
+    const d = JSON.parse(raw);
+    return { empty: false, slot: n, name: (d.core&&d.core.name) || '未命名', soul: (d.core&&d.core.martialSoul) || '?' };
+  }catch(e){ return { empty: true, slot: n }; }
+}
+function renderSlotSelector(){
+  const el = document.getElementById('slotSelector');
+  if(!el) return;
+  let html = '';
+  for(let i=1;i<=3;i++){
+    const info = slotInfo(i);
+    const active = (i === CURRENT_SLOT) ? ' active' : '';
+    const label = info.empty ? '空存档' : `${escapeHtml(info.name)} · ${escapeHtml(info.soul)}`;
+    html += `<div class="slot-item${active}" onclick="switchSlot(${i})"><div class="slot-num">存档 ${i}</div><div class="slot-info">${label}</div></div>`;
+  }
+  el.innerHTML = html;
 }
 function loadSave(){
 try{const savedKey=localStorage.getItem('douro2ApiKey');if(savedKey)document.getElementById('apiKey').value=savedKey;
-const raw=localStorage.getItem('douro2Save');
+const legacy = localStorage.getItem('douro2Save');
+if(legacy && !localStorage.getItem('douro2Save_1')){
+  localStorage.setItem('douro2Save_1', legacy);
+  localStorage.removeItem('douro2Save');
+}
+loadCurrentSlot();
+const raw=localStorage.getItem(slotKey());
 if(raw){const data=JSON.parse(raw);Object.assign(CORE,data.core);
 if(!CORE.gender)CORE.gender='女';
 if(!CORE.age)CORE.age=0;
@@ -318,8 +370,79 @@ delete CORE.hp;delete CORE.maxHp;delete CORE.inventory;
 Object.assign(PLOT,data.plot);return true}}catch(e){console.error('读档失败',e)}
 return false;
 }
-function resetSave(){if(confirm("清空所有本地存档？")){localStorage.removeItem('douro2Save');document.getElementById('config-inputs').classList.remove('hidden');location.reload()}}
-function goHome(){if(isGenerating){alert("正在生成，请等待完成");return}if(confirm("返回主界面？")){saveToPhone();if(typeof soundStopAmbient==='function')soundStopAmbient();gameArea.style.display='none';configPanel.style.display='block';initApp()}}
+function resetSave(){if(confirm("清空当前存档？")){localStorage.removeItem(slotKey());document.getElementById('config-inputs').classList.remove('hidden');location.reload()}}
+// ============================================================
+//  剧情回放
+// ============================================================
+function openReplay(){
+  const el = document.getElementById('replayModal');
+  if(!el) return;
+  el.innerHTML = '<div class="modal-box"><h3>剧情回放</h3>'
+    + '<input id="replaySearch" placeholder="搜索关键词..." oninput="renderReplayList(this.value)" style="width:100%;padding:8px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;margin-bottom:10px;">'
+    + '<div id="replayList" class="replay-list"></div>'
+    + '<div class="btn-row"><button class="btn-close" onclick="closeModal(\'replayModal\')">关闭</button></div></div>';
+  openModal('replayModal');
+  renderReplayList('');
+}
+function renderReplayList(keyword){
+  const list = document.getElementById('replayList');
+  if(!list) return;
+  const kw = String(keyword||'').trim();
+  const items = PLOT.history.filter(m => m.role === 'assistant').map((m, i) => {
+    const t = stripStatus(m.content);
+    return { idx: i, text: t };
+  }).filter(x => !kw || x.text.includes(kw));
+  if(items.length === 0){ list.innerHTML = '<div style="text-align:center;color:#8b949e;padding:20px;">无匹配记录</div>'; return; }
+  list.innerHTML = items.slice(-50).reverse().map(x =>
+    '<div class="replay-item" onclick="scrollToReply(' + x.idx + ')">' + escapeHtml(x.text.slice(0,80)) + (x.text.length>80?'…':'') + '</div>'
+  ).join('');
+}
+function scrollToReply(idx){
+  const allMsg = chatBox.querySelectorAll('.msg-ai');
+  if(allMsg[idx]){ allMsg[idx].scrollIntoView({behavior:'smooth', block:'center'}); allMsg[idx].style.background='rgba(88,166,255,0.15)'; setTimeout(function(){ allMsg[idx].style.background=''; },1500); }
+  closeModal('replayModal');
+}
+
+// ============================================================
+//  导出 / 导入存档
+// ============================================================
+function openExport(){
+  const raw = localStorage.getItem(slotKey()) || '{}';
+  const code = btoa(unescape(encodeURIComponent(raw)));
+  const el = document.getElementById('exportModal');
+  el.innerHTML = '<div class="modal-box"><h3>导出存档 ' + CURRENT_SLOT + '</h3>'
+    + '<p style="font-size:12px;color:#8b949e;margin-bottom:8px;">复制下面全部文字，即可在别的设备导入。</p>'
+    + '<textarea readonly style="width:100%;height:180px;padding:10px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;font-size:12px;font-family:monospace;line-height:1.5;">' + code + '</textarea>'
+    + '<div class="btn-row"><button class="btn-close" onclick="closeModal(\'exportModal\')">关闭</button>'
+    + '<button class="btn-save" onclick="copyExport()">复制</button></div></div>';
+  openModal('exportModal');
+}
+function copyExport(){
+  const ta = document.querySelector('#exportModal textarea');
+  if(ta){ ta.select(); document.execCommand('copy'); alert('已复制到剪贴板'); }
+}
+function openImport(){
+  const el = document.getElementById('importModal');
+  el.innerHTML = '<div class="modal-box"><h3>导入存档到槽 ' + CURRENT_SLOT + '</h3>'
+    + '<p style="font-size:12px;color:#8b949e;margin-bottom:8px;">把之前导出的文字粘贴到下面，会覆盖当前槽。</p>'
+    + '<textarea id="importText" placeholder="粘贴存档字符串..." style="width:100%;height:180px;padding:10px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;font-size:12px;font-family:monospace;line-height:1.5;"></textarea>'
+    + '<div class="btn-row"><button class="btn-close" onclick="closeModal(\'importModal\')">取消</button>'
+    + '<button class="btn-save" onclick="doImport()">导入</button></div></div>';
+  openModal('importModal');
+}
+function doImport(){
+  const t = document.getElementById('importText').value.trim();
+  if(!t) return alert('请先粘贴内容');
+  try{
+    const raw = decodeURIComponent(escape(atob(t)));
+    JSON.parse(raw);
+    localStorage.setItem(slotKey(), raw);
+    alert('导入成功，即将刷新');
+    location.reload();
+  }catch(e){ alert('导入失败：' + e.message); }
+}
+
+function goHome(){if(isGenerating){alert("正在生成，请等待完成");return}if(confirm("返回主界面？")){saveToPhone();if(typeof soundStopAmbient==='function')soundStopAmbient();if(typeof soundStopBgm==='function')soundStopBgm();gameArea.style.display='none';configPanel.style.display='block';initApp()}}
 function selectMode(mode){if(mode!=='rpg'){alert('模拟器模式尚未开放，敬请期待');return}document.getElementById('mode-select').classList.add('hidden');document.getElementById('config-panel').classList.remove('hidden');initApp().catch(e=>console.error(e))}
 
 // ============================================================
@@ -332,7 +455,7 @@ loadDefaultMedia();
 let hasSave=loadSave();
 
 if(hasSave && (!CORE.name || CORE.martialSoul === '未觉醒')){
-    localStorage.removeItem('douro2Save');
+    localStorage.removeItem(slotKey());
     hasSave = false;
     const _keepAvatar2 = CORE.avatar || '';
 Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''});
@@ -340,6 +463,7 @@ Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:0,roleDesc:'',
 }
 
 updateAvatarPreview();
+renderSlotSelector();
 
 if(hasSave){
     document.getElementById('continueBtn').classList.remove('hidden');
@@ -401,6 +525,7 @@ function addRing(name, desc){
   }
   CORE.rings.push({name, count:1, desc});
   chatBox.innerHTML += `<div class="msg-ring">获得魂环：${escapeHtml(name)}</div>`;
+  if(typeof soundRing==='function') soundRing(name);
 }
 
 function addTrait(name, type, desc){
@@ -1017,7 +1142,7 @@ let displayContent="";
 try{
 const fullReply=await callDeepSeekStream(messages,(delta,full)=>{
   displayContent = stripStatus(full);
-  if(!displayContent && full) displayContent = full; // 防卡死兜底
+  if(!displayContent && full) displayContent = full;
   twPush(displayContent);
 }, opts);
 tw.done = true;
@@ -1440,7 +1565,6 @@ ${customSoul?'指定武魂：'+customSoul:'请为角色设计一个独特武魂�
 
 isGenerating=true;sendBtn.disabled=true;userInput.disabled=true;
 try{
-// 高峰期先用 Flash 跑，避免卡死；后续想换回 Pro 把 deepseek-v4-flash 改成 deepseek-v4-pro 即可
 const reply=await streamAndProcess([{role:"user",content:systemPrompt}], {model:'deepseek-v4-flash'});
 applyScene(stripStatus(reply));
 
@@ -1503,10 +1627,10 @@ if(!roleName){
     return;
 }
 
-const hasValidSave = localStorage.getItem('douro2Save') && CORE.name && CORE.martialSoul !== '未觉醒';
+const hasValidSave = localStorage.getItem(slotKey()) && CORE.name && CORE.martialSoul !== '未觉醒';
 if(hasValidSave && !confirm("已有存档，开始新游戏会覆盖。确定？")) return;
 
-localStorage.removeItem('douro2Save');
+localStorage.removeItem(slotKey());
 const _keepAvatar = CORE.avatar || '';
 Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''});
 Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});

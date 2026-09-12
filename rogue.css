@@ -242,3 +242,55 @@ body.theme-cute .rogue-btn-primary:hover { background: #ffb6c1; }
 body.theme-cute .rogue-btn-ghost { border-color: #ff8da1; color: #ffb6c1; }
 body.theme-cute .rogue-btn-ghost:hover { border-color: #ffb6c1; color: #ffb6c1; }
 body.theme-cute .rogue-log { background: #1a0f1a; }
+/* ============================================================
+   模块 53：魂兽图鉴
+   ============================================================ */
+.codex-list{max-height:60vh;overflow-y:auto;margin:10px 0;display:flex;flex-direction:column;gap:6px;}
+.codex-item{background:#0d1117;border:1px solid #1f2937;border-radius:8px;padding:10px 12px;text-align:left;}
+.codex-item.known{border-color:#238636;background:rgba(35,134,54,0.06);}
+.codex-item.elite.known{border-color:#d4af37;background:rgba(212,175,55,0.06);}
+.codex-name{font-weight:600;color:#f0f6fc;font-size:14px;}
+.codex-info{font-size:12px;color:#8b949e;margin-top:3px;}
+.codex-count{font-size:11px;color:#58a6ff;margin-top:3px;}
+
+/* ============================================================
+   模块 54：永久升级
+   ============================================================ */
+.upgrade-list{margin:10px 0;display:flex;flex-direction:column;gap:8px;}
+.upgrade-item{background:#0d1117;border:1px solid #1f2937;border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;}
+.upgrade-name{font-weight:600;color:#f0f6fc;font-size:14px;}
+.upgrade-lv{color:#4ade80;font-size:12px;}
+.upgrade-desc{font-size:12px;color:#8b949e;margin-top:2px;}
+.upgrade-btn{background:#238636;color:#fff;border:none;padding:8px 14px;border-radius:20px;font-weight:600;font-size:13px;cursor:pointer;}
+.upgrade-btn.disabled{background:#444c56;cursor:not-allowed;}
+
+/* ============================================================
+   模块 55：商人按钮
+   ============================================================ */
+.merchant-btn{border-color:#d4af37 !important;background:#2a1a3a !important;}
+.merchant-btn:hover{background:#d4af37 !important;color:#1a1300 !important;}
+
+/* 样式2可爱主题适配 */
+body.theme-cute .codex-item{background:#1a0f1a;border-color:#3d1e3d;}
+body.theme-cute .codex-item.known{background:rgba(255,141,161,0.1);border-color:#ff8da1;}
+body.theme-cute .codex-name{color:#ffb6c1;}
+body.theme-cute .codex-info{color:#b08a9e;}
+body.theme-cute .upgrade-item{background:#1a0f1a;border-color:#3d1e3d;}
+body.theme-cute .upgrade-name{color:#ffb6c1;}
+body.theme-cute .upgrade-lv{color:#ff8da1;}
+body.theme-cute .upgrade-btn{background:#ff8da1;color:#1a0f1a;}
+body.theme-cute .upgrade-btn.disabled{background:#3d1e3d;color:#8b6b7e;}
+
+/* 样式3水色主题适配 */
+body.theme-water .codex-item{background:#f4fbff;border-color:#b3dcef;}
+body.theme-water .codex-item.known{background:rgba(126,200,227,0.15);border-color:#3b7fbf;}
+body.theme-water .codex-name{color:#2c4a5c;}
+body.theme-water .codex-info{color:#5a8fa8;}
+body.theme-water .codex-count{color:#3b7fbf;}
+body.theme-water .upgrade-item{background:#f4fbff;border-color:#b3dcef;}
+body.theme-water .upgrade-name{color:#2c4a5c;}
+body.theme-water .upgrade-lv{color:#3b7fbf;}
+body.theme-water .upgrade-btn{background:linear-gradient(135deg,#7ec8e3,#a8d8ee);color:#fff;}
+body.theme-water .upgrade-btn.disabled{background:#d4ecf7;color:#8fa9b8;}
+body.theme-water .merchant-btn{border-color:#7ec8e3 !important;background:#eaf6fc !important;color:#3b7fbf !important;}
+body.theme-water .merchant-btn:hover{background:#7ec8e3 !important;color:#fff !important;}

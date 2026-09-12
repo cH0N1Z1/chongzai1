@@ -220,7 +220,8 @@ body:not(.theme-cute):not(.theme-water) .setting-row .ctrl-btn:hover{background:
 /* ============================================================
    14. 状态反馈动效
    ============================================================ */
-@keyframes msgSlideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes msgSlideIn{from{opacity:0;transform:translateY(-10px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.msg-row{animation:msgSlideIn 0.32s cubic-bezier(.34,1.2,.64,1) both}
 .msg-ring,.msg-skill,.msg-trait,.msg-npc,.msg-power{animation:msgSlideIn 0.35s ease-out}
 @keyframes gainFlash{0%{box-shadow:0 0 0 0 rgba(74,222,128,0.8)}50%{box-shadow:0 0 16px 4px rgba(74,222,128,0.5)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
 .msg-gain{animation:msgSlideIn 0.35s ease-out,gainFlash 0.7s ease}
@@ -455,7 +456,12 @@ body.theme-water .msg-chapter{color:#3b7fbf;border-color:rgba(126,200,227,0.4);b
 body.theme-water #config-panel label{color:#5a8fa8}
 body.theme-water #config-panel h2{color:#3b7fbf}
 body.theme-water .radio-group label{color:#3b5c70}
-body.theme-water .hint{color:#8fa9b8}
+body.theme-water .hint{color:#5a8fa8}
+body.theme-water .setting-desc{color:#5a8fa8}
+body.theme-water .msg-sys{color:#5a8fa8}
+body.theme-water .msg-time{color:#5a8fa8}
+body.theme-water .scene-banner{color:#3b5c70}
+body.theme-water #config-panel .hint{color:#5a8fa8}
 body.theme-water .save-info{background:#f4fbff;border-color:#d9edf7;color:#5a8fa8}
 
 body.theme-water select{-webkit-appearance:none !important;-moz-appearance:none !important;appearance:none !important;background-color:#ffffff !important;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' fill='none' stroke='%233b7fbf' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;background-repeat:no-repeat !important;background-position:right 10px center !important;background-size:12px !important;color:#2c4a5c !important;border:1.5px solid #b3dcef !important;border-radius:12px !important;padding:8px 30px 8px 12px !important;font-size:14px !important;font-weight:600 !important}
@@ -562,3 +568,39 @@ body.theme-cute:not(.minimal-mode) #chat-box::after {
   content: none !important;
   display: none !important;
 }
+/* ============================================================
+   模块 51：多存档槽选择器
+   ============================================================ */
+.slot-selector{display:flex;gap:6px;margin-bottom:10px;}
+.slot-item{flex:1;background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:8px 10px;cursor:pointer;transition:all .2s;overflow:hidden;min-width:0;}
+.slot-item:hover{border-color:#58a6ff;}
+.slot-item.active{border-color:#238636;background:rgba(35,134,54,0.1);}
+.slot-num{font-size:11px;color:#8b949e;margin-bottom:2px;}
+.slot-info{font-size:12px;color:#f0f6fc;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.slot-item.active .slot-num{color:#4ade80;}
+
+/* ============================================================
+   模块 52：剧情回放
+   ============================================================ */
+.replay-list{max-height:340px;overflow-y:auto;margin:6px 0;}
+.replay-item{background:#0d1117;border:1px solid #1f2937;border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:13px;color:#c9d1d9;cursor:pointer;transition:all .15s;line-height:1.5;}
+.replay-item:hover{border-color:#58a6ff;background:#161b22;}
+
+/* 样式2可爱主题适配 */
+body.theme-cute .slot-item{background:#1a0f1a;border-color:#ff8da1;}
+body.theme-cute .slot-item.active{background:rgba(255,141,161,0.15);border-color:#ff8da1;}
+body.theme-cute .slot-info{color:#ffb6c1;}
+body.theme-cute .slot-num{color:#b08a9e;}
+body.theme-cute .slot-item.active .slot-num{color:#ff8da1;}
+body.theme-cute .replay-item{background:#1a0f1a;border-color:#ff8da1;color:#ffb6c1;}
+body.theme-cute .replay-item:hover{background:#3d1e3d;}
+
+/* 样式3水色主题适配 */
+body.theme-water .slot-item{background:#f4fbff;border-color:#b3dcef;}
+body.theme-water .slot-item:hover{border-color:#7ec8e3;}
+body.theme-water .slot-item.active{background:rgba(126,200,227,0.18);border-color:#3b7fbf;}
+body.theme-water .slot-info{color:#2c4a5c;}
+body.theme-water .slot-num{color:#5a8fa8;}
+body.theme-water .slot-item.active .slot-num{color:#3b7fbf;}
+body.theme-water .replay-item{background:#f4fbff;border-color:#b3dcef;color:#2c4a5c;}
+body.theme-water .replay-item:hover{background:#eaf6fc;border-color:#7ec8e3;}

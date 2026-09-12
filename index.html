@@ -28,6 +28,7 @@
 
 <div id="config-panel" class="hidden">
 <h2 style="margin:0 0 16px;text-align:center;font-size:22px;letter-spacing:1px;">豆虫模拟器</h2>
+<div id="slotSelector" class="slot-selector"></div>
 <div id="saveInfoBox" class="save-info hidden"></div>
 <label>头像（可选）</label>
 <div style="display:flex;align-items:center;gap:10px;margin:0 0 10px;">
@@ -118,6 +119,9 @@
 <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
 <button class="ctrl-btn" style="color:#e5e7eb;padding:14px;font-size:15px;background:#1f2937;border:1px solid #374151;border-radius:10px;text-align:left;" onclick="closeModal('moreModal');openProfileEditor()">编辑角色档案</button>
 <button class="ctrl-btn" style="color:#e5e7eb;padding:14px;font-size:15px;background:#1f2937;border:1px solid #374151;border-radius:10px;text-align:left;" onclick="closeModal('moreModal');openSummaryEditor()">剧情摘要</button>
+<button class="ctrl-btn" style="color:#e5e7eb;padding:14px;font-size:15px;background:#1f2937;border:1px solid #374151;border-radius:10px;text-align:left;" onclick="closeModal('moreModal');openReplay()">剧情回放</button>
+<button class="ctrl-btn" style="color:#e5e7eb;padding:14px;font-size:15px;background:#1f2937;border:1px solid #374151;border-radius:10px;text-align:left;" onclick="closeModal('moreModal');openExport()">导出存档</button>
+<button class="ctrl-btn" style="color:#e5e7eb;padding:14px;font-size:15px;background:#1f2937;border:1px solid #374151;border-radius:10px;text-align:left;" onclick="closeModal('moreModal');openImport()">导入存档</button>
 <button class="ctrl-btn" style="color:#e5e7eb;padding:14px;font-size:15px;background:#1f2937;border:1px solid #374151;border-radius:10px;text-align:left;" onclick="closeModal('moreModal');openSettings()">显示设置</button>
 <button class="ctrl-btn" style="color:#e5e7eb;padding:14px;font-size:15px;background:#1f2937;border:1px solid #374151;border-radius:10px;text-align:left;" onclick="closeModal('moreModal');goHome()">返回主界面</button>
 <button class="ctrl-btn" style="color:#fff;padding:14px;font-size:15px;background:#dc2626;border:1px solid #b91c1c;border-radius:10px;text-align:left;" onclick="closeModal('moreModal');resetSave()">重置存档</button>
@@ -164,6 +168,10 @@
 <option value="deepseek-v4-flash">V4 Flash</option>
 <option value="deepseek-v4-pro">V4 Pro</option>
 </select>
+</div>
+<div class="setting-row">
+<div class="setting-label"><div class="setting-title">高峰期自动降级</div><div class="setting-desc">工作日 9-12 点 / 14-18 点，Pro 自动切 Flash 防卡顿</div></div>
+<label class="switch"><input type="checkbox" id="setPeakDowngrade" onchange="togglePeakDowngrade(this.checked)"><span class="slider"></span></label>
 </div>
 <div class="setting-row">
 <div class="setting-label"><div class="setting-title">NPC 主动性</div><div class="setting-desc">NPC 主动发起事件和对话</div></div>
@@ -240,6 +248,10 @@
 </div>
 </div>
 </div>
+<!-- 剧情回放 / 导出 / 导入 弹窗 -->
+<div class="modal-overlay" id="replayModal"></div>
+<div class="modal-overlay" id="exportModal"></div>
+<div class="modal-overlay" id="importModal"></div>
 <!-- 肉鸽模式容器 -->
 <div id="rogue-area" class="hidden"><div id="rogue-content"></div></div>
 

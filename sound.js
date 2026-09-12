@@ -11,6 +11,8 @@ const SOUND = {
   ambientNode: null,
   ambientGain: null,
   _lastTypeTime: 0,
+  _lastAmbient: null,
+  bgm: { timer: null, current: null, noteIdx: 0 },
 };
 
 // 首次用户交互时初始化（浏览器要求）
@@ -31,7 +33,7 @@ function soundEnsure(){
 function soundSetEnabled(on){
   SOUND.enabled = on;
   if(SOUND.master) SOUND.master.gain.value = on ? SOUND.volume : 0;
-  if(!on) soundStopAmbient();
+  if(!on){ soundStopAmbient(); soundStopBgm(); }
 }
 
 function soundSetVolume(v){
@@ -129,8 +131,86 @@ function soundClick(){
   soundDing(1200, 0.08);
 }
 
-// ---- 环境音（循环） ----
+// ============================================================
+//  🎵 BGM 场景音乐（新增）
+// ============================================================
+// 通用单音播放
+function soundPlayNote(freq, dur, type, gain){
+  if(!SOUND.enabled || !SOUND.ctx) return;
+  const ctx = SOUND.ctx;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(0, ctx.currentTime);
+  g.gain.linearRampToValueAtTime(gain || 0.05, ctx.currentTime + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+  osc.connect(g).connect(SOUND.master);
+  osc.start();
+  osc.stop(ctx.currentTime + dur + 0.05);
+}
 
+// 8 种场景的循环旋律
+const BGM_PATTERNS = {
+  city:     { bpm: 92, type:'triangle', gain:0.045, notes:[262,330,392,523,392,330,294,330] },
+  academy:  { bpm: 88, type:'triangle', gain:0.045, notes:[349,440,523,587,523,440,392,440] },
+  forest:   { bpm: 68, type:'sine',     gain:0.04,  notes:[330,440,550,660,550,440] },
+  night:    { bpm: 58, type:'sine',     gain:0.04,  notes:[220,262,330,392,330,262] },
+  battle:   { bpm: 118,type:'sawtooth', gain:0.035, notes:[110,165,220,165,110,147,196,147] },
+  water:    { bpm: 74, type:'sine',     gain:0.04,  notes:[294,370,440,587,494,440] },
+  cave:     { bpm: 62, type:'sine',     gain:0.04,  notes:[196,233,262,233] },
+  palace:   { bpm: 78, type:'triangle', gain:0.04,  notes:[392,466,587,523,466,392] },
+};
+
+function soundBgm(sceneType){
+  if(!SOUND.enabled || !SOUND.ctx) return;
+  if(SOUND.bgm.current === sceneType) return;
+  soundStopBgm();
+  const p = BGM_PATTERNS[sceneType];
+  if(!p) return;
+  SOUND.bgm.current = sceneType;
+  SOUND.bgm.noteIdx = 0;
+  const interval = 60000 / p.bpm;
+  function tick(){
+    if(!SOUND.enabled || !SOUND.ctx) return;
+    if(SOUND.bgm.current !== sceneType) return;
+    const note = p.notes[SOUND.bgm.noteIdx % p.notes.length];
+    soundPlayNote(note, 0.5, p.type, p.gain);
+    SOUND.bgm.noteIdx++;
+    SOUND.bgm.timer = setTimeout(tick, interval);
+  }
+  tick();
+}
+
+function soundStopBgm(){
+  if(SOUND.bgm.timer){ clearTimeout(SOUND.bgm.timer); SOUND.bgm.timer = null; }
+  SOUND.bgm.current = null;
+  SOUND.bgm.noteIdx = 0;
+}
+
+// ============================================================
+//  🔔 魂环获得音效分层（新增）
+// ============================================================
+function soundRing(ringName){
+  if(!SOUND.enabled || !SOUND.ctx) return;
+  let base = 523;  // 十年 默认
+  if(ringName){
+    if(ringName.includes('百万年')) base = 1047;
+    else if(ringName.includes('十万年')) base = 880;
+    else if(ringName.includes('万年')) base = 784;
+    else if(ringName.includes('千年')) base = 659;
+    else if(ringName.includes('百年')) base = 587;
+    else if(ringName.includes('十年')) base = 523;
+  }
+  // 上行三音，年限越高越明亮
+  soundDing(base, 0.35);
+  setTimeout(()=>soundDing(base * 1.26, 0.4), 90);
+  setTimeout(()=>soundDing(base * 1.5, 0.5), 180);
+}
+
+// ============================================================
+//  🌿 环境音（循环）
+// ============================================================
 function soundStopAmbient(){
   if(SOUND.ambientNode){
     try { SOUND.ambientNode.stop(); } catch(e){}
@@ -141,14 +221,14 @@ function soundStopAmbient(){
 
 function soundAmbient(sceneType){
   if(!SOUND.enabled || !SOUND.ctx) return;
-  // 已经在该场景里就不重复
+  // 先处理 BGM（无论场景是否命中环境音）
+  soundBgm(sceneType);
+  // 再处理环境白噪音
   if(SOUND._lastAmbient === sceneType) return;
   SOUND._lastAmbient = sceneType;
   soundStopAmbient();
-  // 只有部分场景有环境音
   if(sceneType !== 'forest' && sceneType !== 'water' && sceneType !== 'battle') return;
   const ctx = SOUND.ctx;
-  // 2 秒白噪音循环
   const size = Math.floor(ctx.sampleRate * 2);
   const buf = ctx.createBuffer(1, size, ctx.sampleRate);
   const d = buf.getChannelData(0);
