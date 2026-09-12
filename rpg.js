@@ -2,7 +2,7 @@
 //  rpg.js - 角色扮演模式专属逻辑
 //  依赖 shared.js（必须先加载）
 //  本版本移除：物品/背包/货币系统
-//  新增：编辑角色档案（AI 识别失败时手动补正）
+//  新增：编辑角色档案；两阶段生成（叙事 + JSON状态）；模型切换
 // ============================================================
 
 // ============================================================
@@ -498,142 +498,124 @@ function appendOptions(aiOptions){
 }
 
 // ============================================================
-//  状态解析
+//  状态解析（传统文本解析，保留作为 fallback）
 // ============================================================
 const STATUS_LINE_RE=/^(年龄[：:]|魂力\s*[+\-：:]|魂力\s*(提升|增加|提高|升至|达到|变为)|获得魂技[：:]|删除魂技[：:]|获得魂环[：:]|删除魂环[：:]|获得特质[：:]|删除特质[：:]|人物[：:]|重要人物[：:]|新人物[：:]|删除人物[：:]|时间[：:]|天气[：:]|时期[：:]|归档时期[：:])/;
 function stripStatus(text){let result=text.replace(/【状态更新】[\s\S]*?(?=【选项】|$)/g,'');result=result.replace(/【选项】[\s\S]*/g,'');const lines=result.split('\n');const kept=lines.filter(line=>{const t=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();if(!t)return true;if(STATUS_LINE_RE.test(t))return false;return true});return kept.join('\n').trim()}
 function parseSeg(seg){let name=seg,count=1,desc='';const descM=seg.match(/^(.+?)[（(](.+?)[）)]\s*$/);if(descM){name=descM[1].trim();desc=descM[2].trim()}const cntM=name.match(/[×xX*](\d+)\s*(个|枚|颗|件|本|张|块|份)?\s*$/);if(cntM){count=parseInt(cntM[1])||1;name=name.replace(/[×xX*]\d+\s*(个|枚|颗|件|本|张|块|份)?\s*$/,'').trim()}const cnM=name.match(/^(.+?)([一二三四五六七八九十百千万]+)(个|枚|颗|件|本|张|块|份)\s*$/);if(cnM){count=chineseToNumber(cnM[2]);name=cnM[1].trim()}return{name,count,desc}}
 
 // ============================================================
-//  属性操作
+//  JSON mode 结构化状态解析（方向 B 核心）
 // ============================================================
-function addRing(name,desc){const existing=CORE.rings.find(r=>r.name===name);if(existing)existing.count=(existing.count||1)+1;else CORE.rings.push({name,count:1,desc:desc||''});chatBox.innerHTML+=`<div class="msg-ring">${icon('ring','#c084fc')}魂环：${escapeHtml(name)}</div>`;triggerBtnDot('openRings');if(typeof soundDing==='function')soundDing(988,0.45,0.5)}
-function deleteRing(name){const idx=CORE.rings.findIndex(r=>r.name===name);if(idx!==-1){CORE.rings.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除魂环：${escapeHtml(name)}</div>`}}
-function addSkill(name,desc){if(CORE.skills.find(s=>s.name===name))return;CORE.skills.push({name,desc:desc||''});chatBox.innerHTML+=`<div class="msg-skill">${icon('skill','#60a5fa')}魂技：${escapeHtml(name)}</div>`;if(typeof soundDing==='function')soundDing(784,0.4,0.45)}
-function deleteSkill(name){const idx=CORE.skills.findIndex(s=>s.name===name);if(idx!==-1){CORE.skills.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除魂技：${escapeHtml(name)}</div>`}}
-function addTrait(name,type,desc){if(CORE.traits.find(t=>t.name===name))return;CORE.traits.push({name,type,desc:desc||''});chatBox.innerHTML+=`<div class="msg-trait">${icon('trait','#fbbf24')}特质：${escapeHtml(name)}（${escapeHtml(type)}）</div>`;if(typeof soundDing==='function')soundDing(740,0.4,0.45)}
-function deleteTrait(name){const idx=CORE.traits.findIndex(t=>t.name===name);if(idx!==-1){CORE.traits.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除特质：${escapeHtml(name)}</div>`}}
-
-function addNPC(name,gender,soul,soulPower,relation,desc){
-  const existing=CORE.npcs.find(n=>n.name===name);
-  if(existing){
-    existing.gender=gender||existing.gender;
-    existing.soul=soul||existing.soul;
-    if(soulPower&&!isPlaceholder(soulPower))existing.soulPower=soulPower;
-    existing.relation=relation||existing.relation;
-    if(desc)existing.desc=desc;
-    if(existing.status==='archived'){
-      existing.status='active';
-      existing.era=CORE.era;
-      existing.archTime='';
-      existing.snapshot=null;
-      chatBox.innerHTML+=`<div class="msg-npc">${icon('npc','#38bdf8')}故人重逢：${escapeHtml(name)}</div>`;
-    }else{
-      chatBox.innerHTML+=`<div class="msg-npc">${icon('npc','#38bdf8')}人物更新：${escapeHtml(name)}</div>`;
-    }
-  }else{
-    CORE.npcs.push({name,gender:gender||'未知',soul:soul||'未知',soulPower:(soulPower&&!isPlaceholder(soulPower))?soulPower:'',relation:relation||'中立',desc:desc||'',era:CORE.era,status:'active',archTime:'',snapshot:null});
-    if(CORE.npcs.length>50)CORE.npcs.shift();
-    chatBox.innerHTML+=`<div class="msg-npc">${icon('npc','#38bdf8')}新人物：${escapeHtml(name)}（${escapeHtml(gender||'?')}·${escapeHtml(soul||'?')}）</div>`;
-  }
-  triggerBtnGlow('openNPCs');
-}
-function deleteNPC(name){const idx=CORE.npcs.findIndex(n=>n.name===name);if(idx!==-1){CORE.npcs.splice(idx,1);chatBox.innerHTML+=`<div class="msg-lose">已移除人物：${escapeHtml(name)}</div>`}}
-function setEra(eraName){
-  if(!eraName||eraName===CORE.era)return;
-  CORE.era=eraName;
-  chatBox.innerHTML+=`<div class="msg-time">${icon('time','#94a3b8')}进入新时期：${escapeHtml(eraName)}</div>`;
-}
-function archiveEra(eraName){
-  let count=0;
-  CORE.npcs.forEach(n=>{
-    if(n.era===eraName&&n.status==='active'){
-      n.status='archived';
-      n.archTime=CORE.time;
-      n.snapshot={soul:n.soul,soulPower:n.soulPower||'',relation:n.relation,desc:n.desc};
-      count++;
-    }
+async function parseStructuredUpdate(narrative, userAction){
+  // 构造 JSON 模式 prompt，让 AI 只填字段，不写文章
+  const schemaExample = JSON.stringify({
+    age: null,
+    soulPowerDelta: 0,
+    soulPowerAbsolute: null,
+    time: "描述",
+    weather: null,
+    skills: [],
+    delSkills: [],
+    rings: [],
+    delRings: [],
+    traits: [],
+    delTraits: [],
+    npcs: [],
+    delNpcs: [],
+    era: null,
+    archiveEra: null,
+    options: ["行动1", "行动2", "行动3"]
   });
-  if(count>0)chatBox.innerHTML+=`<div class="msg-sys">时期归档：${escapeHtml(eraName)} · ${count}人定格于「${escapeHtml(CORE.time)}」</div>`;
-}
 
-// ============================================================
-//  沉浸感辅助
-// ============================================================
-function triggerStatPowerPulse(){
-  document.querySelectorAll('#status-bar .stat').forEach(el=>{
-    if(el.textContent.includes('魂力')){
-      el.classList.remove('stat-power-pulse');
-      void el.offsetWidth;
-      el.classList.add('stat-power-pulse');
-      setTimeout(()=>el.classList.remove('stat-power-pulse'), 1500);
+  const prompt = `你是斗罗大陆2（绝世唐门时代）游戏的状态解析器。
+请阅读以下剧情叙事和玩家行动，提取本轮的状态更新和选项。
+
+当前主角状态：
+- 年龄：${CORE.age}
+- 魂力：${CORE.soulPower}级
+- 时间：${CORE.time}
+- 天气：${CORE.weather || '未知'}
+- 时期：${CORE.era}
+- 已有魂环：${CORE.rings.map(r=>r.name).join('、') || '无'}
+- 已有魂技：${CORE.skills.map(s=>s.name).join('、') || '无'}
+- 已有特质：${CORE.traits.map(t=>t.name).join('、') || '无'}
+- 现役人物：${CORE.npcs.filter(n=>n.status!=='archived').map(n=>n.name).join('、') || '无'}
+
+【本轮剧情】
+${narrative}
+
+【玩家行动】
+${userAction || '（继续）'}
+
+请输出一个 JSON 对象，严格遵循以下格式：
+${schemaExample}
+
+字段说明：
+- age：如果剧情中主角年龄变化，填新年龄（数字）；否则 null。
+- soulPowerDelta：如果魂力有增减，填增量（正数或负数）；否则 0。
+- soulPowerAbsolute：如果魂力提升到具体等级，填该等级（数字）；否则 null。
+- time：本轮剧情的时间描述，必须填。
+- weather：如果天气变化，填新天气（晴/阴/雨/雪/雾/雷/风）；否则 null。
+- skills：本轮获得的魂技列表，每项 {"name":"名称","desc":"描述"}。
+- delSkills：本轮删除的魂技名称列表（字符串数组）。
+- rings：本轮获得的魂环列表，每项 {"name":"年限+颜色（如百年黄）","desc":"描述"}。
+- delRings：本轮删除的魂环名称列表。
+- traits：本轮获得的特质列表，每项 {"name":"名称","type":"先天/后天","desc":"描述"}。
+- delTraits：本轮删除的特质名称列表。
+- npcs：本轮新增或更新的人物列表，每项 {"name":"姓名","gender":"性别","soul":"武魂","soulPower":"魂力","relation":"关系","desc":"描述"}。
+- delNpcs：本轮删除的人物名称列表。
+- era：如果进入新时期，填时期名；否则 null。
+- archiveEra：如果归档某个时期，填时期名；否则 null。
+- options：给玩家的 2-3 个可执行行动，每项是一个字符串。
+
+注意：
+- 只填有变化的字段，没有变化就填 null 或 0 或 空数组。
+- options 必须包含 2-3 个具体行动。
+- 直接输出 JSON，不要任何前缀说明。`;
+
+  const messages = [{role:'user', content: prompt}];
+  let raw = '';
+  try {
+    raw = await callDeepSeekStream(messages, null, {jsonMode: true});
+    // 清理可能的 markdown 代码块包裹
+    let clean = raw.trim();
+    if(clean.startsWith('```')) {
+      clean = clean.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
     }
-  });
-}
-function triggerStageUpgrade(oldStage,newStage){
-  const sb=document.getElementById('status-bar');
-  if(sb){
-    sb.classList.remove('stage-upgrade');
-    void sb.offsetWidth;
-    sb.classList.add('stage-upgrade');
-    setTimeout(()=>sb.classList.remove('stage-upgrade'), 1700);
+    const obj = JSON.parse(clean);
+
+    // 转换为我们内部的 update 格式
+    const update = {
+      age: (obj.age !== null && obj.age !== undefined) ? parseInt(obj.age) : null,
+      soulPowerBase: parseInt(obj.soulPowerDelta) || 0,
+      soulPowerAbsolute: (obj.soulPowerAbsolute !== null && obj.soulPowerAbsolute !== undefined) ? parseInt(obj.soulPowerAbsolute) : null,
+      skills: Array.isArray(obj.skills) ? obj.skills.filter(s=>s && s.name) : [],
+      delSkills: Array.isArray(obj.delSkills) ? obj.delSkills : [],
+      rings: Array.isArray(obj.rings) ? obj.rings.filter(r=>r && r.name) : [],
+      delRings: Array.isArray(obj.delRings) ? obj.delRings : [],
+      traits: Array.isArray(obj.traits) ? obj.traits.filter(t=>t && t.name) : [],
+      delTraits: Array.isArray(obj.delTraits) ? obj.delTraits : [],
+      npcs: Array.isArray(obj.npcs) ? obj.npcs.filter(n=>n && n.name) : [],
+      delNpcs: Array.isArray(obj.delNpcs) ? obj.delNpcs : [],
+      time: obj.time || null,
+      weather: obj.weather || null,
+      era: obj.era || null,
+      archiveEra: obj.archiveEra || null
+    };
+    const options = Array.isArray(obj.options) ? obj.options.filter(o=>typeof o === 'string' && o.trim()).slice(0,3) : [];
+    return {update, options};
+  } catch(e) {
+    console.warn('JSON 状态解析失败，回退到文本解析', e);
+    // 回退：用原来的文本解析
+    const update = parseStatusUpdate(narrative + '\n' + userAction);
+    sniffNarrativeUpdates(narrative + '\n' + userAction, update);
+    const options = extractOptions(narrative);
+    return {update, options, fallback: true};
   }
-  const banner=document.createElement('div');
-  banner.className='stage-banner';
-  banner.textContent=`晋阶 · ${newStage}`;
-  document.body.appendChild(banner);
-  setTimeout(()=>banner.remove(), 2300);
-  if(typeof soundUpgrade==='function') soundUpgrade();
-}
-function triggerBtnDot(onclickName){
-  const btn=document.querySelector(`#top-bar .ctrl-btn[onclick="${onclickName}()"]`);
-  if(!btn) return;
-  btn.classList.add('has-dot','btn-shake');
-  setTimeout(()=>btn.classList.remove('btn-shake'), 500);
-  const clear=()=>{ btn.classList.remove('has-dot'); btn.removeEventListener('click', clear); };
-  btn.addEventListener('click', clear);
-}
-function triggerBtnGlow(onclickName){
-  const btn=document.querySelector(`#top-bar .ctrl-btn[onclick="${onclickName}()"]`);
-  if(!btn) return;
-  btn.classList.remove('btn-glow');
-  void btn.offsetWidth;
-  btn.classList.add('btn-glow');
-  setTimeout(()=>btn.classList.remove('btn-glow'), 3200);
 }
 
-// ============================================================
-//  章节系统
-// ============================================================
-function insertChapterDivider(num, title){
-  const html = `<div class="msg-chapter">—— 第${num}章 · ${escapeHtml(title)} ——</div>`;
-  chatBox.innerHTML += html;
-  chatBox.scrollTop = chatBox.scrollHeight;
-}
-async function generateChapterTitle(){
-  if(PLOT.history.length < 3) return;
-  const recent = PLOT.history.slice(-6);
-  const text = recent.map(m => stripStatus(m.content)).join('\n').slice(0, 800);
-  const prompt = `为以下剧情片段取一个5-8字的章节标题。
-要求：中文，古典雅致，不含标点，不含引号，不含"第X章"，直接输出标题本身。
-
-【剧情片段】
-${text}`;
-  try{
-    const title = await callDeepSeekStream([{role:'user',content:prompt}], ()=>{});
-    if(title){
-      const clean = title.trim().replace(/[「」“”"'\s\r\n]/g,'').replace(/^第[一二三四五六七八九十百]+章[·、,，]?/,'').slice(0,12);
-      if(clean.length >= 2 && clean.length <= 14){
-        return clean;
-      }
-    }
-  }catch(e){}
-  return null;
-}
-
-// ============================================================
-//  状态更新解析
-// ============================================================
+// 保留原来的 parseStatusUpdate 作为 fallback
 function parseStatusUpdate(text){
 const update={age:null,soulPowerBase:0,soulPowerAbsolute:null,skills:[],delSkills:[],rings:[],delRings:[],traits:[],delTraits:[],npcs:[],delNpcs:[],time:null,era:null,archiveEra:null,weather:null};
 let block='';
@@ -682,6 +664,9 @@ else if(kw==='归档时期'){if(!isPlaceholder(content))update.archiveEra=conten
 return update;
 }
 
+// ============================================================
+//  applyUpdate（通用，新旧两种 update 对象都能吃）
+// ============================================================
 function applyUpdate(update){
 if(update.age!==null&&update.age>0)CORE.age=update.age;
 const oldSP=CORE.soulPower,oldStage=getStage(oldSP);
@@ -699,14 +684,14 @@ if(CORE.soulPower!==oldSP){
 }
 if(update.era)setEra(update.era);
 if(update.archiveEra)archiveEra(update.archiveEra);
-update.skills.forEach(s=>addSkill(s.name,s.desc));
-update.delSkills.forEach(n=>deleteSkill(n));
-update.rings.forEach(r=>addRing(r.name,r.desc));
-update.delRings.forEach(n=>deleteRing(n));
-update.traits.forEach(t=>addTrait(t.name,t.type,t.desc));
-update.delTraits.forEach(n=>deleteTrait(n));
-update.npcs.forEach(n=>addNPC(n.name,n.gender,n.soul,n.soulPower,n.relation,n.desc));
-update.delNpcs.forEach(n=>deleteNPC(n));
+(update.skills||[]).forEach(s=>addSkill(s.name,s.desc));
+(update.delSkills||[]).forEach(n=>deleteSkill(n));
+(update.rings||[]).forEach(r=>addRing(r.name,r.desc));
+(update.delRings||[]).forEach(n=>deleteRing(n));
+(update.traits||[]).forEach(t=>addTrait(t.name,t.type,t.desc));
+(update.delTraits||[]).forEach(n=>deleteTrait(n));
+(update.npcs||[]).forEach(n=>addNPC(n.name,n.gender,n.soul,n.soulPower,n.relation,n.desc));
+(update.delNpcs||[]).forEach(n=>deleteNPC(n));
 if(update.time){CORE.time=update.time;chatBox.innerHTML+=`<div class="msg-time">${icon('time','#94a3b8')}${escapeHtml(update.time)}</div>`}
 if(update.weather){CORE.weather=update.weather;}
 if(update.time || update.weather){
@@ -720,7 +705,7 @@ updateStatus();
 }
 
 // ============================================================
-//  叙事嗅探兜底
+//  叙事嗅探兜底（JSON 模式失败时的最后保障）
 // ============================================================
 function sniffNarrativeUpdates(fullReply, update){
   const narrative = stripStatus(fullReply);
@@ -835,14 +820,14 @@ function buildRecentEvents(){
 }
 
 // ============================================================
-//  流式处理
+//  流式处理（叙事阶段）
 // ============================================================
 function isNearBottom(threshold){
   threshold = threshold || 100;
   return chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < threshold;
 }
 
-async function streamAndProcess(messages){
+async function streamAndProcess(messages, opts){
 const aiMsgDiv=document.createElement('div');
 aiMsgDiv.className='msg-ai streaming';
 aiMsgDiv.textContent='...';
@@ -887,7 +872,7 @@ try{
 const fullReply=await callDeepSeekStream(messages,(delta,full)=>{
   displayContent = stripStatus(full);
   twPush(displayContent);
-});
+}, opts);
 tw.done = true;
 if(tw.timer){ clearTimeout(tw.timer); tw.timer = null; }
 tw.shown = tw.pending.length;
@@ -946,7 +931,7 @@ return '';
 }
 
 // ============================================================
-//  主行动
+//  主行动（两阶段生成：叙事 → JSON状态）
 // ============================================================
 async function sendAction(forcedAction){
 if(isGenerating)return;
@@ -1054,11 +1039,16 @@ const recent=PLOT.history.slice(-3);
 recent.forEach(m=>messages.push({role:m.role,content:stripStatus(m.content)}));
 messages.push({role:"user",content:isContinue?'（继续）':action});
 
+// 第一阶段：叙事生成（用 Flash，快）
 const reply=await streamAndProcess(messages);
-const updateInfo=parseStatusUpdate(reply);
-sniffNarrativeUpdates(reply, updateInfo);
+applyScene(stripStatus(reply));
+
+// 第二阶段：JSON 结构化状态解析（用同一模型，jsonMode）
+const parsed = await parseStructuredUpdate(stripStatus(reply), action);
+const updateInfo = parsed.update;
 applyUpdate(updateInfo);
-appendOptions(extractOptions(reply));
+appendOptions(parsed.options);
+
 PLOT.history.push({role:"user",content:action});
 PLOT.history.push({role:"assistant",content:reply});
 if(PLOT.history.length>30)PLOT.history=PLOT.history.slice(-30);
@@ -1074,16 +1064,21 @@ finally{isGenerating=false;sendBtn.disabled=false;userInput.disabled=false;userI
 }
 
 // ============================================================
-//  Token 用量面板
+//  Token 用量面板（按模型单价计费）
 // ============================================================
 function openTokenPanel(){
   const s = TOKEN_STATS;
   const l = LIFETIME;
-  const IN_PRICE = 2 / 1000000;
-  const OUT_PRICE = 8 / 1000000;
+  const modelName = SETTINGS.aiModel || 'deepseek-v4-flash';
+  const price = MODEL_PRICING[modelName] || MODEL_PRICING['deepseek-v4-flash'];
+  // 简化计费：缓存命中/未命中各算一半（实际输入含 system prompt，命中率不低）
+  const IN_PRICE = ((price.inCacheHit + price.inCacheMiss) / 2) / 1000000;
+  const OUT_PRICE = price.out / 1000000;
   const sCost = s.input * IN_PRICE + s.output * OUT_PRICE;
   const lCost = l.input * IN_PRICE + l.output * OUT_PRICE;
+  const modelLabel = modelName === 'deepseek-v4-pro' ? 'V4 Pro' : 'V4 Flash';
   const html = `
+    <div style="font-size:12px;color:#8b949e;margin-bottom:8px;">当前模型：<b style="color:#f0f6fc;">${modelLabel}</b></div>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 18px;">
       <div style="color:#8b949e;grid-column:1/3;font-weight:bold;margin:2px 0 6px;">本次会话</div>
       <div style="color:#8b949e;">输入</div><div style="text-align:right;">${s.input.toLocaleString()}</div>
@@ -1096,7 +1091,7 @@ function openTokenPanel(){
       <div style="color:#8b949e;">合计</div><div style="text-align:right;font-weight:bold;">${l.session.toLocaleString()}</div>
       <div style="color:#8b949e;">预估费用</div><div style="text-align:right;color:#fbbf24;">¥${lCost.toFixed(4)}</div>
     </div>
-    <div style="font-size:11px;color:#6b7280;margin-top:12px;line-height:1.5;">* 费用按约 ¥2/百万（输入）+ ¥8/百万（输出）估算，实际以 DeepSeek 账单为准。</div>
+    <div style="font-size:11px;color:#6b7280;margin-top:12px;line-height:1.5;">* 按 ${modelLabel} 空闲时段均价估算，实际以 DeepSeek 账单为准。高峰时段（9:00-12:00 / 14:00-18:00）翻倍。</div>
   `;
   document.getElementById('tokenPanelContent').innerHTML = html;
   openModal('tokenModal');
@@ -1138,7 +1133,6 @@ try{
 const summary=await callDeepSeekStream([{role:'user',content:prompt}],()=>{});
 if(summary&&summary.trim().length>20){
 let finalSummary=summary.trim();
-// 硬截断兜底：超过 MAX+50 字就切到 MAX，且尽量在句末收尾
 if(finalSummary.length>MAX+50){
   let cut=finalSummary.slice(0,MAX);
   const lastPunc=Math.max(cut.lastIndexOf('。'),cut.lastIndexOf('！'),cut.lastIndexOf('？'),cut.lastIndexOf('；'));
@@ -1220,7 +1214,7 @@ ${desc}`
 }
 
 // ============================================================
-//  觉醒
+//  觉醒（用 Pro 模型，两阶段：叙事 + JSON角色识别）
 // ============================================================
 async function awakenSoul(){
 if(isGenerating)return;
@@ -1303,10 +1297,16 @@ ${customSoul?'指定武魂：'+customSoul:'请为角色设计一个独特武魂�
 
 isGenerating=true;sendBtn.disabled=true;userInput.disabled=true;
 try{
-const reply=await streamAndProcess([{role:"user",content:systemPrompt}]);
-const update=parseStatusUpdate(reply);
+// 第一阶段：叙事生成（觉醒轮用 Pro 模型）
+const reply=await streamAndProcess([{role:"user",content:systemPrompt}], {model:'deepseek-v4-pro'});
+applyScene(stripStatus(reply));
+
+// 第二阶段：JSON 结构化解析（用 Pro，提取武魂/状态/选项）
+const parsed = await parseStructuredUpdate(stripStatus(reply), '觉醒武魂');
+const update=parsed.update;
 update.soulPowerBase=0;update.soulPowerAbsolute=null;
 
+// 从叙事文本里单独提取武魂（优先，最准确）
 let soulName = customSoul;
 let soulDesc = '';
 if(!soulName){
@@ -1333,9 +1333,8 @@ CORE.soulPower=CORE.innatePower;
 PLOT.history=[];PLOT.turn=0;PLOT.isFirst=false;PLOT.summaryCounter=0;
 PLOT.history.push({role:"assistant",content:reply});
 updateStatus();saveToPhone();
-appendOptions(extractOptions(reply));
+appendOptions(parsed.options);
 
-// AI 识别失败时，给玩家一个手动补正入口（不打扰正常流程）
 if(!soulName || soulName === '未知武魂' || soulName === '未觉醒'){
   chatBox.innerHTML += `<div class="msg-sys" style="color:#fbbf24;font-size:12px;">⚠️ 未能从觉醒叙事中识别武魂，可点「⋯ → 编辑角色档案」手动补上。</div>`;
   chatBox.scrollTop = chatBox.scrollHeight;

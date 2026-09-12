@@ -140,7 +140,22 @@ function triggerLorebook(playerInput, recentHistory, maxEntries){
 // ============================================================
 //  设置
 // ============================================================
-const SETTINGS={useIcons:true,useRingsVisual:true,useSceneBg:true,chatTheme:'default',minimalMode:false,soundOn:true,soundVolume:0.2,narrativeStyle:'standard',npcProactive:true,fontScale:1};
+const SETTINGS={useIcons:true,useRingsVisual:true,useSceneBg:true,chatTheme:'default',minimalMode:false,soundOn:true,soundVolume:0.2,narrativeStyle:'standard',npcProactive:true,fontScale:1,aiModel:'deepseek-v4-flash'};
+
+// 模型定价表（元/百万 token），来源：DeepSeek API 官方文档
+const MODEL_PRICING={
+  'deepseek-v4-flash': {
+    inCacheHit: 0.05,    // 空闲时段
+    inCacheMiss: 1.5,    // 空闲时段
+    out: 4.5             // 空闲时段
+  },
+  'deepseek-v4-pro': {
+    inCacheHit: 0.15,
+    inCacheMiss: 4.5,
+    out: 13.5
+  }
+};
+
 const TOKEN_STATS={input:0,output:0,session:0};
 function loadLifetimeTokens(){
   try{
@@ -167,6 +182,7 @@ const sndVol=document.getElementById('setSoundVolume');
 const styleSel=document.getElementById('setNarrativeStyle');
 const npcSwitch=document.getElementById('setNpcProactive');
 const fontRange=document.getElementById('setFontScale');
+const modelSel=document.getElementById('setAiModel');
 if(elIcons)elIcons.checked=SETTINGS.useIcons;
 if(elRings)elRings.checked=SETTINGS.useRingsVisual;
 if(elScene)elScene.checked=SETTINGS.useSceneBg;
@@ -177,6 +193,7 @@ if(sndVol)sndVol.value=Math.round((SETTINGS.soundVolume||0.2)*100);
 if(styleSel)styleSel.value=SETTINGS.narrativeStyle||'standard';
 if(npcSwitch)npcSwitch.checked=SETTINGS.npcProactive!==false;
 if(fontRange)fontRange.value=Math.round((SETTINGS.fontScale||1)*100);
+if(modelSel)modelSel.value=SETTINGS.aiModel||'deepseek-v4-flash';
 if(typeof soundSetEnabled==='function') soundSetEnabled(SETTINGS.soundOn!==false);
 if(typeof soundSetVolume==='function') soundSetVolume(SETTINGS.soundVolume||0.2);
 applyFontScale();
@@ -190,6 +207,10 @@ function toggleNarrativeStyle(v){
 }
 function toggleNpcProactive(on){
   SETTINGS.npcProactive = !!on;
+  saveSettings();
+}
+function toggleAiModel(v){
+  SETTINGS.aiModel = (v==='deepseek-v4-pro') ? 'deepseek-v4-pro' : 'deepseek-v4-flash';
   saveSettings();
 }
 function toggleFontScale(v){
@@ -247,7 +268,6 @@ if(!SETTINGS.useSceneBg){
   if(cb)cb.className=cb.className.split(' ').filter(c=>!c.startsWith('scene-')).join(' ');
 }
 }
-// 状态栏已不再显示 Token，此函数仅保留以兼容旧调用
 function updateTokenDisplay(){}
 function openSettings(){loadSettings();openModal('settingsModal')}
 function openMore(){openModal('moreModal')}
@@ -279,28 +299,36 @@ function renderExpandableList(container,items,options={}){
 }
 
 // ============================================================
-//  DeepSeek API 流式调用
+//  DeepSeek API 流式调用（支持模型切换 + JSON mode）
 // ============================================================
-async function callDeepSeekStream(messages,onChunk){
+async function callDeepSeekStream(messages,onChunk,opts){
 const apiKey=document.getElementById('apiKey').value.trim();
 if(!apiKey)throw new Error("请填入 DeepSeek API Key");
 
+const model = (opts && opts.model) || SETTINGS.aiModel || 'deepseek-v4-flash';
+const useJson = !!(opts && opts.jsonMode);
+const temperature = useJson ? 0.3 : 0.8;
+const maxTokens = useJson ? 1500 : 2000;
+
 const controller = new AbortController();
 const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+const bodyObj = {
+  model: model,
+  messages,
+  temperature: temperature,
+  max_tokens: maxTokens,
+  stream: true,
+  stream_options:{include_usage:true}
+};
+if(useJson) bodyObj.response_format = {type:'json_object'};
 
 let resp;
 try {
   resp = await fetch("https://api.deepseek.com/v1/chat/completions",{
     method:"POST",
     headers:{"Content-Type":"application/json","Authorization":`Bearer ${apiKey}`},
-    body:JSON.stringify({
-      model:"deepseek-chat",
-      messages,
-      temperature:0.8,
-      max_tokens:2000,
-      stream:true,
-      stream_options:{include_usage:true}
-    }),
+    body:JSON.stringify(bodyObj),
     signal: controller.signal
   });
 } catch(err) {
@@ -338,7 +366,7 @@ try {
           saveLifetimeTokens(LIFETIME);
         }
         const delta=json.choices?.[0]?.delta?.content||"";
-        if(delta){fullContent+=delta;onChunk(delta,fullContent)}
+        if(delta){fullContent+=delta;if(onChunk)onChunk(delta,fullContent)}
       }catch(e){}
     }
   }
