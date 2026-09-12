@@ -1,5 +1,5 @@
-const C='douro-v92';
-const ASSETS=['./','./index.html','./style.css','./rogue.css','./sound.js','./shared.js','./rpg.js','./rogue.js','./manifest.json','./icon-192.png','./icon-512.png','./media.json'];
+const C='starlight-V1';
+const ASSETS=['./','./index.html','./style.css','./rogue.css','./sound.js','./shared.js','./rpg-core.js','./rpg-ui.js','./rpg-save.js','./rpg-story.js','./rpg-awaken.js','./rogue.js','./manifest.json','./icon-192.png','./icon-512.png','./media.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
