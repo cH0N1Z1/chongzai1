@@ -519,7 +519,7 @@ function stripStatus(text){let result=text.replace(/【状态更新】[\s\S]*?(?
 function parseSeg(seg){let name=seg,count=1,desc='';const descM=seg.match(/^(.+?)[（(](.+?)[）)]\s*$/);if(descM){name=descM[1].trim();desc=descM[2].trim()}const cntM=name.match(/[×xX*](\d+)\s*(个|枚|颗|件|本|张|块|份)?\s*$/);if(cntM){count=parseInt(cntM[1])||1;name=name.replace(/[×xX*]\d+\s*(个|枚|颗|件|本|张|块|份)?\s*$/,'').trim()}const cnM=name.match(/^(.+?)([一二三四五六七八九十百千万]+)(个|枚|颗|件|本|张|块|份)\s*$/);if(cnM){count=chineseToNumber(cnM[2]);name=cnM[1].trim()}return{name,count,desc}}
 
 // ============================================================
-//  JSON mode 结构化状态解析（方向 B 核心）
+//  JSON mode 结构化状态解析
 // ============================================================
 async function parseStructuredUpdate(narrative, userAction){
   const schemaExample = JSON.stringify({
@@ -675,7 +675,7 @@ return update;
 }
 
 // ============================================================
-//  applyUpdate（通用，新旧两种 update 对象都能吃）
+//  applyUpdate
 // ============================================================
 function applyUpdate(update){
 if(update.age!==null&&update.age>0)CORE.age=update.age;
@@ -752,6 +752,655 @@ function sniffNarrativeUpdates(fullReply, update){
       if(v > CORE.soulPower && v <= 100){
         update.soulPowerAbsolute = v;
         chatBox.innerHTML += `<div class="msg-sys" style="font-size:12px;color:#a78bfa;">⚠️ 正文检测到魂力提升但状态块未写，已自动补录：${CORE.soulPower} → ${v}</div>`;
+        break;
+      }
+    }
+  }
+}
+
+// ============================================================
+//  主角档案 + 动态世界书
+// ============================================================
+function buildCoreSummary(playerInput){
+let s='';
+s+=`姓名：${CORE.name}（${CORE.gender}），${CORE.age||'?'}岁。\n`;
+s+=`设定：${CORE.roleDesc}\n`;
+s+=`武魂：${CORE.martialSoul}（先天魂力${CORE.innatePower}级）\n`;
+if(CORE.martialSoulDesc) s+=`武魂描述：${CORE.martialSoulDesc}\n`;
+s+=`魂力：${CORE.soulPower}级（${getStage(CORE.soulPower)}）\n`;
+s+=`时间：${CORE.time}\n`;
+if(CORE.weather) s+=`天气：${CORE.weather}\n`;
+s+=`当前时期：${CORE.era}\n`;
+s+=`魂环：${CORE.rings.map(r=>r.name).join('、')||'无'}\n`;
+s+=`魂技：${CORE.skills.map(x=>x.name).join('、')||'无'}\n`;
+s+=`特质：${CORE.traits.map(t=>t.name).join('、')||'无'}\n`;
+const activeNPCs=CORE.npcs.filter(n=>n.status!=='archived');
+const archivedNPCs=CORE.npcs.filter(n=>n.status==='archived');
+if(activeNPCs.length>0)s+=`【现役人物】\n${activeNPCs.map(n=>`- ${n.name}（${n.gender}·${n.soul}·魂力${n.soulPower||'?'}·${n.relation}）：${n.desc||''}`).join('\n')}\n`;
+if(archivedNPCs.length>0){
+  s+=`【归档人物】（玩家过去时期的故人，再遇时须体现时间差并重新激活）\n`;
+  s+=archivedNPCs.map(n=>{
+    const snap=n.snapshot||{};
+    return `- ${n.name}（${n.gender}·${snap.soul||n.soul}·魂力${snap.soulPower||'?'}·${snap.relation||n.relation}·归档于「${n.archTime}」）：${snap.desc||n.desc||''}`;
+  }).join('\n');
+  s+='\n';
+}
+if(CORE.summary)s+=`【前情】${CORE.summary}\n`;
+if(Object.keys(MEDIA.worldbook).length>0){
+  const recentText = PLOT.history.slice(-3).map(m=>stripStatus(m.content)).join('\n');
+  const loreText = triggerLorebook(playerInput || '', recentText, 5);
+  if(loreText) s += loreText + '\n';
+}
+return s;
+}
+
+// ============================================================
+//  SillyTavern 式辅助：当前处境 + 最近事件
+// ============================================================
+function buildCurrentSituation(){
+  const parts = [];
+  if(CORE.time) parts.push(CORE.time);
+  if(CORE.era && CORE.era !== '初始') parts.push(CORE.era);
+  if(_currentSceneKey){
+    const s = SCENE_TYPES.find(t=>t.type===_currentSceneKey) || SCENE_PLACES.find(p=>p.type===_currentSceneKey);
+    if(s) parts.push('在'+s.name);
+  }
+  const lastUser = [...PLOT.history].reverse().find(m=>m.role==='user');
+  if(lastUser && lastUser.content){
+    const a = String(lastUser.content).trim();
+    if(a && a !== '（继续）' && a !== '继续' && a.length < 60){
+      parts.push('刚做了：' + a);
+    }
+  }
+  return parts.join(' · ') || '故事开场';
+}
+function buildRecentEvents(){
+  const recent = PLOT.history.slice(-6).filter(m => m.role === 'assistant');
+  const events = [];
+  recent.forEach(m => {
+    const t = stripStatus(m.content);
+    const first = t.split(/[。！？\n]/)[0].trim();
+    if(first && first.length >= 6 && first.length <= 60){
+      events.push(first);
+    }
+  });
+  const unique = [...new Set(events)].slice(-3);
+  if(unique.length === 0) return '';
+  return unique.map(e => '- ' + e).join('\n');
+}
+
+// ============================================================
+//  流式处理（叙事阶段）
+// ============================================================
+function isNearBottom(threshold){
+  threshold = threshold || 100;
+  return chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < threshold;
+}
+
+async function streamAndProcess(messages, opts){
+const aiMsgDiv=document.createElement('div');
+aiMsgDiv.className='msg-ai streaming';
+aiMsgDiv.textContent='...';
+chatBox.appendChild(aiMsgDiv);
+chatBox.scrollTop=chatBox.scrollHeight;
+
+let userPinnedUp = false;
+let lastTop = chatBox.scrollTop;
+function onStreamScroll(){
+  const cur = chatBox.scrollTop;
+  const atBottom = chatBox.scrollHeight - cur - chatBox.clientHeight < 40;
+  if(cur < lastTop - 5 && !atBottom){ userPinnedUp = true; }
+  else if(atBottom){ userPinnedUp = false; }
+  lastTop = cur;
+}
+chatBox.addEventListener('scroll', onStreamScroll);
+
+const tw = { pending: '', shown: 0, timer: null, done: false };
+function twTick(){
+  tw.timer = null;
+  if(!aiMsgDiv.parentNode) return;
+  if(tw.shown >= tw.pending.length){ if(!tw.done) return; }
+  if(tw.shown >= tw.pending.length) return;
+  const ch = tw.pending[tw.shown];
+  tw.shown++;
+  aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending.slice(0, tw.shown)));
+  if(!userPinnedUp) chatBox.scrollTop = chatBox.scrollHeight;
+  if(typeof soundType==='function') soundType();
+  let delay = 22;
+  if('，。？！；、'.includes(ch)) delay = 100;
+  else if(ch === '\n') delay = 180;
+  tw.timer = setTimeout(twTick, delay);
+}
+function twPush(newText){
+  if(newText.length < tw.shown) tw.shown = newText.length;
+  tw.pending = newText;
+  if(!tw.timer && tw.shown < tw.pending.length) twTick();
+}
+
+let displayContent="";
+try{
+const fullReply=await callDeepSeekStream(messages,(delta,full)=>{
+  displayContent = stripStatus(full);
+  twPush(displayContent);
+}, opts);
+tw.done = true;
+if(tw.timer){ clearTimeout(tw.timer); tw.timer = null; }
+tw.shown = tw.pending.length;
+aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending)) || '...';
+aiMsgDiv.classList.remove('streaming');
+chatBox.removeEventListener('scroll', onStreamScroll);
+applyScene(displayContent);
+return fullReply;
+}catch(e){
+if(tw.timer) clearTimeout(tw.timer);
+chatBox.removeEventListener('scroll', onStreamScroll);
+aiMsgDiv.classList.remove('streaming');
+aiMsgDiv.textContent='生成失败：'+e.message;
+throw e;
+}
+}
+
+// ============================================================
+//  调试命令
+// ============================================================
+function handleDebugCommand(rawText){
+let text=rawText.trim();
+if(!text){chatBox.innerHTML+=`<div class="msg-debug">用法：/调试 获得魂环 百年</div>`;return}
+text=normalizeDebugText(text);
+const pseudo=`【状态更新】\n${text}\n`;
+const update=parseStatusUpdate(pseudo);
+const hasAny=update.skills.length>0||update.delSkills.length>0||update.rings.length>0||update.delRings.length>0||update.traits.length>0||update.delTraits.length>0||update.npcs.length>0||update.delNpcs.length>0||update.time!==null||update.era!==null||update.archiveEra!==null||update.weather!==null||update.soulPowerAbsolute!==null||update.soulPowerBase!==0||update.age!==null;
+if(!hasAny){chatBox.innerHTML+=`<div class="msg-debug">无法识别，请用：/调试 获得魂环 百年</div>`;return}
+applyUpdate(update);
+chatBox.innerHTML+=`<div class="msg-debug">调试已应用</div>`;
+chatBox.scrollTop=chatBox.scrollHeight;
+}
+function handleLoreTest(testInput){
+  const recentText = PLOT.history.slice(-3).map(m=>stripStatus(m.content)).join('\n');
+  const result = triggerLorebook(testInput || '', recentText, 5);
+  if(!result){
+    chatBox.innerHTML += `<div class="msg-debug">未命中任何资料条目。试试：/测 我去史莱克学院</div>`;
+  }else{
+    chatBox.innerHTML += `<div class="msg-debug" style="text-align:left;white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+  }
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function normalizeDebugText(text){
+if(/^(获得魂技|删除魂技|获得魂环|删除魂环|获得特质|删除特质|人物|重要人物|新人物|删除人物|时间|天气|魂力|年龄|时期|归档时期)[：:]/.test(text))return text;
+let m;
+if((m=text.match(/^年龄\s*(\d+)\s*$/)))return `年龄：${m[1]}`;
+if((m=text.match(/^魂力\s*([+-]?\d+)\s*$/)))return `魂力 ${m[1]}`;
+if((m=text.match(/^魂力\s*(?:提升至|提升到|达到|变为)\s*(\d+)\s*$/)))return `魂力 提升至${m[1]}`;
+if((m=text.match(/^(?:认识|遇见|遇到|结识|加入|新增)\s*(?:人物|npc|NPC)?\s*(.+?)\s*$/))){const n=m[1].trim();if(n)return `人物：${n}/未知/未知/未知/相识/`}
+if((m=text.match(/^删除人物\s+(.+?)\s*$/)))return `删除人物：${m[1]}`;
+if((m=text.match(/^获得\s*(.+?)\s*魂环\s*$/)))return `获得魂环：${m[1]}`;
+if((m=text.match(/^获得\s*(.+?)\s*魂技\s*$/)))return `获得魂技：${m[1]}`;
+if((m=text.match(/^获得\s*(.+?)\s*特质\s*$/)))return `获得特质：${m[1]}(先天)`;
+return '';
+}
+
+// ============================================================
+//  主行动（两阶段生成：叙事 → JSON状态）
+// ============================================================
+async function sendAction(forcedAction){
+if(isGenerating)return;
+const input=document.getElementById('userInput');
+let action=forcedAction||input.value.trim();
+if(!action)return;
+if(!forcedAction)input.value='';
+if(action.startsWith('/调试')){chatBox.innerHTML+=userMsgHtml(action,true);chatBox.scrollTop=chatBox.scrollHeight;handleDebugCommand(action.replace(/^\/调试\s*/,''));userInput.focus();return}
+if(action.startsWith('/测')){chatBox.innerHTML+=userMsgHtml(action,true);chatBox.scrollTop=chatBox.scrollHeight;handleLoreTest(action.replace(/^\/测\s*/,''));userInput.focus();return}
+chatBox.innerHTML+=userMsgHtml(action,false);
+chatBox.scrollTop=chatBox.scrollHeight;
+if(PLOT.isFirst){await awakenSoul();return}
+isGenerating=true;sendBtn.disabled=true;userInput.disabled=true;
+try{
+const coreSummary=buildCoreSummary(action);
+const currentSituation=buildCurrentSituation();
+const recentEvents=buildRecentEvents();
+const isContinue=action==='继续';
+
+const narrativePrompts = {
+  concise: `## 叙事风格 · 简洁
+文字精炼，对话为主。场景描写不超过 2 句。`,
+  standard: `## 叙事风格 · 标准
+平衡描写与对话。场景、感官、心理各一点，不铺陈。`,
+  ornate: `## 叙事风格 · 华丽
+用丰富的感官和意象。场景描写可铺陈，但不超 6 句，且必须推动剧情。`
+};
+const styleBlock = narrativePrompts[SETTINGS.narrativeStyle] || narrativePrompts.standard;
+const proactiveBlock = SETTINGS.npcProactive !== false
+  ? `## NPC 主动性
+每 2~3 轮让一个 NPC 主动说话或行动（送信、求助、挑衅、提议、打断）。NPC 有自己的目标，世界是"活"的。`
+  : '';
+
+const systemPrompt = `## 你是谁
+你是斗罗大陆2（绝世唐门时代）背景的小说叙事者。玩家就是主角"你"。
+
+## 世界观
+${FIXED_WORLD}
+
+## 主角档案
+${coreSummary}
+
+## 当前处境
+${currentSituation}
+${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
+
+## 叙事范例（模仿此密度、节奏与用语）
+魂导列车汽笛撕开晨雾，*你攥着车票的手心沁出薄汗*。窗外，柏油路两侧的魂导灯次第熄灭。
+（这就是天斗城……和村里完全不一样。）
+一个穿灰呢制服的检票员敲了敲车厢门："小朋友，终点站到了。"
+
+【状态更新】
+时间：次日·清晨
+人物：检票员/男/未知/未知/陌生人/灰呢制服，语气里藏着一点关切
+
+【选项】
+• 跟着人流下车，寻找出站口
+• 先向检票员打听天斗城的魂师学院
+• 在座位上再坐一会儿，整理包袱
+
+## 输出结构（严格按此顺序）
+1) 叙事正文（第二人称，含分层标记）
+2) 【状态更新】块（只在有变化时写该行）
+3) 【选项】块（2-3 个，每项以"•"开头）
+
+## 状态更新格式
+年龄:N / 魂力+N 或 魂力提升至N / 时间:xxx / 天气:晴阴雨雪雾雷风
+获得|删除魂技：名（描述）
+获得|删除魂环：百年
+获得|删除特质：名(先天)（描述）
+人物：姓名/性别/武魂/魂力/关系/描述（六段，/分隔）
+删除人物：名 / 时期:名 / 归档时期:名
+
+## 硬约束
+- 时间每轮必写；其他字段仅在有变化时写，绝不写"无"。
+- 只有写进【状态更新】的才生效，叙事里提"魂力提升"不算。
+- 人物行第 3 段是武魂名（不是人名）；无信息填"未知"。
+- 主角性别为 ${CORE.gender}，据此调整称呼、外貌、心理与社交描写。
+
+## 叙事要求
+- 日常 100-200 字，关键剧情 250-350 字，不超过 400 字。
+- 用"你"指代玩家，禁止用"他/她/角色名"指代玩家。
+- ${isContinue ? '玩家选择"继续"：自然推进剧情，可让 NPC 主动说话，不替玩家做重大决定。' : '根据玩家输入推进剧情。'}
+
+## 文本分层标记
+- 对话：用中文引号 “……” 或 「……」
+- 心理：（……）
+- 关键动作/戏剧性瞬间：*……*（每段最多 1 处）
+
+## 人物档案
+- 现役：人物：姓名/性别/武魂/魂力/关系/描述
+- 归档：离开时期时用"归档时期：时期名"，该时期所有现役自动定格
+- 唤醒：再遇归档人物用"人物："激活，须体现时间差的成长
+- 切换时期：时期：时期名
+
+${styleBlock}
+
+${proactiveBlock}
+
+## 选项
+【状态更新】后写 2-3 个玩家可执行的具体行动，每项以"•"开头。`;
+
+const messages=[{role:"system",content:systemPrompt}];
+const recent=PLOT.history.slice(-3);
+recent.forEach(m=>messages.push({role:m.role,content:stripStatus(m.content)}));
+messages.push({role:"user",content:isContinue?'（继续）':action});
+
+const reply=await streamAndProcess(messages);
+applyScene(stripStatus(reply));
+
+const parsed = await parseStructuredUpdate(stripStatus(reply), action);
+const updateInfo = parsed.update;
+applyUpdate(updateInfo);
+appendOptions(parsed.options);
+
+PLOT.history.push({role:"user",content:action});
+PLOT.history.push({role:"assistant",content:reply});
+if(PLOT.history.length>30)PLOT.history=PLOT.history.slice(-30);
+PLOT.turn++;PLOT.summaryCounter++;
+updateStatus();
+if(PLOT.summaryCounter>=3)generateSummary();
+}catch(e){
+console.error(e);
+chatBox.innerHTML+=`<div class="msg-lose">生成失败：${escapeHtml(e.message)}</div>`;
+chatBox.scrollTop=chatBox.scrollHeight;
+}
+finally{isGenerating=false;sendBtn.disabled=false;userInput.disabled=false;userInput.focus()}
+}
+
+// ============================================================
+//  Token 用量面板
+// ============================================================
+function openTokenPanel(){
+  const s = TOKEN_STATS;
+  const l = LIFETIME;
+  const modelName = SETTINGS.aiModel || 'deepseek-v4-flash';
+  const price = MODEL_PRICING[modelName] || MODEL_PRICING['deepseek-v4-flash'];
+  const IN_PRICE = ((price.inCacheHit + price.inCacheMiss) / 2) / 1000000;
+  const OUT_PRICE = price.out / 1000000;
+  const sCost = s.input * IN_PRICE + s.output * OUT_PRICE;
+  const lCost = l.input * IN_PRICE + l.output * OUT_PRICE;
+  const modelLabel = modelName === 'deepseek-v4-pro' ? 'V4 Pro' : 'V4 Flash';
+  const html = `
+    <div style="font-size:12px;color:#8b949e;margin-bottom:8px;">当前模型：<b style="color:#f0f6fc;">${modelLabel}</b></div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 18px;">
+      <div style="color:#8b949e;grid-column:1/3;font-weight:bold;margin:2px 0 6px;">本次会话</div>
+      <div style="color:#8b949e;">输入</div><div style="text-align:right;">${s.input.toLocaleString()}</div>
+      <div style="color:#8b949e;">输出</div><div style="text-align:right;">${s.output.toLocaleString()}</div>
+      <div style="color:#8b949e;">合计</div><div style="text-align:right;font-weight:bold;">${s.session.toLocaleString()}</div>
+      <div style="color:#8b949e;">预估费用</div><div style="text-align:right;color:#fbbf24;">¥${sCost.toFixed(4)}</div>
+      <div style="color:#8b949e;grid-column:1/3;font-weight:bold;margin:12px 0 6px;border-top:1px dashed #30363d;padding-top:10px;">累计</div>
+      <div style="color:#8b949e;">输入</div><div style="text-align:right;">${l.input.toLocaleString()}</div>
+      <div style="color:#8b949e;">输出</div><div style="text-align:right;">${l.output.toLocaleString()}</div>
+      <div style="color:#8b949e;">合计</div><div style="text-align:right;font-weight:bold;">${l.session.toLocaleString()}</div>
+      <div style="color:#8b949e;">预估费用</div><div style="text-align:right;color:#fbbf24;">¥${lCost.toFixed(4)}</div>
+    </div>
+    <div style="font-size:11px;color:#6b7280;margin-top:12px;line-height:1.5;">* 按 ${modelLabel} 空闲时段均价估算，实际以 DeepSeek 账单为准。高峰时段（9:00-12:00 / 14:00-18:00）翻倍。</div>
+  `;
+  document.getElementById('tokenPanelContent').innerHTML = html;
+  openModal('tokenModal');
+}
+function resetTokenStats(){
+  if(!confirm('确定要清空累计 Token 数据吗？')) return;
+  LIFETIME.input = 0;
+  LIFETIME.output = 0;
+  LIFETIME.session = 0;
+  saveLifetimeTokens(LIFETIME);
+  openTokenPanel();
+  updateTokenDisplay();
+}
+
+// ============================================================
+//  摘要 + 章节生成
+// ============================================================
+async function generateSummary(force=false){
+if(!force&&PLOT.summaryCounter<3)return;
+if(PLOT.history.length<4)return;
+const recent=PLOT.history.slice(-8);
+const historyText=recent.map(m=>`${m.role==='user'?'玩家':'叙事者'}：${stripStatus(m.content)}`).join('\n');
+const oldSummary=CORE.summary||'';
+const oldLen=oldSummary.length;
+const START=200,STEP=20,MAX=500;
+const targetLen=oldLen===0?START:Math.min(oldLen+STEP,MAX);
+const prompt=`把「旧摘要」和「新对话」融合成一份新摘要。
+第三人称，保留有后续影响的内容（人物、地点、目标、承诺、身份、能力），丢弃琐事。
+
+【硬性要求】
+输出必须严格控制在 ${targetLen} 字以内（±30字）。宁可丢掉细节，也不要超字数。
+不要把新对话里的每个事件都列一遍，只提炼对后续剧情有影响的。
+直接输出正文，不要任何前缀、不要小标题。
+
+【旧摘要】${oldSummary||'（开头）'}
+【新对话】
+${historyText}`;
+try{
+const summary=await callDeepSeekStream([{role:'user',content:prompt}],()=>{});
+if(summary&&summary.trim().length>20){
+let finalSummary=summary.trim();
+if(finalSummary.length>MAX+50){
+  let cut=finalSummary.slice(0,MAX);
+  const lastPunc=Math.max(cut.lastIndexOf('。'),cut.lastIndexOf('！'),cut.lastIndexOf('？'),cut.lastIndexOf('；'));
+  if(lastPunc>MAX*0.6)cut=cut.slice(0,lastPunc+1);
+  finalSummary=cut;
+}
+CORE.summary=finalSummary;
+PLOT.summaryCounter=0;
+chatBox.innerHTML+=`<div class="msg-summary">记忆精炼 · 摘要 ${finalSummary.length} 字</div>`;
+chatBox.scrollTop=chatBox.scrollHeight;
+saveToPhone();
+generateChapterTitle().then(title=>{
+  if(!title) return;
+  CORE.chapterNum = (CORE.chapterNum||0) + 1;
+  CORE.chapterTitle = title;
+  insertChapterDivider(CORE.chapterNum, title);
+  if(typeof soundChapter==='function') soundChapter();
+  saveToPhone();
+});
+}
+}catch(e){PLOT.summaryCounter=0}
+}
+
+// ============================================================
+//  角色生成 / 优化
+// ============================================================
+async function generateCharacter(){
+const name=document.getElementById('roleName').value.trim();
+if(!name){alert("请先填写角色名");return}
+const gender=document.querySelector('input[name="roleGender"]:checked').value;
+const innate=parseInt(document.getElementById('innatePower').value)||5;
+const apiKey=document.getElementById('apiKey').value.trim();
+if(!apiKey){alert("请先填写API Key");return}
+const prompt=`为斗罗大陆2绝世唐门时代角色"${name}"（${gender}）生成一份角色设定，先天魂力${innate}级。包含：年龄、外貌、性格、出身背景、一个小癖好。约100-150字。直接输出描述。`;
+try{
+const reply=await callDeepSeekStream([{role:"user",content:prompt}],()=>{});
+document.getElementById('roleDesc').value=reply.trim();
+}catch(e){alert("生成失败："+e.message)}
+}
+
+async function refineCharacter(){
+  const desc = document.getElementById('roleDesc').value.trim();
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if(!desc){alert("角色设定为空，请先填写或点击上方「AI生成角色设定」");return}
+  if(!apiKey){alert("请先填写API Key");return}
+  const btn = document.querySelector('button[onclick="refineCharacter()"]');
+  const oldText = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = '优化中...'; }
+  const oldLen = desc.length;
+  try{
+    const refined = await callDeepSeekStream([{
+      role:"user",
+      content: `你是斗罗大陆2（绝世唐门时代）的角色设定编辑。
+把下面的角色设定重写为 150 字左右（120-180 字）的精炼版本。
+
+铁律：
+1) 严格保留原文的一切事实（姓名、年龄、外貌、性格、出身、特长、癖好），不得删改、不得凭空新增设定。
+2) 优化信息密度：用最少的字传达最多的关键信息，去掉排比、重复、抒情、废话。
+3) 若原文过短（<80字）：不改变原设定、不新增背景，围绕已有事实合理展开细节（例如把"温柔"写成具体行为），补到 120-180 字。
+4) 若原文过长（>200字）：压缩到 120-180 字，优先保留可复用的具体细节。
+5) 若原文已经合适（80-200字）：只做润色，字数保持在范围内。
+6) 输出：第三人称设定文，不是叙事。直接输出文本，无前缀、无标题、无引号。
+
+【原文】
+${desc}`
+    }], ()=>{});
+    if(refined && refined.trim().length >= 30){
+      const finalDesc = refined.trim();
+      document.getElementById('roleDesc').value = finalDesc;
+      alert(`已优化：${oldLen} 字 → ${finalDesc.length} 字`);
+    }else{
+      alert('优化结果异常，请重试');
+    }
+  }catch(e){
+    alert('优化失败：' + e.message);
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = oldText || 'AI优化当前设定'; }
+  }
+}
+
+// ============================================================
+//  觉醒（用 Pro 模型，两阶段：叙事 + JSON角色识别）
+// ============================================================
+async function awakenSoul(){
+if(isGenerating)return;
+const name=document.getElementById('roleName').value.trim();
+const gender=document.querySelector('input[name="roleGender"]:checked').value;
+const roleDesc=document.getElementById('roleDesc').value.trim();
+const innate=parseInt(document.getElementById('innatePower').value)||1;
+
+if(!name){
+    chatBox.innerHTML+=`<div class="msg-lose">请填写角色名！请回到主界面配置面板填写。</div>`;
+    chatBox.scrollTop=chatBox.scrollHeight;
+    return;
+}
+
+CORE.name=name;
+CORE.gender=gender;
+CORE.age=6;
+CORE.roleDesc=roleDesc||"无详细设定";
+CORE.innatePower=Math.min(Math.max(innate,1),10);
+CORE.soulPower=CORE.innatePower;
+CORE.summary='';
+CORE.rings=[];CORE.skills=[];CORE.traits=[];CORE.npcs=[];
+CORE.time='觉醒武魂当天';
+CORE.era='初始';
+CORE.weather='';
+CORE.chapterNum=0;
+CORE.chapterTitle='';
+updateAvatarPreview();
+const soulChoice=document.querySelector('input[name="soulChoice"]:checked').value;
+let customSoul='';
+if(soulChoice==='custom')customSoul=document.getElementById('customSoul').value.trim()||'未知武魂';
+
+const systemPrompt=`## 你的角色
+你是斗罗大陆2（绝世唐门时代）的武魂觉醒仪式引导者。玩家就是主角"你"，用第二人称叙述。
+
+## 世界观
+${FIXED_WORLD}
+
+## 本轮信息
+角色：${name}（${gender}，6岁）
+设定：${CORE.roleDesc}
+先天魂力：${innate}级（初始魂力=${CORE.soulPower}级）
+${customSoul?'指定武魂：'+customSoul:'请为角色设计一个独特武魂，给出名称与特性。'}
+
+## 叙事范例（只学密度、节奏与用语，具体内容每次全新构想）
+觉醒室的门推开，一位穿魂师制服的成年人走进来，掌心的魂导器泛着微光。
+"放松。"他把魂导器贴近你的额头，"别怕，就像被灯照了一下。"
+你闭上眼睛，感觉到一股暖流顺着经脉游走，*在胸口汇聚成一个光点*。
+"呵——"对方眼神一亮，魂导器上的刻度亮了一格，"有意思。"
+
+【状态更新】
+年龄：6
+时间：觉醒武魂当天·上午
+天气：晴
+获得特质：敏锐灵觉(先天)（对魂力波动感知较常人敏锐）
+人物：<你自己为觉醒师起一个2-3字的中文姓名>/男/<觉醒师的武魂名，2-6字，不是人名>/30级/觉醒引导者/天斗帝国魂师协会派驻觉醒师
+
+【选项】
+• 仔细感受体内的魂力流动
+• 向觉醒师询问武魂的来历
+• 看向院长，想告诉她结果
+
+## 输出结构（严格按顺序）
+1) 叙事正文 400-600 字（第二人称）
+2) 【状态更新】块（必须含上面示例中的所有字段）
+3) 【选项】块（2-3 个，每项以"•"开头）
+
+## 硬约束
+- 觉醒师姓名请你自由发挥，每次新游戏都换一个新名字，名字要有斗罗大陆风格（如：苏牧、江晨、温良、洛青、沈岳…）。
+- 人物行必须严格六段，用 / 分隔。第 3 段是武魂名，绝不能填人名。
+- 叙事正文中必须用独立一行明确写出「武魂：xxx」和「武魂描述：xxx」两行，缺一不可。这两行写在正文结尾，不写进【状态更新】块。
+- 对话用引号，心理用括号，关键动作用 *……* 包裹。
+- 结尾给出明确去向：让觉醒师或在场长辈说一句方向性的话，告诉孩子接下来去哪。方向句换着用（去某学院报名 / 你这武魂偏某系，更适合某学院，回头写封信 / 先回家跟父母说一声，过几天再来 / 去魂师协会登记，那边会安排启蒙课）。
+- 【选项】里必须包含 2-3 个具体可执行的下一步方向（去某处报名 / 回家告诉父母 / 去魂师协会 / 拜访某位长辈），让玩家清楚知道该往哪走。
+- 每次新游戏的觉醒场景都从零构想：房间形制、觉醒师（性别/年龄/外貌/武魂）、使用的器材、开场动作、在场者，全部全新设计。范例只用来感受叙事密度和节奏，不提供可复用的具体元素。`;
+
+isGenerating=true;sendBtn.disabled=true;userInput.disabled=true;
+try{
+const reply=await streamAndProcess([{role:"user",content:systemPrompt}], {model:'deepseek-v4-pro'});
+applyScene(stripStatus(reply));
+
+const parsed = await parseStructuredUpdate(stripStatus(reply), '觉醒武魂');
+const update=parsed.update;
+update.soulPowerBase=0;update.soulPowerAbsolute=null;
+
+let soulName = customSoul;
+let soulDesc = '';
+if(!soulName){
+    const patterns = [
+      /武魂[：:]\s*([^\n【]{2,15}?)(?=\s*武魂描述|【|$)/,
+      /武魂(?:名[为叫]?|是|叫做?)[：:：]?\s*[「“"]?([^\n【，。、"」]{2,12})[」”"]?/,
+      /觉醒(?:出了?|的武魂[是为])[：:：]?\s*[「“"]?([^\n【，。、"」]{2,12})[」”"]?/,
+      /【武魂[：:]\s*([^\n】]+)】/,
+    ];
+    for(const re of patterns){
+      const nm = reply.match(re);
+      if(nm){ soulName = nm[1].trim().replace(/[。，,.]$/,''); break; }
+    }
+    const descMatch = reply.match(/武魂描述[：:]\s*([^\n【]+)/);
+    if(descMatch) soulDesc = descMatch[1].trim();
+    if(!soulName) soulName = '未知武魂';
+    if(soulName.length > 15) soulName = soulName.slice(0, 15);
+}
+CORE.martialSoul = soulName;
+CORE.martialSoulDesc = soulDesc;
+
+applyUpdate(update);
+CORE.soulPower=CORE.innatePower;
+PLOT.history=[];PLOT.turn=0;PLOT.isFirst=false;PLOT.summaryCounter=0;
+PLOT.history.push({role:"assistant",content:reply});
+updateStatus();saveToPhone();
+appendOptions(parsed.options);
+
+if(!soulName || soulName === '未知武魂' || soulName === '未觉醒'){
+  chatBox.innerHTML += `<div class="msg-sys" style="color:#fbbf24;font-size:12px;">⚠️ 未能从觉醒叙事中识别武魂，可点「⋯ → 编辑角色档案」手动补上。</div>`;
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+}catch(e){
+console.error(e);
+chatBox.innerHTML+=`<div class="msg-lose">觉醒失败：${escapeHtml(e.message)}</div>`;
+chatBox.scrollTop=chatBox.scrollHeight;
+}
+finally{isGenerating=false;sendBtn.disabled=false;userInput.disabled=false;userInput.focus()}
+}
+
+// ============================================================
+//  开始 / 继续
+// ============================================================
+function startNewGame(){
+isGenerating = false;
+const key=document.getElementById('apiKey').value.trim();
+if(!key){alert("请填入 DeepSeek API Key");return}
+
+const roleName = document.getElementById('roleName').value.trim();
+if(!roleName){
+    chatBox.innerHTML+=`<div class="msg-lose">请先在配置面板填写角色名，再开始游戏。</div>`;
+    chatBox.scrollTop=chatBox.scrollHeight;
+    return;
+}
+
+const hasValidSave = localStorage.getItem('douro2Save') && CORE.name && CORE.martialSoul !== '未觉醒';
+if(hasValidSave && !confirm("已有存档，开始新游戏会覆盖。确定？")) return;
+
+localStorage.removeItem('douro2Save');
+const _keepAvatar = CORE.avatar || '';
+Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:0,roleDesc:'',martialSoul:'未觉醒',martialSoulDesc:'',innatePower:5,soulPower:1,rings:[],skills:[],traits:[],npcs:[],flags:{},summary:'',time:'觉醒武魂当天',era:'初始',weather:'',chapterNum:0,chapterTitle:''});
+Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
+
+resetScene();
+
+document.getElementById('config-inputs').classList.remove('hidden');
+configPanel.style.display='none';
+gameArea.style.display='flex';
+try {
+  chatBox.innerHTML=`<div class="msg-sys">欢迎，${escapeHtml(document.getElementById('roleName').value||'旅者')}。准备觉醒武魂...</div>`;
+  setTimeout(()=>sendAction("觉醒武魂"),400);
+} catch(e) {
+  console.error('[startNewGame]', e);
+  chatBox.innerHTML += `<div class="msg-lose">启动失败：${escapeHtml(e.message)}</div>`;
+}
+}
+
+function continueGame(){
+isGenerating = false;
+const key=document.getElementById('apiKey').value.trim();
+if(!key){alert("请填入 DeepSeek API Key");return}
+configPanel.style.display='none';
+gameArea.style.display='flex';
+chatBox.innerHTML=`<div class="msg-sys">继续游戏，${escapeHtml(CORE.name)}。</div>`;
+const recent=PLOT.history.slice(-6);
+recent.forEach(item=>{
+if(item.role==='user')chatBox.innerHTML+=userMsgHtml(item.content,false);
+else if(item.role==='assistant')chatBox.innerHTML+=`<div class="msg-ai">${escapeHtml(stripStatus(item.content))}</div>`;
+});
+if(CORE.summary)chatBox.innerHTML+=`<div class="msg-summary">${escapeHtml(CORE.summary)}</div>`;
+updateStatus();
+appendOptions(["继续剧情"]);
+userInput.focus();
+}78bfa;">⚠️ 正文检测到魂力提升但状态块未写，已自动补录：${CORE.soulPower} → ${v}</div>`;
         break;
       }
     }
