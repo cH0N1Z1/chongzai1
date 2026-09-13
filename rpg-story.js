@@ -308,10 +308,14 @@ tw.done = true;
 if(tw.timer){ clearTimeout(tw.timer); tw.timer = null; }
 tw.shown = tw.pending.length;
 if(!tw.pending && fullReply){
-  tw.pending = stripStatus(fullReply) || '（AI 未返回叙事，请继续）';
+  tw.pending = stripStatus(fullReply) || '（本轮 AI 未返回叙事，请继续）';
   tw.shown = tw.pending.length;
 }
-aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending)) || '...';
+if(!tw.pending){
+  tw.pending = '（本轮 AI 未返回叙事，请继续）';
+  tw.shown = tw.pending.length;
+}
+aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending));
 aiMsgDiv.classList.remove('streaming');
 chatBox.removeEventListener('scroll', onStreamScroll);
 applyScene(displayContent);
@@ -437,6 +441,7 @@ ${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
 - 觉醒形态是入学时获得的初始形态；成长随剧情自然演化；关键在剧情重大节点获得；稀有极难获得、往往有代价；传说几乎没人见过。
 
 ## 硬约束
+- 每轮必须写正文，正文不少于 60 字。即使剧情是承接上一轮，也要重新叙述当前场景。
 - 时间每轮必写，且简洁（不超过15字）。
 - 只有写进【状态更新】的才生效。
 - 主角性别为 ${CORE.gender}。
