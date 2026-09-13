@@ -79,16 +79,51 @@ function findNpcAt(placeId){
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
+// 当前学期对应的年级 key（'1' ~ '6'）
+function getCurrentGradeKey(){
+  const t = String(CORE.term || '一年级上学期');
+  const m = t.match(/([一二三四五六])年级/);
+  const map = {'一':'1','二':'2','三':'3','四':'4','五':'5','六':'6'};
+  return m ? (map[m[1]] || '1') : '1';
+}
+
+// 把 NPC 档案拼成 prompt 块
 function buildNpcBlock(npc){
   if(!npc) return '';
+
+  // 合并 base + 当前年级 evolve
+  const evo = (npc.evolve && npc.evolve[getCurrentGradeKey()]) || {};
+  const m = Object.assign({}, npc, evo);
+
   let s = '\n## 本场景出场人物\n';
-  s += `姓名：${npc.name}\n`;
-  s += `性别：${npc.gender} · 年级：${npc.grade}\n`;
-  if(npc.appearance) s += `外貌：${npc.appearance}\n`;
-  if(Array.isArray(npc.personality)) s += `性格：${npc.personality.join('、')}\n`;
-  if(npc.arcane) s += `术式：${npc.arcane}（${npc.arcaneImage||''}）\n`;
-  if(npc.speech) s += `说话方式：${npc.speech}\n`;
-  s += `（秘密：${npc.secret||'无'}，不要直接说出，只做暗示）\n`;
+  s += `姓名：${m.name}（${m.gender}，${m.age||12}岁）\n`;
+  s += `年级：${m.grade||'一年级上'}\n`;
+
+  if(m.appearance){
+    if(typeof m.appearance === 'object'){
+      const a = m.appearance;
+      if(a.hair)   s += `发色/发型：${a.hair}\n`;
+      if(a.eyes)   s += `眼睛：${a.eyes}\n`;
+      if(a.face)   s += `脸与五官：${a.face}\n`;
+      if(a.height) s += `身高：${a.height}cm\n`;
+      if(a.build)  s += `体型：${a.build}\n`;
+      if(a.style)  s += `穿搭/细节：${a.style}\n`;
+    } else {
+      s += `外貌：${m.appearance}\n`;
+    }
+  }
+
+  if(Array.isArray(m.personality)) s += `性格：${m.personality.join('、')}\n`;
+  if(m.habits) s += `惯用动作：${m.habits}\n`;
+  if(Array.isArray(m.likes))    s += `喜欢：${m.likes.join('、')}\n`;
+  if(Array.isArray(m.dislikes)) s += `不喜欢：${m.dislikes.join('、')}\n`;
+  if(m.attitude) s += `对人的态度：${m.attitude}\n`;
+  if(m.arcane) s += `术式：${m.arcane}（${m.arcaneImage||''}）\n`;
+  if(m.speech) s += `说话方式：${m.speech}\n`;
+  if(m.roleInGroup) s += `群体定位：${m.roleInGroup}\n`;
+  if(m.aloneBehavior) s += `独处时的样子：${m.aloneBehavior}\n`;
+  s += `（秘密：${m.secret||'无'}，不要直接说出，只做暗示）\n`;
+  s += `写作要求：让 TA 的言行符合以上惯用动作、喜好、态度、独处习惯，自然地说 1-2 句话。\n`;
   return s;
 }
 

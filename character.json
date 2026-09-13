@@ -1,0 +1,275 @@
+{
+  "_note": "星辉学院角色库 · 61届固定 5 名同届生。主角为第 6 人，性别不影响这 5 人。base + evolve 结构，evolve 目前只写一年级。",
+  "classmates": [
+    {
+      "id": "gongshouqin",
+      "name": "宫守琴",
+      "gender": "女",
+      "age": 12,
+      "grade": "一年级上",
+      "room": "101",
+      "dept": "无",
+      "appearance": {
+        "hair": "深棕色长发，过肩一点，平时松松扎一半，剩下半披在肩上",
+        "eyes": "茶色瞳，细长眼，看人时像隔着一层",
+        "face": "脸小，鼻梁细，嘴唇偏薄。不太笑，笑起来右边有个小梨涡",
+        "height": 155,
+        "build": "纤细，肩窄，骨架小，走路脚步很轻",
+        "style": "校服穿得规矩，衬衫永远浅色。耳机一只戴耳朵，一只挂颈侧"
+      },
+      "personality": ["温和", "疏远", "观察者", "慢热"],
+      "habits": "想事情时单手转笔；放松时会哼一小段不成调的东西",
+      "likes": ["安静", "音乐", "一个人待着"],
+      "dislikes": ["被问'你在想什么'"],
+      "attitude": "慢热，对谁都保持距离，但记住的东西比谁都多",
+      "arcane": "弦余",
+      "arcaneImage": "音、共振、残余",
+      "secret": "她会弹的曲子，是学来的，不是自己写的",
+      "speech": "轻声，短句，偶尔一句话戳到底",
+      "roleInGroup": "观察者",
+      "initialAffinity": 10,
+      "fear": "被问'你在想什么'",
+      "hiddenTalent": "听一遍旋律就能复现",
+      "origin": "从别的城市搬来的，搬来那年刚好 12 岁",
+      "aloneBehavior": "一个人去天台，戴着耳机，不播放任何东西",
+      "initialAttitude": {
+        "裴野": "太吵了",
+        "月见澄": "她也站在边上。但不一样。"
+      },
+      "commonPlaces": ["宿舍", "天台", "音乐室"],
+      "optionalFor": null,
+      "evolve": {
+        "1": {
+          "personality": ["温和", "疏远", "观察者", "慢热"],
+          "attitude": "对谁都保持距离，但记住的东西比谁都多",
+          "habits": "想事情时单手转笔"
+        }
+      }
+    },
+    {
+      "id": "guchi",
+      "name": "顾 迟",
+      "gender": "女",
+      "age": 12,
+      "grade": "一年级上",
+      "room": "102",
+      "dept": "无",
+      "appearance": {
+        "hair": "齐肩黑发，剪得很齐，没有刘海，全部别到耳后",
+        "eyes": "单眼皮，眼睛不大，但看东西时特别稳",
+        "face": "脸型偏长，五官清淡。不太有表情，看起来像在发呆",
+        "height": 152,
+        "build": "偏瘦，肩背很直，走路没声音",
+        "style": "校服穿得最标准，鞋带永远系两遍"
+      },
+      "personality": ["慢", "观察", "不多话", "记性好"],
+      "habits": "做什么都慢半拍；听人说话时会微微歪头",
+      "likes": ["慢慢来", "看人来人往"],
+      "dislikes": ["被催"],
+      "attitude": "话不多，但每次开口都很准",
+      "arcane": "迟响",
+      "arcaneImage": "迟、回声、余音",
+      "secret": "她的'慢'是练出来的，不是天生的",
+      "speech": "语速很慢，每个字都像放上去的",
+      "roleInGroup": "记录者",
+      "initialAffinity": 15,
+      "fear": "在人群里被突然点到",
+      "hiddenTalent": "见过一次的人脸，永远记得",
+      "origin": "本地人。家在学校对面那栋老楼里",
+      "aloneBehavior": "一个人坐在楼梯间，听自己脚步声的回音",
+      "initialAttitude": {
+        "宫守琴": "她也不急。",
+        "瑞恩·凯": "他太快了。跟不上。"
+      },
+      "commonPlaces": ["宿舍", "教学楼", "天台"],
+      "optionalFor": null,
+      "evolve": {
+        "1": {
+          "personality": ["慢", "观察", "不多话", "记性好"],
+          "attitude": "话不多，但每次开口都很准",
+          "habits": "听人说话时会微微歪头"
+        }
+      }
+    },
+    {
+      "id": "yuejiancheng",
+      "name": "月见 澄",
+      "gender": "女",
+      "age": 12,
+      "grade": "一年级上",
+      "room": "103",
+      "dept": "无",
+      "appearance": {
+        "hair": "黑长直，齐刘海，头发长度到腰，从来不扎",
+        "eyes": "单眼皮，眼睛很深，看人时像在透过去看什么",
+        "face": "五官端正，嘴唇偏薄。极少笑",
+        "height": 164,
+        "build": "匀称，背挺得很直，站姿像被量过",
+        "style": "校服一丝不苟，袖口扣到最上面那颗"
+      },
+      "personality": ["冷淡", "直接", "理性", "毒舌"],
+      "habits": "说话时眼睛不看你；不悦时用指尖轻轻敲桌面",
+      "likes": ["清楚的东西"],
+      "dislikes": ["含糊其辞"],
+      "attitude": "说话直接，不绕弯。常常得罪人，但自己不觉得",
+      "arcane": "澄月",
+      "arcaneImage": "月、倒影、静水",
+      "secret": "她说话直，是因为小时候被人骗过太多次",
+      "speech": "短句。一针见血。句尾偶尔带一点讽刺",
+      "roleInGroup": "刺猬",
+      "initialAffinity": 5,
+      "fear": "被人相信（她怕辜负）",
+      "hiddenTalent": "一眼看出别人在撒谎",
+      "origin": "父母是研究者。从小在实验室里长大",
+      "aloneBehavior": "一个人在天台看云，什么也不做",
+      "initialAttitude": {
+        "瑞恩·凯": "太吵。",
+        "神代灯": "……还行。他不废话。"
+      },
+      "commonPlaces": ["天台", "图书馆", "教学楼"],
+      "optionalFor": null,
+      "evolve": {
+        "1": {
+          "personality": ["冷淡", "直接", "理性", "毒舌"],
+          "attitude": "说话直接，不绕弯。常常得罪人，但自己不觉得",
+          "habits": "说话时眼睛不看你"
+        }
+      }
+    },
+    {
+      "id": "peiye",
+      "name": "裴 野",
+      "gender": "男",
+      "age": 12,
+      "grade": "一年级上",
+      "room": "104",
+      "dept": "无",
+      "appearance": {
+        "hair": "黑短发，自然乱。没打理过",
+        "eyes": "浓眉，眼睛不大但有神。笑起来眼睛会眯成一条缝",
+        "face": "脸型方，下巴有棱角。右眉尾一颗小痣",
+        "height": 178,
+        "build": "壮实，肩膀宽，手脚都比同届大一号",
+        "style": "校服外套永远敞着，领带懒得打，球鞋是最旧的一双"
+      },
+      "personality": ["直", "护短", "大嗓门", "爱打抱不平"],
+      "habits": "发火时会先挠后脑勺；认真时会压低声音",
+      "likes": ["热闹", "打球", "吃辣"],
+      "dislikes": ["被冤枉"],
+      "attitude": "对所有人都是'兄弟'叫法，但对女生会突然客气起来",
+      "arcane": "野烧",
+      "arcaneImage": "野火、荒草、蔓延",
+      "secret": "他会记住所有人的生日，但装作不在意",
+      "speech": "嗓门大，语速快，句尾总带点'哈'",
+      "roleInGroup": "护短大哥",
+      "initialAffinity": 30,
+      "fear": "被误解成'坏人'",
+      "hiddenTalent": "做菜。尤其是辣菜",
+      "origin": "家里开小饭馆",
+      "aloneBehavior": "半夜一个人在后厨练刀工",
+      "initialAttitude": {
+        "宫守琴": "她好像不太喜欢我。算了。",
+        "神代灯": "看着还行，能一起打球。"
+      },
+      "commonPlaces": ["食堂", "训练场", "宿舍"],
+      "optionalFor": null,
+      "evolve": {
+        "1": {
+          "personality": ["直", "护短", "大嗓门", "爱打抱不平"],
+          "attitude": "对所有人都是'兄弟'叫法，但对女生会突然客气起来",
+          "habits": "发火时会先挠后脑勺"
+        }
+      }
+    },
+    {
+      "id": "shendai-deng",
+      "name": "神代 灯",
+      "gender": "男",
+      "age": 12,
+      "grade": "一年级上",
+      "room": "105",
+      "dept": "无",
+      "appearance": {
+        "hair": "棕色短发，中分，梳得整整齐齐",
+        "eyes": "眼睛温润，眼角微垂。看人时总像在笑",
+        "face": "脸型偏圆，五官柔。看起来比实际年龄小一点",
+        "height": 170,
+        "build": "中等偏瘦，走路稳稳的，不太有声音",
+        "style": "校服穿得干净，鞋面擦得很亮。左手腕上有块旧手表"
+      },
+      "personality": ["温和", "稳", "安静", "照顾人"],
+      "habits": "说话时会微微前倾；紧张时会整理袖口",
+      "likes": ["做饭", "打扫", "被需要"],
+      "dislikes": ["被说'谢谢'（不是不喜欢，是不知道怎么回）"],
+      "attitude": "对谁都好，但从不说自己",
+      "arcane": "灯守",
+      "arcaneImage": "灯、火、守护",
+      "secret": "他有个没告诉任何人的哥哥，曾经也是星辉学生",
+      "speech": "语气平缓，句子完整，很少用语气词",
+      "roleInGroup": "粘合剂",
+      "initialAffinity": 20,
+      "fear": "不重要",
+      "hiddenTalent": "做一桌菜。任何食材都能上手",
+      "origin": "寄住在亲戚家",
+      "aloneBehavior": "宿舍里自己做饭，从不去食堂",
+      "initialAttitude": {
+        "宫守琴": "她看起来需要一点自己的空间。",
+        "月见澄": "她其实不太会说'不'。"
+      },
+      "commonPlaces": ["宿舍", "食堂", "便利店"],
+      "optionalFor": null,
+      "evolve": {
+        "1": {
+          "personality": ["温和", "稳", "安静", "照顾人"],
+          "attitude": "对谁都好，但从不说自己",
+          "habits": "说话时会微微前倾"
+        }
+      }
+    },
+    {
+      "id": "ryan-kay",
+      "name": "瑞恩·凯",
+      "gender": "男",
+      "age": 12,
+      "grade": "一年级上",
+      "room": "106",
+      "dept": "无",
+      "appearance": {
+        "hair": "浅棕发，微卷，总有一撮翘起来",
+        "eyes": "浅灰色眼睛，笑的时候弯成月牙",
+        "face": "脸型偏圆，脸颊有肉。左耳一颗小痣",
+        "height": 175,
+        "build": "匀称，手脚灵活，坐不住",
+        "style": "校服永远少一颗扣子。袖子卷到手肘"
+      },
+      "personality": ["散漫", "爱笑", "自来熟", "藏不住"],
+      "habits": "笑的时候会晃脑袋；避开话题时会站起来走两步",
+      "likes": ["说话", "凑热闹"],
+      "dislikes": ["安静的房间"],
+      "attitude": "对谁都聊得来，但没人真的了解他",
+      "arcane": "风蚀",
+      "arcaneImage": "风、蚀、消磨",
+      "secret": "他的术式在侵蚀他自己",
+      "speech": "语速快，爱开玩笑，正经起来声音会低下去",
+      "roleInGroup": "小太阳",
+      "initialAffinity": 40,
+      "fear": "一个人",
+      "hiddenTalent": "什么都学得快。学什么会什么",
+      "origin": "家里有三个姐姐",
+      "aloneBehavior": "他不会独处。会去找人。没人的话，就去便利店跟店长聊天。",
+      "initialAttitude": {
+        "月见澄": "她好冷啊哈哈。",
+        "顾迟": "她看我像看电影。有点吓人。"
+      },
+      "commonPlaces": ["便利店", "食堂", "训练场"],
+      "optionalFor": null,
+      "evolve": {
+        "1": {
+          "personality": ["散漫", "爱笑", "自来熟", "藏不住"],
+          "attitude": "对谁都聊得来，但没人真的了解他",
+          "habits": "笑的时候会晃脑袋"
+        }
+      }
+    }
+  ]
+}
