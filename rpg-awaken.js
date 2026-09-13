@@ -420,6 +420,12 @@ async function awakenArcane(){
     PLOT.history.push({role:"assistant", content:`你收到星辉信，来到梧桐街 47 号。在门厅里和宫守琴、顾迟、裴野、神代灯、瑞恩·凯初次见面。术式觉醒——${arcane.name}。学姐时雨接待了你们，逐个叫出了所有人的名字，没有解释。她发给每人一枚手环，戴上手环，校服自动生成。她说先去宿舍。`});
 
     updateStatus();
+
+    // 把同届生写进人物面板（初始好感来自角色库 initialAffinity）
+    if(typeof getAvailableClassmates === 'function' && typeof registerNpcFromLibrary === 'function'){
+      getAvailableClassmates().forEach(n => registerNpcFromLibrary(n));
+    }
+
     saveToPhone();
 
     if(typeof renderPlacePanel === 'function') renderPlacePanel(true);

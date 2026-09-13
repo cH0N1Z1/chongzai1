@@ -462,63 +462,17 @@ function showSoulDesc() {
 }
 
 // ============================================================
-//  人物弹窗（主角档案 + NPC 列表）
+//  人物面板（列表 + 详情弹窗）
 // ============================================================
-function renderSelfProfileBlock(sp){
-  if(!sp) return '';
-  const app = sp.appearance || {};
-  let appLine = '';
-  if(app && typeof app === 'object'){
-    const parts = [];
-    if(app.hair) parts.push('发：' + app.hair);
-    if(app.eyes) parts.push('眼：' + app.eyes);
-    if(app.face) parts.push('脸：' + app.face);
-    if(app.height) parts.push('身高：' + app.height + 'cm');
-    if(app.build) parts.push('体型：' + app.build);
-    if(app.style) parts.push('穿搭：' + app.style);
-    appLine = parts.join(' · ');
-  } else if(typeof app === 'string'){ appLine = app; }
-  const arr = v => Array.isArray(v) ? v.join('、') : (v || '');
-  const rows = ['<div style="color:#4ade80;font-weight:600;margin-bottom:6px;">现役 · 主角</div>'];
-  rows.push(`<div>性别：${escapeHtml(sp.gender || CORE.gender || '?')}</div>`);
-  rows.push(`<div>年龄：${escapeHtml(String(sp.age || CORE.age || 12))}岁</div>`);
-  if(CORE.arcane && CORE.arcane !== '未觉醒') rows.push(`<div>本命术式：${escapeHtml(CORE.arcane)}</div>`);
-  if(appLine) rows.push(`<div style="margin-top:6px;">${escapeHtml(appLine)}</div>`);
-  const pers = arr(sp.personality); if(pers) rows.push(`<div>性格：${escapeHtml(pers)}</div>`);
-  if(sp.habits) rows.push(`<div>惯用动作：${escapeHtml(sp.habits)}</div>`);
-  const lk = arr(sp.likes); if(lk) rows.push(`<div>喜欢：${escapeHtml(lk)}</div>`);
-  const dl = arr(sp.dislikes); if(dl) rows.push(`<div>不喜欢：${escapeHtml(dl)}</div>`);
-  if(sp.attitude) rows.push(`<div>对人态度：${escapeHtml(sp.attitude)}</div>`);
-  if(sp.speech) rows.push(`<div>说话方式：${escapeHtml(sp.speech)}</div>`);
-  if(sp.origin) rows.push(`<div>出身：${escapeHtml(sp.origin)}</div>`);
-  if(sp.hiddenTalent) rows.push(`<div>隐藏特长：${escapeHtml(sp.hiddenTalent)}</div>`);
-  if(sp.aloneBehavior) rows.push(`<div>独处时：${escapeHtml(sp.aloneBehavior)}</div>`);
-  if(sp._raw) rows.push(`<div style="margin-top:6px;color:#8b949e;">${escapeHtml(sp._raw)}</div>`);
-  return `<div class="expandable-item" onclick="toggleExpand(this)" style="border-left:3px solid #4ade80;"><div class="expandable-header">${avatarHTML(CORE.name)}<span class="name" style="color:#4ade80;">${escapeHtml(CORE.name)}（你）</span></div><div class="expandable-detail">${rows.join('')}</div></div>`;
+function normName(s){ return String(s||'').replace(/\s+/g,''); }
+
+function findLibraryNpc(name){
+  if(!CHARACTERS || !CHARACTERS.loaded) return null;
+  const list = CHARACTERS.classmates || [];
+  const target = normName(name);
+  return list.find(c => normName(c.name) === target) || null;
 }
 
-function openNPCs(){
-  const container = document.getElementById('npcsContent');
-  const selfHtml = CORE.selfProfile ? renderSelfProfileBlock(CORE.selfProfile) : '';
-  if(CORE.npcs.length === 0 && !selfHtml){
-    container.innerHTML = '暂无重要人物';
-  } else {
-    const tmp = document.createElement('div');
-    renderExpandableList(tmp, CORE.npcs, {
-      emptyText: '',
-      avatarFn: (n)=>avatarHTML(n.name),
-      removeFn: 'removeNPCItem',
-      nameClassFn: (n)=>n.status==='archived'?'npc-archived':'',
-      detailFn: (n)=>{
-        const tag = n.status==='archived' ? `<span style="color:#a78bfa;">【已归档 · 定格于「${escapeHtml(n.archTime||'')}」】</span>` : `<span style="color:#4ade80;">【现役】</span>`;
-        const aff = typeof n.affinity === 'number' ? `<div>好感：<span style="color:${affinityColor(n.affinity)}">${n.affinity}</span> / 100</div>` : '';
-        return `${tag}<div style="margin-top:6px;">性别：${escapeHtml(n.gender||'?')}</div><div>年级：${escapeHtml(n.grade||n.term||'?')}</div><div>部门：${escapeHtml(n.dept||'无')}</div><div>术式：${escapeHtml(n.arcane||'?')}</div>${aff}<div>关系：${escapeHtml(n.relation||'?')}</div><div style="margin-top:6px;color:#c9d1d9;">${escapeHtml(n.desc||'')}</div>`;
-      }
-    });
-    container.innerHTML = selfHtml + tmp.innerHTML;
-  }
-  openModal('npcsModal');
-}
 function affinityColor(v){
   if(v>=81) return '#f472b6';
   if(v>=61) return '#4ade80';
@@ -526,7 +480,296 @@ function affinityColor(v){
   if(v>=21) return '#fbbf24';
   return '#8b949e';
 }
-function removeNPCItem(idx){CORE.npcs.splice(idx,1);updateStatus();openNPCs()}
+
+function renderNpcListItem(opts){
+  const { key, name, sub, tag, isSelf, archived } = opts;
+  const cls = 'npc-list-item' + (isSelf?' self':'') + (archived?' archived':'');
+  return `<div class="${cls}" onclick="openNpcDetail('${key}')">
+    <div class="npc-list-avatar">${avatarHTML(name)}</div>
+    <div class="npc-list-info">
+      <div class="npc-list-name">${escapeHtml(name)}</div>
+      <div class="npc-list-sub">${escapeHtml(sub||'')}</div>
+    </div>
+    <div class="npc-list-tag">${escapeHtml(tag||'')}</div>
+  </div>`;
+}
+
+function openNPCs(){
+  const container = document.getElementById('npcsContent');
+  if(!container) return;
+  let html = '';
+  if(CORE.selfProfile){
+    html += renderNpcListItem({
+      key: 'self',
+      name: CORE.name,
+      sub: (CORE.arcane && CORE.arcane !== '未觉醒') ? CORE.arcane : '术式未觉醒',
+      tag: '主角',
+      isSelf: true
+    });
+  }
+  (CORE.npcs||[]).forEach((n, i) => {
+    const archived = n.status === 'archived';
+    html += renderNpcListItem({
+      key: 'npc:' + i,
+      name: n.name,
+      sub: (n.arcane && n.arcane !== '未知') ? n.arcane : '术式未知',
+      tag: archived ? '归档' : (n.relation || '同届生'),
+      isSelf: false,
+      archived
+    });
+  });
+  if(!html){
+    html = '<div style="text-align:center;color:#8b949e;padding:22px;font-size:13px;">暂无重要人物</div>';
+  }
+  container.innerHTML = html;
+  openModal('npcsModal');
+}
+
+function openNpcDetail(key){
+  const container = document.getElementById('npcDetailContent');
+  if(!container) return;
+  if(key === 'self'){
+    container.innerHTML = renderSelfDetail();
+  } else if(key.startsWith('npc:')){
+    const i = parseInt(key.slice(4));
+    const n = CORE.npcs[i];
+    if(!n) return;
+    container.innerHTML = renderNpcDetail(n, i);
+  }
+  openModal('npcDetailModal');
+}
+
+function renderSelfDetail(){
+  const sp = CORE.selfProfile || {};
+  const name = CORE.name || '未命名';
+  const gender = sp.gender || CORE.gender || '?';
+  const age = sp.age || CORE.age || 12;
+  const arcane = CORE.arcane || '未觉醒';
+  const arcaneDesc = CORE.arcaneDesc || '';
+
+  const app = (sp.appearance && typeof sp.appearance === 'object') ? sp.appearance : null;
+  const appRows = [];
+  if(app){
+    if(app.hair) appRows.push(`<div class="kv"><span class="k">发</span><span class="v">${escapeHtml(app.hair)}</span></div>`);
+    if(app.eyes) appRows.push(`<div class="kv"><span class="k">眼</span><span class="v">${escapeHtml(app.eyes)}</span></div>`);
+    if(app.face) appRows.push(`<div class="kv"><span class="k">脸</span><span class="v">${escapeHtml(app.face)}</span></div>`);
+    if(app.height) appRows.push(`<div class="kv"><span class="k">身高</span><span class="v">${escapeHtml(String(app.height))}cm</span></div>`);
+    if(app.build) appRows.push(`<div class="kv"><span class="k">体型</span><span class="v">${escapeHtml(app.build)}</span></div>`);
+    if(app.style) appRows.push(`<div class="kv"><span class="k">穿搭</span><span class="v">${escapeHtml(app.style)}</span></div>`);
+  } else if(sp.appearance && typeof sp.appearance === 'string'){
+    appRows.push(`<div class="kv"><span class="v">${escapeHtml(sp.appearance)}</span></div>`);
+  }
+
+  return buildDetailHTML({
+    name, gender, age,
+    tags: [
+      { text: gender, cls: '' },
+      { text: age + '岁', cls: '' },
+      { text: '一年级上', cls: '' },
+      { text: '106', cls: '' },
+      { text: '主角', cls: 'self' }
+    ],
+    isSelf: true,
+    arcane, arcaneDesc,
+    affinity: null,
+    sections: buildSelfSections(sp, appRows)
+  });
+}
+
+function buildSelfSections(sp, appRows){
+  const s = [];
+  if(appRows.length){
+    s.push({
+      title: '外貌',
+      body: appRows.join('')
+    });
+  }
+  const personality = Array.isArray(sp.personality) ? sp.personality : [];
+  const habits = sp.habits || '';
+  if(personality.length || habits){
+    let body = '';
+    if(personality.length){
+      body += `<div class="npc-chip-row">${personality.map(p=>`<span class="npc-chip">${escapeHtml(p)}</span>`).join('')}</div>`;
+    }
+    if(habits) body += `<div style="margin-top:8px;">${escapeHtml(habits)}</div>`;
+    s.push({ title: '性格与习惯', body });
+  }
+  const likes = Array.isArray(sp.likes) ? sp.likes : [];
+  const dislikes = Array.isArray(sp.dislikes) ? sp.dislikes : [];
+  if(likes.length || dislikes.length){
+    let body = '';
+    if(likes.length) body += `<div style="margin-bottom:6px;"><span style="color:#8b949e;font-size:12px;margin-right:6px;">喜欢</span><div class="npc-chip-row" style="display:inline-flex;">${likes.map(x=>`<span class="npc-chip like">${escapeHtml(x)}</span>`).join('')}</div></div>`;
+    if(dislikes.length) body += `<div><span style="color:#8b949e;font-size:12px;margin-right:6px;">不喜欢</span><div class="npc-chip-row" style="display:inline-flex;">${dislikes.map(x=>`<span class="npc-chip dislike">${escapeHtml(x)}</span>`).join('')}</div></div>`;
+    s.push({ title: '喜好', body });
+  }
+  const kvRows = [];
+  if(sp.attitude) kvRows.push(`<div class="kv"><span class="k">态度</span><span class="v">${escapeHtml(sp.attitude)}</span></div>`);
+  if(sp.speech) kvRows.push(`<div class="kv"><span class="k">说话</span><span class="v">${escapeHtml(sp.speech)}</span></div>`);
+  if(sp.origin) kvRows.push(`<div class="kv"><span class="k">出身</span><span class="v">${escapeHtml(sp.origin)}</span></div>`);
+  if(sp.hiddenTalent) kvRows.push(`<div class="kv"><span class="k">特长</span><span class="v">${escapeHtml(sp.hiddenTalent)}</span></div>`);
+  if(sp.aloneBehavior) kvRows.push(`<div class="kv"><span class="k">独处</span><span class="v">${escapeHtml(sp.aloneBehavior)}</span></div>`);
+  if(kvRows.length){
+    s.push({ title: '其他', body: kvRows.join('') });
+  }
+  if(sp._raw && !appRows.length && !personality.length){
+    s.push({ title: '原始设定', body: escapeHtml(sp._raw) });
+  }
+  return s;
+}
+
+function renderNpcDetail(n, idx){
+  const lib = findLibraryNpc(n.name);
+  const gender = n.gender || (lib && lib.gender) || '?';
+  const age = (lib && lib.age) || 12;
+  const grade = n.grade || (lib && lib.grade) || '一年级上';
+  const dept = n.dept || (lib && lib.dept) || '无';
+  const room = (lib && lib.room) || '';
+  const arcane = n.arcane || (lib && lib.arcane) || '未知';
+  const arcaneImage = (lib && lib.arcaneImage) || '';
+  const affinity = typeof n.affinity === 'number' ? n.affinity : 0;
+
+  const tags = [];
+  tags.push({ text: gender, cls: '' });
+  tags.push({ text: age + '岁', cls: '' });
+  if(grade) tags.push({ text: grade, cls: '' });
+  if(room) tags.push({ text: '房 ' + room, cls: '' });
+  if(n.relation && n.relation !== '同届生') tags.push({ text: n.relation, cls: 'accent' });
+  if(n.status === 'archived') tags.push({ text: '已归档', cls: 'archived' });
+
+  return buildDetailHTML({
+    name: n.name,
+    gender, age,
+    tags,
+    isSelf: false,
+    isArchived: n.status === 'archived',
+    arcane, arcaneDesc: arcaneImage ? arcaneImage : (n.desc || ''),
+    affinity,
+    sections: buildNpcSections(n, lib),
+    deleteIdx: idx
+  });
+}
+
+function buildNpcSections(n, lib){
+  const s = [];
+  if(lib && lib.appearance && typeof lib.appearance === 'object'){
+    const a = lib.appearance;
+    const rows = [];
+    if(a.hair) rows.push(`<div class="kv"><span class="k">发</span><span class="v">${escapeHtml(a.hair)}</span></div>`);
+    if(a.eyes) rows.push(`<div class="kv"><span class="k">眼</span><span class="v">${escapeHtml(a.eyes)}</span></div>`);
+    if(a.face) rows.push(`<div class="kv"><span class="k">脸</span><span class="v">${escapeHtml(a.face)}</span></div>`);
+    if(a.height) rows.push(`<div class="kv"><span class="k">身高</span><span class="v">${escapeHtml(String(a.height))}cm</span></div>`);
+    if(a.build) rows.push(`<div class="kv"><span class="k">体型</span><span class="v">${escapeHtml(a.build)}</span></div>`);
+    if(a.style) rows.push(`<div class="kv"><span class="k">穿搭</span><span class="v">${escapeHtml(a.style)}</span></div>`);
+    if(rows.length) s.push({ title: '外貌', body: rows.join('') });
+  }
+
+  const personality = (lib && Array.isArray(lib.personality)) ? lib.personality : [];
+  const habits = (lib && lib.habits) || '';
+  if(personality.length || habits){
+    let body = '';
+    if(personality.length){
+      body += `<div class="npc-chip-row">${personality.map(p=>`<span class="npc-chip">${escapeHtml(p)}</span>`).join('')}</div>`;
+    }
+    if(habits) body += `<div style="margin-top:8px;">${escapeHtml(habits)}</div>`;
+    s.push({ title: '性格与习惯', body });
+  }
+
+  const likes = (lib && Array.isArray(lib.likes)) ? lib.likes : [];
+  const dislikes = (lib && Array.isArray(lib.dislikes)) ? lib.dislikes : [];
+  if(likes.length || dislikes.length){
+    let body = '';
+    if(likes.length) body += `<div style="margin-bottom:6px;"><span style="color:#8b949e;font-size:12px;margin-right:6px;">喜欢</span><div class="npc-chip-row" style="display:inline-flex;">${likes.map(x=>`<span class="npc-chip like">${escapeHtml(x)}</span>`).join('')}</div></div>`;
+    if(dislikes.length) body += `<div><span style="color:#8b949e;font-size:12px;margin-right:6px;">不喜欢</span><div class="npc-chip-row" style="display:inline-flex;">${dislikes.map(x=>`<span class="npc-chip dislike">${escapeHtml(x)}</span>`).join('')}</div></div>`;
+    s.push({ title: '喜好', body });
+  }
+
+  const kv = [];
+  if(lib && lib.speech) kv.push(`<div class="kv"><span class="k">说话</span><span class="v">${escapeHtml(lib.speech)}</span></div>`);
+  if(lib && lib.attitude) kv.push(`<div class="kv"><span class="k">态度</span><span class="v">${escapeHtml(lib.attitude)}</span></div>`);
+  if(lib && lib.roleInGroup) kv.push(`<div class="kv"><span class="k">定位</span><span class="v">${escapeHtml(lib.roleInGroup)}</span></div>`);
+  if(lib && lib.origin) kv.push(`<div class="kv"><span class="k">出身</span><span class="v">${escapeHtml(lib.origin)}</span></div>`);
+  if(lib && lib.hiddenTalent) kv.push(`<div class="kv"><span class="k">特长</span><span class="v">${escapeHtml(lib.hiddenTalent)}</span></div>`);
+  if(lib && lib.aloneBehavior) kv.push(`<div class="kv"><span class="k">独处</span><span class="v">${escapeHtml(lib.aloneBehavior)}</span></div>`);
+  if(kv.length) s.push({ title: '其他', body: kv.join('') });
+
+  if(n.desc && !(lib && lib.attitude)){
+    s.push({ title: '简介', body: escapeHtml(n.desc) });
+  }
+  return s;
+}
+
+function buildDetailHTML(o){
+  const nameCls = 'npc-detail-name' + (o.isSelf ? ' is-self' : '') + (o.isArchived ? ' is-archived' : '');
+  let html = '<div class="npc-detail">';
+
+  html += '<div class="npc-detail-top">';
+  html += `<div class="npc-detail-avatar">${avatarHTML(o.name)}</div>`;
+  html += `<div class="${nameCls}">${escapeHtml(o.name)}</div>`;
+  if(o.tags && o.tags.length){
+    html += '<div class="npc-detail-tags">';
+    o.tags.forEach(t => {
+      html += `<span class="npc-detail-tag ${t.cls||''}">${escapeHtml(t.text)}</span>`;
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+
+  if(o.arcane && o.arcane !== '未觉醒' && o.arcane !== '未知'){
+    html += '<div class="npc-detail-section">';
+    html += '<div class="npc-section-title">术式</div>';
+    html += `<div class="npc-section-body"><div class="kv"><span class="k">本命</span><span class="v" style="color:#f0883e;font-weight:600;">${escapeHtml(o.arcane)}</span></div>`;
+    if(o.arcaneDesc) html += `<div class="kv"><span class="k">意象</span><span class="v">${escapeHtml(o.arcaneDesc)}</span></div>`;
+    html += '</div></div>';
+  }
+
+  if(typeof o.affinity === 'number'){
+    const col = affinityColor(o.affinity);
+    html += '<div class="npc-affinity">';
+    html += `<div class="npc-affinity-label"><span>好感度</span><span class="npc-affinity-value" style="color:${col}">${o.affinity} / 100</span></div>`;
+    html += `<div class="npc-affinity-bar"><div class="npc-affinity-fill" style="background:linear-gradient(90deg,${col},${col}cc);" data-w="${o.affinity}"></div></div>`;
+    html += '</div>';
+  }
+
+  if(o.sections && o.sections.length){
+    o.sections.forEach(sec => {
+      html += '<div class="npc-detail-section">';
+      html += `<div class="npc-section-title">${escapeHtml(sec.title)}</div>`;
+      html += `<div class="npc-section-body">${sec.body}</div>`;
+      html += '</div>';
+    });
+  }
+
+  if(typeof o.deleteIdx === 'number'){
+    html += `<div class="npc-detail-actions"><button class="btn-del" onclick="removeNPCItemFromDetail(${o.deleteIdx})">移出人物面板</button></div>`;
+  }
+
+  html += '</div>';
+
+  // 好感度动画：延迟设置宽度
+  setTimeout(() => {
+    const fill = document.querySelector('#npcDetailContent .npc-affinity-fill');
+    if(fill){
+      const w = parseInt(fill.dataset.w || '0');
+      fill.style.width = Math.max(0, Math.min(100, w)) + '%';
+    }
+  }, 60);
+
+  return html;
+}
+
+function removeNPCItem(idx){
+  CORE.npcs.splice(idx, 1);
+  updateStatus();
+  openNPCs();
+}
+
+function removeNPCItemFromDetail(idx){
+  if(!confirm('从人物面板移出？')) return;
+  CORE.npcs.splice(idx, 1);
+  saveToPhone();
+  closeModal('npcDetailModal');
+  openNPCs();
+}
 
 // ============================================================
 //  选项
@@ -608,7 +851,7 @@ function appendOptions(aiOptions){
 }
 
 // ============================================================
-//  地点面板（新）
+//  地点面板
 // ============================================================
 function renderPlacePanel(show){
   let panel = document.getElementById('place-panel');

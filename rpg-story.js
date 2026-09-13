@@ -50,7 +50,35 @@ function extractOptions(text){
 function buildCoreSummary(){
   let s = '';
   s += `姓名：${CORE.name}（${CORE.gender}），${CORE.age||12}岁。\n`;
-  s += `设定：${CORE.roleDesc}\n`;
+
+  if(CORE.selfProfile){
+    const sp = CORE.selfProfile;
+    if(sp.appearance && typeof sp.appearance === 'object'){
+      const a = sp.appearance;
+      const appParts = [];
+      if(a.hair)   appParts.push(a.hair);
+      if(a.eyes)   appParts.push(a.eyes);
+      if(a.face)   appParts.push(a.face);
+      if(a.height) appParts.push(a.height + 'cm');
+      if(a.build)  appParts.push(a.build);
+      if(a.style)  appParts.push(a.style);
+      if(appParts.length) s += `外貌：${appParts.join('，')}\n`;
+    } else if(sp.appearance){
+      s += `外貌：${sp.appearance}\n`;
+    }
+    if(Array.isArray(sp.personality) && sp.personality.length) s += `性格：${sp.personality.join('、')}\n`;
+    if(sp.habits) s += `惯用动作：${sp.habits}\n`;
+    if(Array.isArray(sp.likes) && sp.likes.length) s += `喜欢：${sp.likes.join('、')}\n`;
+    if(Array.isArray(sp.dislikes) && sp.dislikes.length) s += `不喜欢：${sp.dislikes.join('、')}\n`;
+    if(sp.attitude) s += `对人态度：${sp.attitude}\n`;
+    if(sp.speech) s += `说话方式：${sp.speech}\n`;
+    if(sp.origin) s += `出身：${sp.origin}\n`;
+    if(sp.hiddenTalent) s += `隐藏特长：${sp.hiddenTalent}\n`;
+    if(sp.aloneBehavior) s += `独处时：${sp.aloneBehavior}\n`;
+  } else {
+    s += `设定：${CORE.roleDesc}\n`;
+  }
+
   s += `本命术式：${CORE.arcane}\n`;
   if(CORE.arcaneDesc) s += `术式描述：${CORE.arcaneDesc}\n`;
   s += `学期：${CORE.term}\n`;
@@ -158,6 +186,7 @@ async function enterPlace(placeId){
 
   const place = PLACES.find(p => p.id === placeId);
   const npc = findNpcAt(placeId);
+  if(npc && typeof registerNpcFromLibrary === 'function') registerNpcFromLibrary(npc);
   const slotName = SLOTS[CORE.slot];
 
   chatBox.innerHTML += `<div class="msg-sys">${slotName} · ${place.emoji} 你去了${place.name}</div>`;

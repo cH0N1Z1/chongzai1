@@ -80,6 +80,44 @@ function findNpcAt(placeId){
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
+// 把角色库里的 NPC 写进人物面板（首次注册，已存在则更新）
+function registerNpcFromLibrary(npc){
+  if(!npc || !npc.name) return null;
+  if(!CORE.npcs) CORE.npcs = [];
+  const exist = CORE.npcs.find(n => n.name === npc.name);
+  const gradeKey = getCurrentGradeKey();
+  const evo = (npc.evolve && npc.evolve[gradeKey]) || {};
+  const m = Object.assign({}, npc, evo);
+
+  if(exist){
+    if(CORE.term) exist.term = CORE.term;
+    if(m.grade) exist.grade = m.grade;
+    return exist;
+  }
+
+  const parts = [];
+  if(Array.isArray(m.personality) && m.personality.length) parts.push(m.personality.join('、'));
+  if(m.roleInGroup) parts.push(m.roleInGroup);
+  if(m.attitude) parts.push(m.attitude);
+
+  const entry = {
+    name: m.name,
+    gender: m.gender || '未知',
+    arcane: m.arcane || '未知',
+    relation: '同届生',
+    grade: m.grade || '一年级上',
+    dept: m.dept || '无',
+    desc: parts.join('。') || '',
+    term: CORE.term || '一年级上学期',
+    status: 'active',
+    affinity: typeof m.initialAffinity === 'number' ? m.initialAffinity : 0,
+    archTime: '',
+    snapshot: null
+  };
+  CORE.npcs.push(entry);
+  return entry;
+}
+
 // 当前学期对应的年级 key（'1' ~ '6'）
 function getCurrentGradeKey(){
   const t = String(CORE.term || '一年级上学期');
