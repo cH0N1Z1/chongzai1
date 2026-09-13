@@ -497,7 +497,9 @@ function appendOptions(aiOptions){
     const container=document.createElement('div');
     container.className='options-container opt-enter';
     if(aiOptions&&aiOptions.length>0){
-      aiOptions.forEach(text=>{
+      aiOptions.forEach(opt=>{
+        const text = typeof opt === 'string' ? opt : opt.text;
+        const callback = (typeof opt === 'object' && typeof opt.onClick === 'function') ? opt.onClick : null;
         const cls = classifyOption(text);
         const btn=document.createElement('button');
         btn.className='option-btn';
@@ -512,7 +514,11 @@ function appendOptions(aiOptions){
             if(b!==btn) b.classList.add('opt-dim');
           });
           setTimeout(()=>container.classList.add('opt-exit'), 180);
-          setTimeout(()=>sendAction(text), 360);
+          if(callback){
+            setTimeout(callback, 360);
+          } else {
+            setTimeout(()=>sendAction(text), 360);
+          }
         };
         container.appendChild(btn);
       });
@@ -550,6 +556,31 @@ function appendOptions(aiOptions){
     if(old) old.remove();
     doRender();
   }
+}
+
+// ============================================================
+//  地点面板（新）
+// ============================================================
+function renderPlacePanel(show){
+  let panel = document.getElementById('place-panel');
+  if(!panel){
+    panel = document.createElement('div');
+    panel.id = 'place-panel';
+    panel.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;padding:8px 0;';
+    optionsArea.parentNode.insertBefore(panel, optionsArea);
+  }
+  if(!show){
+    panel.innerHTML = '';
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'flex';
+  const slotName = (typeof SLOTS !== 'undefined') ? SLOTS[CORE.slot] : '';
+  let html = `<div style="width:100%;font-size:12px;color:#8b949e;padding:2px 4px;margin-bottom:4px;">第 ${CORE.day} 天 · ${slotName} · 选择去处</div>`;
+  (typeof PLACES !== 'undefined' ? PLACES : []).forEach(p => {
+    html += `<button class="option-btn" style="flex:1 1 calc(25% - 6px);min-width:70px;justify-content:center;" onclick="enterPlace('${p.id}')"><span class="opt-icon">${p.emoji}</span><span class="opt-text" style="flex:0;">${p.name}</span></button>`;
+  });
+  panel.innerHTML = html;
 }
 
 // ============================================================

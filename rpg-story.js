@@ -1,407 +1,283 @@
 // ============================================================
-//  rpg-story.js - 星辉学院剧情主循环
+//  rpg-story.js - 星辉学院剧情主循环（地点 + 时段版）
 //  依赖：shared.js → rpg-core.js → rpg-ui.js
 // ============================================================
 
 // ============================================================
-//  状态解析
+//  地点 & 时段
 // ============================================================
-const STATUS_LINE_RE=/^(年龄[：:]|获得形态[：:]|删除形态[：:]|人物[：:]|重要人物[：:]|新人物[：:]|删除人物[：:]|时间[：:]|学期[：:]|归档学期[：:])/;
+const PLACES = [
+  { id:'宿舍',   name:'宿舍',   emoji:'🛏' },
+  { id:'教室',   name:'教室',   emoji:'🏫' },
+  { id:'食堂',   name:'食堂',   emoji:'🍱' },
+  { id:'图书馆', name:'图书馆', emoji:'📚' },
+  { id:'训练场', name:'训练场', emoji:'⚔' },
+  { id:'天台',   name:'天台',   emoji:'🌙' },
+  { id:'樱花道', name:'樱花道', emoji:'🌸' },
+  { id:'便利店', name:'便利店', emoji:'🏪' },
+];
 
+const SLOTS = ['早晨', '上午', '下午', '晚上'];
+
+let _currentPlace = null;   // 这个时段已经去过的地方（防止重复选）
+
+// ============================================================
+//  文本处理
+// ============================================================
 function stripStatus(text){
-  let result=text.replace(/【状态更新】[\s\S]*?(?=【选项】|$)/g,'');
-  result=result.replace(/【选项】[\s\S]*/g,'');
-  const lines=result.split('\n');
-  const kept=lines.filter(line=>{
-    const t=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();
-    if(!t)return true;
-    if(STATUS_LINE_RE.test(t))return false;
-    return true;
-  });
-  return kept.join('\n').trim();
-}
-
-async function parseStructuredUpdate(narrative, userAction){
-  const schemaExample = JSON.stringify({
-    age: null,
-    time: "描述",
-    forms: [],
-    delForms: [],
-    npcs: [],
-    delNpcs: [],
-    term: null,
-    archiveTerm: null,
-    options: ["行动1", "行动2", "行动3"]
-  });
-
-  const prompt = `你是星辉学院游戏的状态解析器。
-请阅读以下剧情叙事和玩家行动，提取本轮的状态更新和选项。
-
-当前主角状态：
-- 年龄：${CORE.age}
-- 时间：${CORE.time}
-- 学期：${CORE.term}
-- 已有术式形态：${CORE.forms.map(f=>f.name).join('、') || '无'}
-- 现役人物：${CORE.npcs.filter(n=>n.status!=='archived').map(n=>n.name).join('、') || '无'}
-
-【本轮剧情】
-${narrative}
-
-【玩家行动】
-${userAction || '（继续）'}
-
-请输出一个 JSON 对象，严格遵循以下格式：
-${schemaExample}
-
-字段说明：
-- age：如果剧情中主角年龄变化，填新年龄（12-18）；否则 null。
-- time：本轮剧情的时间描述，必须填。保持简洁（不超过15字）。
-- forms：本轮获得的术式形态列表，每项 {"name":"形态名","type":"觉醒/成长/关键/稀有/传说","desc":"描述"}。
-- delForms：本轮删除的术式形态名称列表。
-- npcs：本轮新增或更新的人物列表，每项 {"name":"姓名","gender":"性别","arcane":"术式","relation":"关系","grade":"年级","dept":"部门","desc":"描述","affinity":0-100}。
-  · grade：一年级上学期～六年级下学期 / 留校。
-  · dept：学生会（含具体分工）/ 社团名 / 无。不确定填"无"。
-- delNpcs：本轮删除的人物名称列表。
-- term：如果进入新学期，填学期名；否则 null。
-- archiveTerm：如果归档某个学期，填学期名；否则 null。
-- options：给玩家的 2-3 个可执行行动。
-
-注意：
-- 只填有变化的字段，没有变化就填 null 或空数组。
-- options 必须包含 2-3 个具体行动。
-- 直接输出 JSON，不要任何前缀说明。`;
-
-  const messages = [{role:'user', content: prompt}];
-  let raw = '';
-  try {
-    raw = await callDeepSeekStream(messages, null, {jsonMode: true});
-    let clean = raw.trim();
-    if(clean.startsWith('```')) {
-      clean = clean.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
-    }
-    const obj = JSON.parse(clean);
-
-    const update = {
-      age: (obj.age !== null && obj.age !== undefined) ? parseInt(obj.age) : null,
-      forms: Array.isArray(obj.forms) ? obj.forms.filter(f=>f && f.name) : [],
-      delForms: Array.isArray(obj.delForms) ? obj.delForms : [],
-      npcs: Array.isArray(obj.npcs) ? obj.npcs.filter(n=>n && n.name) : [],
-      delNpcs: Array.isArray(obj.delNpcs) ? obj.delNpcs : [],
-      time: obj.time || null,
-      term: obj.term || null,
-      archiveTerm: obj.archiveTerm || null
-    };
-    const options = Array.isArray(obj.options) ? obj.options.filter(o=>typeof o === 'string' && o.trim()).slice(0,3) : [];
-    return {update, options};
-  } catch(e) {
-    console.warn('JSON 状态解析失败，回退到文本解析', e);
-    const update = parseStatusUpdate(narrative + '\n' + userAction);
-    const options = extractOptions(narrative);
-    return {update, options, fallback: true};
-  }
-}
-
-function parseStatusUpdate(text){
-const update={age:null,forms:[],delForms:[],npcs:[],delNpcs:[],time:null,term:null,archiveTerm:null};
-let block='';
-const m=text.match(/【状态更新】([\s\S]*?)(?=【选项】|$)/);
-if(m){block=m[1]}else{const lines=text.split('\n');const statusLines=[];for(const line of lines){const t=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();if(STATUS_LINE_RE.test(t))statusLines.push(t)}block=statusLines.join('\n')}
-if(!block)return update;
-let mm=block.match(/年龄\s*[：:]\s*(\d+)/);
-if(mm)update.age=parseInt(mm[1])||null;
-const lines=block.split('\n').map(l=>l.trim()).filter(Boolean);
-for(let line of lines){
-line=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();
-if(!line)continue;
-const km=line.match(/^(获得形态|删除形态|人物|重要人物|新人物|删除人物|时间|学期|归档学期)[：:]\s*(.+)$/);
-if(!km)continue;
-const kw=km[1];const content=km[2].trim();
-if(kw==='获得形态'){
-  smartSplit(content).forEach(seg=>{
-    const parts = seg.split('|').map(s=>s.trim());
-    const name = parts[0];
-    if(!name || isPlaceholder(name)) return;
-    const type = parts[1] || '觉醒';
-    const desc = parts[2] || '';
-    update.forms.push({name, type, desc});
-  });
-}
-else if(kw==='删除形态')smartSplit(content).forEach(seg=>{const n=seg.trim();if(!isPlaceholder(n))update.delForms.push(n)});
-else if(kw==='人物'||kw==='重要人物'||kw==='新人物'){
-  smartSplit(content).forEach(seg=>{
-    const parts=seg.split('/').map(s=>s.trim());
-    if(parts.length<2||!parts[0]||isPlaceholder(parts[0])||parts[0].length>15)return;
-    let relation='中立', grade='', dept='', desc='', affinity=0;
-    if(parts.length>=8){
-      // 新八段：姓名/性别/术式/关系/年级/部门/描述/好感:N
-      relation=parts[3]||'中立';
-      grade=parts[4]||'';
-      dept=parts[5]||'';
-      desc=parts.slice(6).join('/')||'';
-    }else if(parts.length>=6){
-      // 旧七段：姓名/性别/术式/魔力/关系/描述/好感:N
-      relation=parts[4]||'中立';
-      desc=parts.slice(5).join('/')||'';
-    }else{
-      relation=parts[3]||'中立';
-      desc=parts[4]||'';
-    }
-    const affM = desc.match(/好感[:：]?\s*(\d+)/);
-    if(affM) affinity = parseInt(affM[1]);
-    update.npcs.push({name:parts[0],gender:parts[1]||'未知',arcane:parts[2]||'未知',relation,grade,dept,desc,affinity});
-  });
-}
-else if(kw==='删除人物')smartSplit(content).forEach(seg=>{const n=seg.trim();if(!isPlaceholder(n))update.delNpcs.push(n)});
-else if(kw==='时间'){if(!isPlaceholder(content))update.time=content}
-else if(kw==='学期'){if(!isPlaceholder(content))update.term=content.trim()}
-else if(kw==='归档学期'){if(!isPlaceholder(content))update.archiveTerm=content.trim()}
-}
-return update;
-}
-
-function applyUpdate(update){
-if(update.age!==null&&update.age>0)CORE.age=Math.min(Math.max(update.age,12),18);
-if(update.term)setTerm(update.term);
-if(update.archiveTerm)archiveTerm(update.archiveTerm);
-(update.forms||[]).forEach(f=>addForm(f.name,f.type,f.desc));
-(update.delForms||[]).forEach(n=>deleteForm(n));
-(update.npcs||[]).forEach(n=>addNPC(n.name,n.gender,n.arcane,n.relation,n.grade,n.dept,n.desc,n.affinity));
-(update.delNpcs||[]).forEach(n=>deleteNPC(n));
-if(update.time){CORE.time=update.time;chatBox.innerHTML+=`<div class="msg-time">${icon('time','#94a3b8')}${escapeHtml(update.time)}</div>`}
-if(update.time){
-  if(_currentSceneKey){
-    const type = _currentSceneKey;
-    const found = SCENE_TYPES.find(t => t.type === type) || SCENE_PLACES.find(p => p.type === type);
-    if(found) updateSceneBanner({name:found.name, type:found.type, emoji:found.emoji});
-  }
-}
-updateStatus();
-}
-
-function buildCoreSummary(playerInput){
-let s='';
-s+=`姓名：${CORE.name}（${CORE.gender}），${CORE.age||'?'}岁。\n`;
-s+=`设定：${CORE.roleDesc}\n`;
-s+=`本命术式：${CORE.arcane}\n`;
-if(CORE.arcaneDesc) s+=`术式描述：${CORE.arcaneDesc}\n`;
-s+=`时间：${CORE.time}\n`;
-s+=`当前学期：${CORE.term}\n`;
-s+=`术式形态：${CORE.forms.map(f=>`${f.name}（${f.type}）`).join('、')||'无'}\n`;
-const activeNPCs=CORE.npcs.filter(n=>n.status!=='archived');
-const archivedNPCs=CORE.npcs.filter(n=>n.status==='archived');
-if(activeNPCs.length>0)s+=`【现役人物】\n${activeNPCs.map(n=>`- ${n.name}（${n.gender}·${n.arcane}·${n.grade||n.term||'?'}·${n.dept||'无'}·${n.relation}·好感${n.affinity||0}）：${n.desc||''}`).join('\n')}\n`;
-if(archivedNPCs.length>0){
-  s+=`【归档人物】（玩家过去时期的故人，再遇时须体现时间差并重新激活）\n`;
-  s+=archivedNPCs.map(n=>{
-    const snap=n.snapshot||{};
-    return `- ${n.name}（${n.gender}·${snap.arcane||n.arcane}·${snap.grade||n.grade||n.term||'?'}·${snap.dept||n.dept||'无'}·${snap.relation||n.relation}·归档于「${n.archTime}」）：${snap.desc||n.desc||''}`;
-  }).join('\n');
-  s+='\n';
-}
-if(CORE.summary)s+=`【前情】${CORE.summary}\n`;
-if(Object.keys(MEDIA.worldbook).length>0){
-  const recentText = PLOT.history.slice(-3).map(m=>stripStatus(m.content)).join('\n');
-  const loreText = triggerLorebook(playerInput || '', recentText, 5);
-  if(loreText) s += loreText + '\n';
-}
-return s;
-}
-
-function buildCurrentSituation(){
-  const parts = [];
-  if(CORE.time) parts.push(CORE.time);
-  if(CORE.term && CORE.term !== '一年级上学期') parts.push(CORE.term);
-  if(_currentSceneKey){
-    const s = SCENE_TYPES.find(t=>t.type===_currentSceneKey) || SCENE_PLACES.find(p=>p.type===_currentSceneKey);
-    if(s) parts.push('在'+s.name);
-  }
-  const lastUser = [...PLOT.history].reverse().find(m=>m.role==='user');
-  if(lastUser && lastUser.content){
-    const a = String(lastUser.content).trim();
-    if(a && a !== '（继续）' && a !== '继续' && a.length < 60){
-      parts.push('刚做了：' + a);
-    }
-  }
-  return parts.join(' · ') || '故事开场';
-}
-function buildRecentEvents(){
-  const recent = PLOT.history.slice(-6).filter(m => m.role === 'assistant');
-  const events = [];
-  recent.forEach(m => {
-    const t = stripStatus(m.content);
-    const first = t.split(/[。！？\n]/)[0].trim();
-    if(first && first.length >= 6 && first.length <= 60){
-      events.push(first);
-    }
-  });
-  const unique = [...new Set(events)].slice(-3);
-  if(unique.length === 0) return '';
-  return unique.map(e => '- ' + e).join('\n');
+  let result = String(text || '');
+  result = result.replace(/【选项】[\s\S]*/g, '');
+  result = result.replace(/【状态更新】[\s\S]*?(?=【|$)/g, '');
+  return result.trim();
 }
 
 function extractOptions(text){
-const opts=[];
-const lines=text.split('\n');
-let inOptions=false;
-for(const line of lines){
-if(/【选项】/.test(line)){inOptions=true;continue}
-if(inOptions){
-const trimmed=line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();
-if(trimmed.length>0&&trimmed.length<60)opts.push(trimmed);
-if(opts.length>=3)break;
+  const opts = [];
+  const m = String(text||'').match(/【选项】([\s\S]*)$/);
+  if(!m) return opts;
+  const lines = m[1].split('\n');
+  for(const line of lines){
+    const t = line.replace(/^[•\-*·\s]+/,'').replace(/^\d+[\.、]\s*/,'').trim();
+    if(t.length > 0 && t.length < 80) opts.push(t);
+    if(opts.length >= 3) break;
+  }
+  return opts;
 }
-}
-return opts.slice(0,3);
+
+// ============================================================
+//  主角档案
+// ============================================================
+function buildCoreSummary(){
+  let s = '';
+  s += `姓名：${CORE.name}（${CORE.gender}），${CORE.age||12}岁。\n`;
+  s += `设定：${CORE.roleDesc}\n`;
+  s += `本命术式：${CORE.arcane}\n`;
+  if(CORE.arcaneDesc) s += `术式描述：${CORE.arcaneDesc}\n`;
+  s += `学期：${CORE.term}\n`;
+  if(CORE.summary) s += `【前情】${CORE.summary}\n`;
+  return s;
 }
 
 // ============================================================
 //  流式处理
 // ============================================================
 async function streamAndProcess(messages, opts){
-const aiMsgDiv=document.createElement('div');
-aiMsgDiv.className='msg-ai streaming';
-aiMsgDiv.textContent='...';
-chatBox.appendChild(aiMsgDiv);
-chatBox.scrollTop=chatBox.scrollHeight;
+  const aiMsgDiv = document.createElement('div');
+  aiMsgDiv.className = 'msg-ai streaming';
+  aiMsgDiv.textContent = '...';
+  chatBox.appendChild(aiMsgDiv);
+  chatBox.scrollTop = chatBox.scrollHeight;
 
-let userPinnedUp = false;
-let lastTop = chatBox.scrollTop;
-function onStreamScroll(){
-  const cur = chatBox.scrollTop;
-  const atBottom = chatBox.scrollHeight - cur - chatBox.clientHeight < 40;
-  if(cur < lastTop - 5 && !atBottom){ userPinnedUp = true; }
-  else if(atBottom){ userPinnedUp = false; }
-  lastTop = cur;
-}
-chatBox.addEventListener('scroll', onStreamScroll);
+  let userPinnedUp = false;
+  let lastTop = chatBox.scrollTop;
+  function onStreamScroll(){
+    const cur = chatBox.scrollTop;
+    const atBottom = chatBox.scrollHeight - cur - chatBox.clientHeight < 40;
+    if(cur < lastTop - 5 && !atBottom){ userPinnedUp = true; }
+    else if(atBottom){ userPinnedUp = false; }
+    lastTop = cur;
+  }
+  chatBox.addEventListener('scroll', onStreamScroll);
 
-const tw = { pending: '', shown: 0, timer: null, done: false };
-function twTick(){
-  tw.timer = null;
-  if(!aiMsgDiv.parentNode) return;
-  if(tw.shown >= tw.pending.length){ if(!tw.done) return; }
-  if(tw.shown >= tw.pending.length) return;
-  const ch = tw.pending[tw.shown];
-  tw.shown++;
-  aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending.slice(0, tw.shown)));
-  if(!userPinnedUp) chatBox.scrollTop = chatBox.scrollHeight;
-  if(typeof soundType==='function') soundType();
-  let delay = 22;
-  if('，。？！；、'.includes(ch)) delay = 100;
-  else if(ch === '\n') delay = 180;
-  tw.timer = setTimeout(twTick, delay);
-}
-function twPush(newText){
-  if(newText.length < tw.shown) tw.shown = newText.length;
-  tw.pending = newText;
-  if(!tw.timer && tw.shown < tw.pending.length) twTick();
-}
+  const tw = { pending: '', shown: 0, timer: null, done: false };
+  function twTick(){
+    tw.timer = null;
+    if(!aiMsgDiv.parentNode) return;
+    if(tw.shown >= tw.pending.length){ if(!tw.done) return; }
+    if(tw.shown >= tw.pending.length) return;
+    const ch = tw.pending[tw.shown];
+    tw.shown++;
+    aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending.slice(0, tw.shown)));
+    if(!userPinnedUp) chatBox.scrollTop = chatBox.scrollHeight;
+    if(typeof soundType==='function') soundType();
+    let delay = 22;
+    if('，。？！；、'.includes(ch)) delay = 100;
+    else if(ch === '\n') delay = 180;
+    tw.timer = setTimeout(twTick, delay);
+  }
+  function twPush(newText){
+    if(newText.length < tw.shown) tw.shown = newText.length;
+    tw.pending = newText;
+    if(!tw.timer && tw.shown < tw.pending.length) twTick();
+  }
 
-let displayContent="";
-try{
-const fullReply=await callDeepSeekStream(messages,(delta,full)=>{
-  displayContent = stripStatus(full);
-  if(!displayContent && full) displayContent = full;
-  twPush(displayContent);
-}, opts);
-tw.done = true;
-if(tw.timer){ clearTimeout(tw.timer); tw.timer = null; }
-tw.shown = tw.pending.length;
-if(!tw.pending && fullReply){
-  tw.pending = stripStatus(fullReply) || '（本轮 AI 未返回叙事，请继续）';
-  tw.shown = tw.pending.length;
-}
-if(!tw.pending){
-  tw.pending = '（本轮 AI 未返回叙事，请继续）';
-  tw.shown = tw.pending.length;
-}
-aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending));
-aiMsgDiv.classList.remove('streaming');
-chatBox.removeEventListener('scroll', onStreamScroll);
-applyScene(displayContent);
-return fullReply;
-}catch(e){
-if(tw.timer) clearTimeout(tw.timer);
-chatBox.removeEventListener('scroll', onStreamScroll);
-aiMsgDiv.classList.remove('streaming');
-aiMsgDiv.textContent='生成失败：'+e.message;
-throw e;
-}
+  let displayContent = "";
+  try {
+    const fullReply = await callDeepSeekStream(messages, (delta, full) => {
+      displayContent = stripStatus(full);
+      if(!displayContent && full) displayContent = full;
+      twPush(displayContent);
+    }, opts);
+    tw.done = true;
+    if(tw.timer){ clearTimeout(tw.timer); tw.timer = null; }
+    tw.shown = tw.pending.length;
+    if(!tw.pending && fullReply){
+      tw.pending = stripStatus(fullReply) || '（本轮 AI 未返回叙事，请继续）';
+      tw.shown = tw.pending.length;
+    }
+    if(!tw.pending){
+      tw.pending = '（本轮 AI 未返回叙事，请继续）';
+      tw.shown = tw.pending.length;
+    }
+    aiMsgDiv.innerHTML = formatNarrative(escapeHtml(tw.pending));
+    aiMsgDiv.classList.remove('streaming');
+    chatBox.removeEventListener('scroll', onStreamScroll);
+    return fullReply;
+  } catch(e) {
+    if(tw.timer) clearTimeout(tw.timer);
+    chatBox.removeEventListener('scroll', onStreamScroll);
+    aiMsgDiv.classList.remove('streaming');
+    aiMsgDiv.textContent = '生成失败：' + e.message;
+    throw e;
+  }
 }
 
 // ============================================================
 //  调试命令
 // ============================================================
-function handleDebugCommand(rawText){
-let text=rawText.trim();
-if(!text){chatBox.innerHTML+=`<div class="msg-debug">用法：/调试 获得形态 霜织·初 | 觉醒 | 描述</div>`;return}
-text=normalizeDebugText(text);
-const pseudo=`【状态更新】\n${text}\n`;
-const update=parseStatusUpdate(pseudo);
-const hasAny=update.forms.length>0||update.delForms.length>0||update.npcs.length>0||update.delNpcs.length>0||update.time!==null||update.term!==null||update.archiveTerm!==null||update.age!==null;
-if(!hasAny){chatBox.innerHTML+=`<div class="msg-debug">无法识别，请用：/调试 获得形态 霜织·初 | 觉醒 | 描述</div>`;return}
-applyUpdate(update);
-chatBox.innerHTML+=`<div class="msg-debug">调试已应用</div>`;
-chatBox.scrollTop=chatBox.scrollHeight;
-}
 function handleLoreTest(testInput){
-  const recentText = PLOT.history.slice(-3).map(m=>stripStatus(m.content)).join('\n');
+  const recentText = PLOT.history.slice(-3).map(m => stripStatus(m.content)).join('\n');
   const result = triggerLorebook(testInput || '', recentText, 5);
   if(!result){
     chatBox.innerHTML += `<div class="msg-debug">未命中任何资料条目。试试：/测 我去迷雾街区</div>`;
-  }else{
+  } else {
     chatBox.innerHTML += `<div class="msg-debug" style="text-align:left;white-space:pre-wrap;">${escapeHtml(result)}</div>`;
   }
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-function normalizeDebugText(text){
-if(/^(获得形态|删除形态|人物|重要人物|新人物|删除人物|时间|年龄|学期|归档学期)[：:]/.test(text))return text;
-let m;
-if((m=text.match(/^年龄\s*(\d+)\s*$/)))return `年龄：${m[1]}`;
-if((m=text.match(/^(?:认识|遇见|遇到|结识|加入|新增)\s*(?:人物|npc|NPC)?\s*(.+?)\s*$/))){const n=m[1].trim();if(n)return `人物：${n}/未知/未知/相识/未知/无/`}
-if((m=text.match(/^删除人物\s+(.+?)\s*$/)))return `删除人物：${m[1]}`;
-if((m=text.match(/^获得\s*(.+?)\s*形态\s*$/)))return `获得形态：${m[1]} | 觉醒 |`;
-return '';
+// ============================================================
+//  时段 · 玩家点地点
+// ============================================================
+async function enterPlace(placeId){
+  if(isGenerating) return;
+  if(_currentPlace) return;
+
+  _currentPlace = placeId;
+  renderPlacePanel(false);   // 隐藏地点按钮
+
+  const place = PLACES.find(p => p.id === placeId);
+  const npc = findNpcAt(placeId);
+  const slotName = SLOTS[CORE.slot];
+
+  chatBox.innerHTML += `<div class="msg-sys">${slotName} · ${place.emoji} 你去了${place.name}</div>`;
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  isGenerating = true; sendBtn.disabled = true; userInput.disabled = true;
+  try {
+    const coreSummary = buildCoreSummary();
+    const npcBlock = buildNpcBlock(npc);
+
+    const systemPrompt = `## 你是谁
+你是现代都市魔法学院「星辉学院」的小说叙事者。玩家是主角"你"。
+
+## 世界观
+${FIXED_WORLD}
+
+## 主角档案
+${coreSummary}
+${npcBlock}
+## 当前场景
+时间：第 ${CORE.day} 天 · ${slotName}
+地点：${place.name}
+
+## 输出要求
+写一段剧情（第二人称），然后给出 2-3 个下一步行动选项。严格按以下结构输出：
+
+[剧情正文]
+
+【选项】
+• 选项1
+• 选项2
+• 选项3
+
+## 硬约束
+- 只输出剧情和选项，不要输出任何状态、数值、时间、人物字段。
+- 剧情 80-300 字。像轻小说那样，一句一段，节奏轻快。
+- 用"你"指代玩家。
+- 对话用中文引号 “……” 或 「……」，心理用（……），关键动作用 *……*（每段最多 1 处）。
+- 不写"你的魔力提升了""你变强了"这类抽象句。
+- 不写"温馨互助""大家相亲相爱"这类热闹场景。
+- 如果本场景有出场人物，让 TA 自然地说 1-2 句话。如果没出场人物，就写主角自己的观察和感受。
+- 【选项】必须是"读完这段后你接下来做什么"，而不是"接下来去哪里"。`;
+
+    const messages = [{role:"system", content: systemPrompt}];
+    const recent = PLOT.history.slice(-3);
+    recent.forEach(m => messages.push({role:m.role, content: stripStatus(m.content)}));
+    messages.push({role:"user", content: `（进入 ${place.name}）`});
+
+    const reply = await streamAndProcess(messages);
+    const options = extractOptions(reply);
+
+    PLOT.history.push({role:"user", content:`（${slotName}去了${place.name}）`});
+    PLOT.history.push({role:"assistant", content:reply});
+    if(PLOT.history.length > 30) PLOT.history = PLOT.history.slice(-30);
+
+    // 选项：点了就结束本时段
+    const optsWithCb = options.map(t => ({ text: t, onClick: finishSlot }));
+    appendOptions(optsWithCb);
+  } catch(e) {
+    console.error(e);
+    chatBox.innerHTML += `<div class="msg-lose">生成失败：${escapeHtml(e.message)}</div>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
+    // 出错也要能继续
+    _currentPlace = null;
+    renderPlacePanel(true);
+  } finally {
+    isGenerating = false; sendBtn.disabled = false; userInput.disabled = false; userInput.focus();
+  }
 }
 
 // ============================================================
-//  主行动
+//  时段结束 → 推进
+// ============================================================
+function finishSlot(){
+  CORE.slot++;
+  if(CORE.slot >= 4){
+    CORE.slot = 0;
+    CORE.day++;
+    chatBox.innerHTML += `<div class="msg-sys">—— 第 ${CORE.day} 天 ——</div>`;
+  } else {
+    chatBox.innerHTML += `<div class="msg-sys">—— ${SLOTS[CORE.slot]} ——</div>`;
+  }
+  chatBox.scrollTop = chatBox.scrollHeight;
+  _currentPlace = null;
+  updateStatus();
+  saveToPhone();
+  renderPlacePanel(true);
+  if(PLOT.summaryCounter >= 3) generateSummary();
+  PLOT.summaryCounter = (PLOT.summaryCounter + 1) % 3;
+}
+
+// ============================================================
+//  主行动（保留给手动输入用，不推荐）
 // ============================================================
 async function sendAction(forcedAction){
-if(isGenerating)return;
-const input=document.getElementById('userInput');
-let action=forcedAction||input.value.trim();
-if(!action)return;
-if(!forcedAction)input.value='';
-if(action.startsWith('/调试')){chatBox.innerHTML+=userMsgHtml(action,true);chatBox.scrollTop=chatBox.scrollHeight;handleDebugCommand(action.replace(/^\/调试\s*/,''));userInput.focus();return}
-if(action.startsWith('/测')){chatBox.innerHTML+=userMsgHtml(action,true);chatBox.scrollTop=chatBox.scrollHeight;handleLoreTest(action.replace(/^\/测\s*/,''));userInput.focus();return}
-chatBox.innerHTML+=userMsgHtml(action,false);
-chatBox.scrollTop=chatBox.scrollHeight;
-if(PLOT.isFirst){await awakenArcane();return}
-isGenerating=true;sendBtn.disabled=true;userInput.disabled=true;
-try{
-const coreSummary=buildCoreSummary(action);
-const currentSituation=buildCurrentSituation();
-const recentEvents=buildRecentEvents();
-const isContinue=action==='继续';
+  if(isGenerating) return;
+  const input = document.getElementById('userInput');
+  let action = forcedAction || input.value.trim();
+  if(!action) return;
+  if(!forcedAction) input.value = '';
 
-const narrativePrompts = {
-  concise: `## 叙事风格 · 简洁
-文字精炼，对话为主。场景描写不超过 2 句。`,
-  standard: `## 叙事风格 · 标准
-平衡描写与对话。场景、感官、心理各一点，不铺陈。`,
-  ornate: `## 叙事风格 · 华丽
-用丰富的感官和意象。场景描写可铺陈，但不超 6 句，且必须推动剧情。`
-};
-const styleBlock = narrativePrompts[SETTINGS.narrativeStyle] || narrativePrompts.standard;
-const proactiveBlock = SETTINGS.npcProactive !== false
-  ? `## NPC 主动性
-每 2~3 轮让一个 NPC 主动出现或说话（递东西、通知、约见、打断、擦肩而过）。NPC 有自己的目标和事，世界是"活"的。`
-  : '';
+  if(action.startsWith('/测')){
+    chatBox.innerHTML += userMsgHtml(action, true);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    handleLoreTest(action.replace(/^\/测\s*/, ''));
+    userInput.focus();
+    return;
+  }
 
-const systemPrompt = `## 你是谁
-你是现代都市魔法学院「星辉学院」背景的小说叙事者。玩家就是主角"你"。
+  // 手动输入不消耗时段，只让 AI 写一段自由行动
+  chatBox.innerHTML += userMsgHtml(action, false);
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  isGenerating = true; sendBtn.disabled = true; userInput.disabled = true;
+  try {
+    const coreSummary = buildCoreSummary();
+    const slotName = SLOTS[CORE.slot];
+
+    const systemPrompt = `## 你是谁
+你是现代都市魔法学院「星辉学院」的小说叙事者。玩家是主角"你"。
 
 ## 世界观
 ${FIXED_WORLD}
@@ -409,117 +285,56 @@ ${FIXED_WORLD}
 ## 主角档案
 ${coreSummary}
 
-## 当前处境
-${currentSituation}
-${recentEvents ? `\n## 最近关键事件\n${recentEvents}` : ''}
+## 当前
+第 ${CORE.day} 天 · ${slotName}
 
-## 输出结构（严格按此顺序）
-1) 叙事正文（第二人称，含分层标记）
-2) 【状态更新】块（只在有变化时写该行）
-3) 【选项】块（2-3 个，每项以"•"开头）
+## 输出要求
+写一段剧情（第二人称），然后给出 2-3 个下一步行动选项。严格按以下结构输出：
 
-## 状态更新格式
-年龄:N / 时间:xxx（不超过15字）
-获得形态：<形态名> | <类型> | <描述>
-删除形态：<形态名>
-人物：<姓名>/<性别>/<术式>/<关系>/<年级>/<部门>/<描述>/好感:N
-删除人物：<名> / 学期:<名> / 归档学期:<名>
+[剧情正文]
 
-## 人物行说明
-- 严格八段，用 / 分隔。
-- 段序：姓名 / 性别 / 术式 / 关系 / 年级 / 部门 / 描述 / 好感:N
-- 第 3 段是术式名，不是人名。
-- 第 5 段是年级：一年级上学期～六年级下学期 / 留校。
-- 第 6 段是部门：学生会的具体分工 / 社团名 / 无。
-- 第 8 段是好感度，格式"好感:N"。
-- 缺信息填"未知"或"无"，不能省略段位。
-
-## 术式形态
-- 命名结构：术式本名 + 分隔符 + 一个意象词。
-- 类型分五类：觉醒、成长、关键、稀有、传说。
-- 形态是术式成长的唯一体现。强弱、熟练、威力都用叙事描写体现，不进数值。
-- 觉醒形态是入学时获得的初始形态；成长随剧情自然演化；关键在剧情重大节点获得；稀有极难获得、往往有代价；传说几乎没人见过。
+【选项】
+• 选项1
+• 选项2
+• 选项3
 
 ## 硬约束
-- 每轮必须写正文，正文不少于 60 字。即使剧情是承接上一轮，也要重新叙述当前场景。
-- 时间每轮必写，且简洁（不超过15字）。
-- 只有写进【状态更新】的才生效。
-- 主角性别为 ${CORE.gender}。
+- 只输出剧情和选项，不要输出状态、数值。
+- 剧情 80-300 字。
+- 用"你"指代玩家。`;
 
-## 叙事要求
-- 场景优先使用现代都市 + 魔法学院的元素：高楼、地铁、便利店、术式商店、发光的铭牌、晶体玻璃、刻印手环。
-- 日常 80-120 字，像轻小说那样，一句一段，节奏轻快。关键剧情 200-300 字。
-- 用"你"指代玩家，禁止用"他/她/角色名"指代玩家。
-- ${isContinue ? '玩家选择"继续"：自然推进剧情，可让 NPC 主动出现。' : '根据玩家输入推进剧情。'}
+    const messages = [{role:"system", content: systemPrompt}];
+    const recent = PLOT.history.slice(-3);
+    recent.forEach(m => messages.push({role:m.role, content: stripStatus(m.content)}));
+    messages.push({role:"user", content: action});
 
-## 文本分层标记
-- 对话：用中文引号 “……” 或 「……」
-- 心理：（……）
-- 关键动作：*……*（每段最多 1 处）
-
-## 人物与好感度
-- 好感度 0-100。陌生 0-20，认识 21-40，友好 41-60，亲近 61-80，特别 81-100。
-- NPC 主动互动随好感度变化。好感度高的 NPC 会主动找你、关心你。
-- 叙事要自然，不要刻意刷好感。
-
-## 学院氛围
-- 秩序是学生自己维持的。高年级按流程接待，礼貌但不多话。
-- 每个人身上都有一点不想被问的事，其他人默契地不问。
-- 日常明亮，但安静的地方特别安静。
-- 不写"温馨互助""大家相亲相爱"这类过家家式的热闹场景。
-
-## 实力与成长
-- 不写数值。实力对比、招式威力、熟练度都用具体描写体现。
-- 不写"你的魔力提升了""你变强了"这类抽象句。写"这一招你现在接得住了""对面比你稳得多"。
-
-${styleBlock}
-
-${proactiveBlock}
-
-## 选项
-【状态更新】后写 2-3 个玩家可执行的具体行动。`;
-
-const messages=[{role:"system",content:systemPrompt}];
-const recent=PLOT.history.slice(-3);
-recent.forEach(m=>messages.push({role:m.role,content:stripStatus(m.content)}));
-messages.push({role:"user",content:isContinue?'（继续）':action});
-
-const reply=await streamAndProcess(messages);
-applyScene(stripStatus(reply));
-
-const parsed = await parseStructuredUpdate(stripStatus(reply), action);
-const updateInfo = parsed.update;
-applyUpdate(updateInfo);
-appendOptions(parsed.options);
-
-PLOT.history.push({role:"user",content:action});
-PLOT.history.push({role:"assistant",content:reply});
-if(PLOT.history.length>30)PLOT.history=PLOT.history.slice(-30);
-PLOT.turn++;PLOT.summaryCounter++;
-if(Math.random()<0.35) CORE.weather = rollWeather(CORE.term);
-updateStatus();
-if(PLOT.summaryCounter>=3)generateSummary();
-}catch(e){
-console.error(e);
-chatBox.innerHTML+=`<div class="msg-lose">生成失败：${escapeHtml(e.message)}</div>`;
-chatBox.scrollTop=chatBox.scrollHeight;
-}
-finally{isGenerating=false;sendBtn.disabled=false;userInput.disabled=false;userInput.focus()}
+    const reply = await streamAndProcess(messages);
+    const options = extractOptions(reply);
+    PLOT.history.push({role:"user", content:action});
+    PLOT.history.push({role:"assistant", content:reply});
+    if(PLOT.history.length > 30) PLOT.history = PLOT.history.slice(-30);
+    appendOptions(options);
+  } catch(e) {
+    console.error(e);
+    chatBox.innerHTML += `<div class="msg-lose">生成失败：${escapeHtml(e.message)}</div>`;
+  } finally {
+    isGenerating = false; sendBtn.disabled = false; userInput.disabled = false; userInput.focus();
+  }
 }
 
 // ============================================================
-//  摘要
+//  记忆精炼
 // ============================================================
 async function generateSummary(force=false){
-if(!force&&PLOT.summaryCounter<3)return;
-if(PLOT.history.length<4)return;
-const recent=PLOT.history.slice(-8);
-const historyText=recent.map(m=>`${m.role==='user'?'玩家':'叙事者'}：${stripStatus(m.content)}`).join('\n');
-const oldSummary=CORE.summary||'';
-const oldLen=oldSummary.length;
-const START=200,STEP=20,MAX=500;
-const targetLen=oldLen===0?START:Math.min(oldLen+STEP,MAX);
-const prompt=`把「旧摘要」和「新对话」融合成一份新摘要。
+  if(!force && PLOT.summaryCounter < 3) return;
+  if(PLOT.history.length < 4) return;
+  const recent = PLOT.history.slice(-8);
+  const historyText = recent.map(m => `${m.role==='user'?'玩家':'叙事者'}：${stripStatus(m.content)}`).join('\n');
+  const oldSummary = CORE.summary || '';
+  const oldLen = oldSummary.length;
+  const START = 200, STEP = 20, MAX = 500;
+  const targetLen = oldLen === 0 ? START : Math.min(oldLen + STEP, MAX);
+  const prompt = `把「旧摘要」和「新对话」融合成一份新摘要。
 第三人称，保留有后续影响的内容（人物、地点、目标、承诺、身份、能力），丢弃琐事。
 
 【硬性要求】
@@ -529,21 +344,21 @@ const prompt=`把「旧摘要」和「新对话」融合成一份新摘要。
 【旧摘要】${oldSummary||'（开头）'}
 【新对话】
 ${historyText}`;
-try{
-const summary=await callDeepSeekStream([{role:'user',content:prompt}],()=>{});
-if(summary&&summary.trim().length>20){
-let finalSummary=summary.trim();
-if(finalSummary.length>MAX+50){
-  let cut=finalSummary.slice(0,MAX);
-  const lastPunc=Math.max(cut.lastIndexOf('。'),cut.lastIndexOf('！'),cut.lastIndexOf('？'),cut.lastIndexOf('；'));
-  if(lastPunc>MAX*0.6)cut=cut.slice(0,lastPunc+1);
-  finalSummary=cut;
-}
-CORE.summary=finalSummary;
-PLOT.summaryCounter=0;
-chatBox.innerHTML+=`<div class="msg-summary">记忆精炼 · 摘要 ${finalSummary.length} 字</div>`;
-chatBox.scrollTop=chatBox.scrollHeight;
-saveToPhone();
-}
-}catch(e){PLOT.summaryCounter=0}
+  try {
+    const summary = await callDeepSeekStream([{role:'user', content:prompt}], ()=>{});
+    if(summary && summary.trim().length > 20){
+      let finalSummary = summary.trim();
+      if(finalSummary.length > MAX + 50){
+        let cut = finalSummary.slice(0, MAX);
+        const lastPunc = Math.max(cut.lastIndexOf('。'), cut.lastIndexOf('！'), cut.lastIndexOf('？'), cut.lastIndexOf('；'));
+        if(lastPunc > MAX * 0.6) cut = cut.slice(0, lastPunc + 1);
+        finalSummary = cut;
+      }
+      CORE.summary = finalSummary;
+      PLOT.summaryCounter = 0;
+      chatBox.innerHTML += `<div class="msg-summary">记忆精炼 · 摘要 ${finalSummary.length} 字</div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+      saveToPhone();
+    }
+  } catch(e){ PLOT.summaryCounter = 0; }
 }

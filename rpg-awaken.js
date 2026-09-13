@@ -118,6 +118,8 @@ CORE.term='一年级上学期';
 CORE.weather=rollWeather(CORE.term);
 CORE.chapterNum=0;
 CORE.chapterTitle='';
+CORE.day=1;
+CORE.slot=0;
 updateAvatarPreview();
 const soulChoice=document.querySelector('input[name="soulChoice"]:checked').value;
 let customSoul='';
@@ -149,61 +151,18 @@ ${customSoul?'指定术式：'+customSoul:'请为角色设计一个独特的本�
 6. 结尾让学生会成员说一句方向性的话，告诉主角接下来去哪（去宿舍 / 去教室 / 去学院各处看看）。
 7. 全程可让主角在心里或行动上自然注意到：学院安静、礼貌、有一点距离感；周围的同龄人各自安静地站着，没人多话。
 
-## 输出结构（严格按此顺序）
-1) 小说正文（700-1000字，连贯叙事，不分幕）
-2) 【状态更新】块
-3) 【选项】块（2-3 个，每项以"•"开头）
-
-## 状态更新格式
-年龄：12
-时间：入学第一天·上午
-学期：一年级上学期
-获得形态：<形态名> | <类型> | <描述>
-人物：<姓名>/<性别>/<术式>/<关系>/<年级>/<部门>/<描述>/好感:N
-
-## 人物行格式
-- 严格八段，用 / 分隔。
-- 段序：姓名 / 性别 / 术式 / 关系 / 年级 / 部门 / 描述 / 好感:N
-- 第 3 段是术式名，不是人名。
-- 第 5 段是年级：一年级上学期～六年级下学期 / 留校。
-- 第 6 段是部门：学生会的具体分工 / 社团名 / 无。
-- 第 8 段是好感度，格式"好感:N"。
-- 缺信息填"未知"或"无"，不能省略段位。
-
-## 术式形态
-- 命名结构：术式本名 + 分隔符 + 一个意象词。
-- 意象词一两字。
-- 类型分五类：觉醒、成长、关键、稀有、传说。
-- 必须写入【状态更新】块，格式：获得形态：<形态名> | <类型> | <描述>
+## 输出要求
+只输出小说正文（700-1000字，连贯叙事，不分幕）。
+不要输出【状态更新】、【选项】或任何结构化数据。
 
 ## 硬约束
-- 学生会成员由你自由发挥生成一个全新角色。每次新游戏名字都不同。
+- 在叙事中自然提到主角术式的名称与特性。
 - 对话用引号，心理用括号，关键动作用 *……* 包裹。
-- 结尾必须给出明确去向。
-- 【选项】里必须包含 2-3 个具体可执行的下一步方向。
-- 每次新游戏的开场场景都从零构想：信的内容、地址、白色建筑的样子、在场的新生、学生会成员，全部全新设计。
-
-## 命名规则
-- 姓名使用日系轻小说风格。姓氏 2-3 字，名字 1-2 字。
-- 整体气质克制、略冷、带一丝不祥感。
-- 不使用中文常见雅姓。
-- 同一届内同姓至多 1 人。
-- 主角的名字和 NPC 不撞姓撞名。
-- 不要给出示例名单。每次新游戏都即兴生成。
-
-## 氛围锚点
-- 秩序井然，但秩序是学生自己维持的。
-- 高年级对新生按流程接待，礼貌但不多话。
-- 每个人身上都有一点不想被问的事，其他人默契地不问。
-- 日常明亮，但安静的地方特别安静。`;
+- 结尾给出明确去向。`;
 
 isGenerating=true;sendBtn.disabled=true;userInput.disabled=true;
 try{
 const reply=await streamAndProcess([{role:"user",content:systemPrompt}], {model:'deepseek-v4-flash'});
-applyScene(stripStatus(reply));
-
-const parsed = await parseStructuredUpdate(stripStatus(reply), '术式觉醒');
-const update=parsed.update;
 
 let soulName = customSoul;
 let soulDesc = '';
@@ -225,11 +184,16 @@ if(!soulName){
 CORE.arcane = soulName;
 CORE.arcaneDesc = soulDesc;
 
-applyUpdate(update);
-PLOT.history=[];PLOT.turn=0;PLOT.isFirst=false;PLOT.summaryCounter=0;
+PLOT.history=[];
+PLOT.turn=0;
+PLOT.isFirst=false;
+PLOT.summaryCounter=0;
 PLOT.history.push({role:"assistant",content:reply});
-updateStatus();saveToPhone();
-appendOptions(parsed.options);
+updateStatus();
+saveToPhone();
+
+// 显示地点面板，让玩家开始第一个时段
+if(typeof renderPlacePanel === 'function') renderPlacePanel(true);
 
 if(!soulName || soulName === '未知术式' || soulName === '未觉醒'){
   chatBox.innerHTML += `<div class="msg-sys" style="color:#fbbf24;font-size:12px;">⚠️ 未能从觉醒叙事中识别术式，可点「⋯ → 编辑角色档案」手动补上。</div>`;

@@ -63,8 +63,8 @@
 <button id="continueBtn" class="btn-continue hidden" onclick="continueGame()">继续游戏</button>
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
-<div class="hint">有存档时显示"继续游戏"。输入 /调试 可用调试命令。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V96 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint">有存档时显示"继续游戏"。输入 /测 xxx 可测资料库。</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V10 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">
@@ -86,7 +86,7 @@
 <div id="chat-box"><div class="msg-sys">准备收到星辉信...</div></div>
 <div id="options-area"></div>
 <div id="input-row">
-<input id="userInput" placeholder="输入动作，或 /调试 ..." onkeydown="if(event.keyCode==13) sendAction()">
+<input id="userInput" placeholder="输入动作，或 /测 ..." onkeydown="if(event.keyCode==13) sendAction()">
 <button id="sendBtn" onclick="sendAction()">发送</button>
 </div>
 </div>

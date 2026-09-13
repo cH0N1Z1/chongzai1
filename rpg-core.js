@@ -38,8 +38,60 @@ const CORE={
   forms:[],
   npcs:[], flags:{}, summary:'',
   time:'入学第一天', term:'一年级上学期', weather:'',
-  chapterNum:0, chapterTitle:''
+  chapterNum:0, chapterTitle:'',
+  day:1, slot:0
 };
+
+// ============================================================
+//  角色库（从 character.json 加载）
+// ============================================================
+const CHARACTERS = { loaded: false, classmates: [], seniors: [], juniors: [] };
+
+async function loadCharacters(){
+  try {
+    const r = await fetch('./character.json');
+    const data = await r.json();
+    if(Array.isArray(data.classmates)) CHARACTERS.classmates = data.classmates;
+    if(Array.isArray(data.seniors))   CHARACTERS.seniors   = data.seniors;
+    if(Array.isArray(data.juniors))   CHARACTERS.juniors   = data.juniors;
+    CHARACTERS.loaded = true;
+  } catch(e) {
+    console.warn('角色库加载失败', e);
+  }
+}
+
+function getAvailableClassmates(){
+  const g = CORE.gender;
+  return CHARACTERS.classmates.filter(c => {
+    if(c.optionalFor === 'female' && g === '女') return false;
+    if(c.optionalFor === 'male'   && g === '男') return false;
+    return true;
+  });
+}
+
+function findNpcAt(placeId){
+  const list = getAvailableClassmates();
+  const candidates = list.filter(c =>
+    Array.isArray(c.commonPlaces) && c.commonPlaces.some(p => p.indexOf(placeId) !== -1)
+  );
+  if(candidates.length === 0) return null;
+  if(Math.random() > 0.6) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function buildNpcBlock(npc){
+  if(!npc) return '';
+  let s = '\n## 本场景出场人物\n';
+  s += `姓名：${npc.name}\n`;
+  s += `性别：${npc.gender} · 年级：${npc.grade}\n`;
+  if(npc.appearance) s += `外貌：${npc.appearance}\n`;
+  if(Array.isArray(npc.personality)) s += `性格：${npc.personality.join('、')}\n`;
+  if(npc.arcane) s += `术式：${npc.arcane}（${npc.arcaneImage||''}）\n`;
+  if(npc.speech) s += `说话方式：${npc.speech}\n`;
+  s += `（秘密：${npc.secret||'无'}，不要直接说出，只做暗示）\n`;
+  return s;
+}
+
 const PLOT={history:[],turn:0,isFirst:true,summaryCounter:0};
 let isGenerating=false;
 
@@ -166,6 +218,8 @@ try{
     if(CORE.weather===undefined)CORE.weather='';
     if(CORE.chapterNum===undefined)CORE.chapterNum=0;
     if(CORE.chapterTitle===undefined)CORE.chapterTitle='';
+    if(typeof CORE.day !== 'number') CORE.day = 1;
+    if(typeof CORE.slot !== 'number') CORE.slot = 0;
     CORE.npcs.forEach(n=>{
       if(!n.status)n.status='active';
       if(n.term===undefined)n.term='一年级上学期';
@@ -176,7 +230,6 @@ try{
       if(n.grade===undefined)n.grade=n.term||'一年级上学期';
       if(n.dept===undefined)n.dept='无';
     });
-    // 清除已废弃字段
     delete CORE.hp;delete CORE.maxHp;delete CORE.inventory;
     delete CORE.traits;
     delete CORE.aptitude;delete CORE.mana;
@@ -217,13 +270,14 @@ async function initApp(){
 isGenerating = false;
 loadSettings();
 loadDefaultMedia();
+loadCharacters();
 let hasSave=loadSave();
 
 if(hasSave && (!CORE.name || CORE.arcane === '未觉醒')){
     localStorage.removeItem(slotKey());
     hasSave = false;
     const _keepAvatar2 = CORE.avatar || '';
-    Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''});
+    Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0});
     Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 }
 
@@ -235,7 +289,7 @@ if(hasSave){
     document.getElementById('config-inputs').classList.add('hidden');
     const infoBox=document.getElementById('saveInfoBox');
     infoBox.classList.remove('hidden');
-    infoBox.innerHTML=`存档：<b style="color:#f0f6fc;">${escapeHtml(CORE.name)}</b> · ${escapeHtml(CORE.arcane)}<br><span style="color:#6b7280;">时间：${escapeHtml(CORE.time)}</span>`;
+    infoBox.innerHTML=`存档：<b style="color:#f0f6fc;">${escapeHtml(CORE.name)}</b> · ${escapeHtml(CORE.arcane)}<br><span style="color:#6b7280;">第 ${CORE.day} 天</span>`;
     document.getElementById('roleName').value=CORE.name;
     document.getElementById('roleDesc').value=CORE.roleDesc||'';
 }
@@ -261,7 +315,7 @@ if(hasValidSave && !confirm("已有存档，开始新游戏会覆盖。确定？
 
 localStorage.removeItem(slotKey());
 const _keepAvatar = CORE.avatar || '';
-Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:''});
+Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0});
 Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 
 resetScene();
@@ -269,8 +323,8 @@ resetScene();
 configPanel.style.display='none';
 gameArea.style.display='flex';
 try {
-  chatBox.innerHTML=`<div class="msg-sys">欢迎，${escapeHtml(document.getElementById('roleName').value||'旅者')}。准备收到星辉信...</div>`;
-  setTimeout(()=>sendAction("术式觉醒"),400);
+  chatBox.innerHTML=`<div class="msg-sys">欢迎，${escapeHtml(roleName)}。准备收到星辉信...</div>`;
+  setTimeout(()=>awakenArcane(), 400);
 } catch(e) {
   console.error('[startNewGame]', e);
   chatBox.innerHTML += `<div class="msg-lose">启动失败：${escapeHtml(e.message)}</div>`;
@@ -291,6 +345,6 @@ else if(item.role==='assistant')chatBox.innerHTML+=`<div class="msg-ai">${escape
 });
 if(CORE.summary)chatBox.innerHTML+=`<div class="msg-summary">${escapeHtml(CORE.summary)}</div>`;
 updateStatus();
-appendOptions(["继续剧情"]);
+renderPlacePanel(true);
 userInput.focus();
 }
