@@ -1,7 +1,7 @@
 // ============================================================
 //  rpg-awaken.js - 星辉学院开场觉醒 + 角色生成
 //  依赖：shared.js → rpg-core.js → rpg-ui.js → rpg-story.js
-//  开场是固定文本，不走 AI。
+//  开场是固定文本，点击推进。
 // ============================================================
 
 function showAiLoading(text){
@@ -118,26 +118,115 @@ function rollRandomArcane(){
 }
 
 // ============================================================
-//  开场播放工具
+//  点击推进系统
 // ============================================================
-function playSegment(html, delay){
+let _awaitingClick = null;
+let _clickHintTimer = null;
+let _clickHintEverShown = false;
+
+function showClickHint(){
+  const hint = document.getElementById('click-hint');
+  if(hint) hint.classList.add('show');
+}
+function hideClickHint(){
+  const hint = document.getElementById('click-hint');
+  if(hint) hint.classList.remove('show');
+}
+
+function awaitClick(){
   return new Promise(resolve => {
-    const div = document.createElement('div');
-    div.className = 'msg-ai';
-    div.style.animation = 'msgSlideIn .32s ease-out';
-    div.innerHTML = html;
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-    setTimeout(resolve, delay || 420);
+    _awaitingClick = () => {
+      hideClickHint();
+      if(_clickHintTimer){ clearTimeout(_clickHintTimer); _clickHintTimer = null; }
+      resolve();
+    };
+    if(!_clickHintEverShown){
+      _clickHintEverShown = true;
+      showClickHint();
+    } else {
+      _clickHintTimer = setTimeout(showClickHint, 2500);
+    }
   });
 }
 
-function playNarrative(text, delay){
-  return playSegment(formatNarrative(escapeHtml(text)), delay);
+function triggerClick(){
+  if(_awaitingClick){
+    const fn = _awaitingClick;
+    _awaitingClick = null;
+    fn();
+  }
+}
+
+function setupClickToContinue(){
+  const area = document.getElementById('chat-box');
+  if(!area) return;
+  if(area._clickBound) return;
+  area._clickBound = true;
+  area.addEventListener('click', triggerClick);
 }
 
 // ============================================================
-//  术式觉醒（固定开场，不走 AI）
+//  开场播放工具
+// ============================================================
+async function playSegment(html, speaker){
+  const div = document.createElement('div');
+  div.className = 'msg-ai';
+  div.style.animation = 'msgSlideIn .32s ease-out';
+  if(speaker){
+    div.innerHTML = `<div class="speaker-tag">${escapeHtml(speaker)}</div>${html}`;
+  } else {
+    div.innerHTML = html;
+  }
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  await awaitClick();
+}
+
+async function playNarrative(text){
+  return playSegment(formatNarrative(escapeHtml(text)));
+}
+
+async function playSpeak(text, speaker){
+  return playSegment(`<div class="hl-speak">${escapeHtml(text)}</div>`, speaker);
+}
+
+// ============================================================
+//  主角建档（AI 把自由文本拆成 character.json 风格结构）
+// ============================================================
+async function buildSelfProfile(){
+  const roleDesc = (CORE.roleDesc||'').trim();
+  if(!roleDesc) return;
+  try{
+    const prompt = `把下面的角色设定文本整理成 JSON。缺失字段留空或空数组，不要捏造原文没有的具体数字。
+
+字段结构：
+{"name":"","gender":"","age":12,"appearance":{"hair":"","eyes":"","face":"","height":0,"build":"","style":""},"personality":[],"habits":"","likes":[],"dislikes":[],"attitude":"","speech":"","origin":"","hiddenTalent":"","aloneBehavior":""}
+
+原文：
+${roleDesc}
+
+只输出 JSON。`;
+    const raw = await callDeepSeekStream([{role:'user',content:prompt}], ()=>{}, {jsonMode:true});
+    const parsed = JSON.parse(raw);
+    parsed.name = parsed.name || CORE.name;
+    parsed.gender = parsed.gender || CORE.gender;
+    parsed.age = parsed.age || CORE.age || 12;
+    CORE.selfProfile = parsed;
+    saveToPhone();
+  }catch(e){
+    console.warn('主角建档失败', e);
+    CORE.selfProfile = {
+      name: CORE.name, gender: CORE.gender, age: CORE.age || 12,
+      personality: [], habits: '', likes: [], dislikes: [],
+      attitude: '', speech: '', origin: '', hiddenTalent: '', aloneBehavior: '',
+      _raw: roleDesc
+    };
+    saveToPhone();
+  }
+}
+
+// ============================================================
+//  术式觉醒（固定开场，点击推进）
 // ============================================================
 async function awakenArcane(){
   if(isGenerating) return;
@@ -151,7 +240,6 @@ async function awakenArcane(){
     return;
   }
 
-  // 初始化 CORE
   CORE.name = name;
   CORE.gender = gender;
   CORE.age = 12;
@@ -159,6 +247,7 @@ async function awakenArcane(){
   CORE.summary = '';
   CORE.forms = [];
   CORE.npcs = [];
+  CORE.selfProfile = null;
   CORE.time = '入学第一天';
   CORE.term = '一年级上学期';
   CORE.weather = rollWeather(CORE.term);
@@ -168,7 +257,6 @@ async function awakenArcane(){
   CORE.slot = 0;
   updateAvatarPreview();
 
-  // 术式：自选 or 随机
   const soulChoice = document.querySelector('input[name="soulChoice"]:checked').value;
   let arcane;
   if(soulChoice === 'custom'){
@@ -180,20 +268,6 @@ async function awakenArcane(){
   CORE.arcane = arcane.name;
   CORE.arcaneDesc = arcane.desc;
 
-  // 同届 5 人名单（按性别筛选）
-  const list = (typeof getAvailableClassmates === 'function') ? getAvailableClassmates() : [];
-  const sorted = ['宫守琴', '燕无咎', '神代 彻', '闻 昼', '凯·伊森', '薇尔伦蒂·凯尔'];
-  const five = [];
-  for(const nm of sorted){
-    const c = list.find(x => x.name === nm);
-    if(c && five.length < 5) five.push(c);
-  }
-  // 兜底：如果角色库没加载完，就用硬编码名单
-  const fallbackNames = gender === '女'
-    ? ['宫守琴', '燕无咎', '神代 彻', '闻 昼', '凯·伊森']
-    : ['宫守琴', '燕无咎', '薇尔伦蒂·凯尔', '神代 彻', '闻 昼'];
-
-  // 校服描述
   const uniform = gender === '女'
     ? '藏青色的短外套，白衬衫，深蓝色的细丝带，下面是一条灰色的百褶裙'
     : '藏青色的短外套，白衬衫，深蓝色的细丝带，下面是一条灰色的长裤';
@@ -203,12 +277,16 @@ async function awakenArcane(){
   userInput.disabled = true;
   chatBox.innerHTML = '';
 
+  // 重置"点击提示"的状态
+  _clickHintEverShown = false;
+  setupClickToContinue();
+
   try {
     await playNarrative('信到的时候，是晚上。');
     await playNarrative('你像平常一样打开手机，收件箱里多了一封没有署名的邮件。');
     await playNarrative('点开。');
     await playNarrative('深蓝色的封面，只写着一行字，和一个地址。');
-    await playSegment(`<div style="text-align:center;margin:12px 0;padding:14px;border:1px dashed #30363d;border-radius:8px;color:#f0f6fc;"><div style="font-weight:bold;font-size:15px;">${escapeHtml(name)}</div><div style="color:#8b949e;font-size:13px;margin-top:6px;">梧桐街 47 号</div></div>`, 600);
+    await playSegment(`<div style="text-align:center;margin:12px 0;padding:14px;border:1px dashed #30363d;border-radius:8px;color:#f0f6fc;"><div style="font-weight:bold;font-size:15px;">${escapeHtml(name)}</div><div style="color:#8b949e;font-size:13px;margin-top:6px;">梧桐街 47 号</div></div>`);
     await playNarrative('没有寄件人。没有说明。那行字是你的名字——但笔迹不是你的。');
 
     await playNarrative('——');
@@ -227,133 +305,127 @@ async function awakenArcane(){
     await playNarrative('里面已经有人了。');
     await playNarrative('五个人。都是和你差不多大的年纪。');
 
-    // 五人描写（按性别不同）
     if(gender === '女'){
       await playNarrative('宫守琴靠着墙，戴着一只耳机，眼睛扫过你，没停。手指很长，慢慢转着手里的笔。');
-      await playNarrative('燕无咎坐在长椅上，低着头，腿上摊着一本书。她抬眼看你一下，很快又低回去。');
-      await playNarrative('神代彻站在窗边，背着旧帆布包，正看着外面。他没回头。');
-      await playNarrative('闻昼坐在角落的地上，袖子扣到最上面一颗扣子，安静地看着自己摊开的手掌。');
-      await playNarrative('凯·伊森靠在楼梯扶手上，外套搭在肩上，左眉有一道旧疤。他看到你，冲你点了点头。');
+      await playNarrative('顾迟坐在长椅上，低着头，腿上摊着一本书。她抬眼看你一下，很快又低回去。');
+      await playNarrative('裴野站在窗边，外套敞着，正看着外面。他没回头。');
+      await playNarrative('神代灯坐在角落的地上，安静地看着自己摊开的手掌。');
+      await playNarrative('瑞恩·凯靠在楼梯扶手上，浅棕发微卷，左耳一颗小痣。他看到你，冲你点了点头。');
     } else {
       await playNarrative('宫守琴靠着墙，戴着一只耳机，眼睛扫过你，没停。手指很长，慢慢转着手里的笔。');
-      await playNarrative('燕无咎坐在长椅上，低着头，腿上摊着一本书。她抬眼看你一下，很快又低回去。');
-      await playNarrative('薇尔伦蒂·凯尔站在窗边，浅金色的卷发披在肩上，制服穿得一丝不苟。她看了你一眼，礼貌地移开了视线。');
-      await playNarrative('神代彻坐在角落的地上，背着旧帆布包，安静地看着自己摊开的手掌。');
-      await playNarrative('闻昼靠在楼梯扶手上，黑发中分，袖子扣到最上面一颗扣子。他看到你，没说话。');
+      await playNarrative('顾迟坐在长椅上，低着头，腿上摊着一本书。她抬眼看你一下，很快又低回去。');
+      await playNarrative('月见澄站在窗边，黑长直发披在肩上，校服穿得一丝不苟。她看了你一眼，礼貌地移开了视线。');
+      await playNarrative('裴野站在角落，外套敞着，肩膀很宽。他看着你，没说话。');
+      await playNarrative('瑞恩·凯靠在楼梯扶手上，浅棕发微卷，左耳一颗小痣。他看到你，冲你点了点头。');
     }
 
     await playNarrative('谁都没说话。门厅里只有你脚步声的回音。');
     await playNarrative('你踏进门的那一刻——');
-    await playSegment(`<div style="text-align:center;font-weight:bold;color:#fbbf24;font-size:16px;margin:10px 0;">术式醒了。</div>`, 700);
+    await playSegment(`<div style="text-align:center;font-weight:bold;color:#fbbf24;font-size:16px;margin:10px 0;">术式醒了。</div>`);
     await playNarrative('不是从外面来的力量。是它本来就在你身体里，一直在，只是从来没人点亮它。');
     await playNarrative('踏进这扇门的那一刻，像有什么东西在心里"咔"了一声。');
     await playNarrative('一个词落在你脑子里。');
-    await playSegment(`<div style="text-align:center;font-weight:bold;color:#a855f7;font-size:18px;margin:10px 0;letter-spacing:2px;">${escapeHtml(arcane.name)}</div>`, 800);
+    await playSegment(`<div style="text-align:center;font-weight:bold;color:#a855f7;font-size:18px;margin:10px 0;letter-spacing:2px;">${escapeHtml(arcane.name)}</div>`);
     await playNarrative('你低头看自己的手，指尖有一点点凉。');
 
     await playNarrative('——');
-    await playSegment(`<div class="hl-speak" style="font-size:16px;">「哟——！」</div>`, 500);
+    await playSpeak('哟——！', '时雨');
     await playNarrative('声音从楼梯上响起来。');
     await playNarrative('一个女生从二楼跑下来。短发，亮眼睛，笑得很大。');
-    await playSegment(`<div class="hl-speak">「又到啦！」</div>`, 400);
+    await playSpeak('又到啦！', '时雨');
     await playNarrative('她停在你面前，上下看了你一眼。');
-    await playSegment(`<div class="hl-speak">「你是最后一个。」</div>`, 500);
+    await playSpeak('你是最后一个。', '时雨');
     await playNarrative('她伸出手，非常自然地握了握你的。');
-    await playSegment(`<div class="hl-speak">「我叫时雨。四年级。学生会接待。今天专门等你们的。」</div>`, 600);
+    await playSpeak('我叫时雨。四年级。学生会接待。今天专门等你们的。', '时雨');
     await playNarrative('她语速很快，像是一整天终于有人可以说话了。');
-    await playSegment(`<div class="hl-speak">「别紧张——虽然我第一天来的时候也紧张得不行。」</div>`, 500);
+    await playSpeak('别紧张——虽然我第一天来的时候也紧张得不行。', '时雨');
 
     await playNarrative('——');
     await playNarrative('然后她开始点名。');
     await playNarrative('她转向那个靠墙的女孩。');
-    await playSegment(`<div class="hl-speak">「宫守琴。」</div>`, 450);
+    await playSpeak('宫守琴。', '时雨');
     await playNarrative('女孩的手指停了半秒，抬眼。');
     await playNarrative('她又转向长椅上的女孩。');
-    await playSegment(`<div class="hl-speak">「燕无咎。」</div>`, 450);
+    await playSpeak('顾迟。', '时雨');
     await playNarrative('那个女孩慢慢合上书，抬起头看她。');
 
     if(gender === '女'){
       await playNarrative('她走向窗边。');
-      await playSegment(`<div class="hl-speak">「神代彻。」</div>`, 450);
+      await playSpeak('裴野。', '时雨');
       await playNarrative('窗边的男生回过头，看了她一眼。');
       await playNarrative('她又转向角落。');
-      await playSegment(`<div class="hl-speak">「闻昼。」</div>`, 450);
+      await playSpeak('神代灯。', '时雨');
       await playNarrative('坐在地上的男生，终于把视线从自己的掌心移开。');
       await playNarrative('最后看向扶手边的男生。');
-      await playSegment(`<div class="hl-speak">「凯·伊森。」</div>`, 450);
-      await playNarrative('那个带疤的男生笑了一下。');
+      await playSpeak('瑞恩·凯。', '时雨');
+      await playNarrative('那个带小痣的男生笑了一下。');
     } else {
       await playNarrative('她走向窗边。');
-      await playSegment(`<div class="hl-speak">「薇尔伦蒂。」</div>`, 450);
-      await playNarrative('那个浅金色卷发的女生微微颔首。');
+      await playSpeak('月见澄。', '时雨');
+      await playNarrative('那个黑长直的女生微微颔首。');
       await playNarrative('她又转向角落。');
-      await playSegment(`<div class="hl-speak">「神代彻。」</div>`, 450);
-      await playNarrative('坐在地上的男生抬起头。');
+      await playSpeak('裴野。', '时雨');
+      await playNarrative('站在角落的男生抬起头。');
       await playNarrative('最后看向扶手边的男生。');
-      await playSegment(`<div class="hl-speak">「闻昼。」</div>`, 450);
-      await playNarrative('黑发中分的男生没说话，只点了一下头。');
+      await playSpeak('瑞恩·凯。', '时雨');
+      await playNarrative('浅棕发男生没说话，只点了一下头。');
     }
 
     await playNarrative('然后她转回你面前。');
-    await playSegment(`<div class="hl-speak">「还有你——」</div>`, 600);
+    await playSpeak('还有你——', '时雨');
     await playNarrative('她顿了一下，念出你的名字。');
-    await playSegment(`<div class="hl-speak" style="font-weight:bold;">「${escapeHtml(name)}。」</div>`, 700);
+    await playSpeak(name + '。', '时雨');
 
     await playNarrative('——');
     await playNarrative('门厅里安静了两秒。');
-
-    if(gender === '女'){
-      await playNarrative('然后闻昼开口了。他的声音很低，很平。');
-    } else {
-      await playNarrative('然后闻昼开口了。他的声音很低，很平。');
-    }
-    await playSegment(`<div class="hl-speak">「你怎么知道我们叫什么。」</div>`, 550);
+    await playNarrative('然后瑞恩·凯开口了。他的声音很平。');
+    await playSpeak('你怎么知道我们叫什么。', '瑞恩·凯');
     await playNarrative('不是质问。就是问。');
     await playNarrative('时雨眨眨眼。');
     await playNarrative('然后她笑了。');
     await playNarrative('笑得像偷到什么好东西。');
-    await playSegment(`<div class="hl-speak">「嘿嘿——」</div>`, 500);
-    await playSegment(`<div class="hl-speak">「这个嘛——」</div>`, 500);
+    await playSpeak('嘿嘿——', '时雨');
+    await playSpeak('这个嘛——', '时雨');
     await playNarrative('她把一根手指竖在唇前。');
-    await playSegment(`<div class="hl-speak">「你们以后就知道啦~」</div>`, 700);
+    await playSpeak('你们以后就知道啦~', '时雨');
 
     await playNarrative('——');
     await playNarrative('她不再解释，伸手在口袋里摸了摸，掏出六枚手环。');
-    await playSegment(`<div class="hl-speak">「来，一人一个。」</div>`, 500);
+    await playSpeak('来，一人一个。', '时雨');
     await playNarrative('一枚落在你掌心。银白色，很轻，内侧刻着细小的纹路。');
-    await playSegment(`<div class="hl-speak">「戴上之后，校服就出来了。」</div>`, 500);
+    await playSpeak('戴上之后，校服就出来了。', '时雨');
     await playNarrative('你戴上去。');
     await playNarrative('手腕一凉。');
     await playNarrative(`再低头——一套校服已经贴在你身上了。${uniform}。自动合身，好像它本来就是你穿的。`);
-    await playSegment(`<div class="hl-speak">「手环颜色对应当前术式的最高形态色，」</div>`, 400);
+    await playSpeak('手环颜色对应当前术式的最高形态色，', '时雨');
     await playNarrative('时雨说。');
-    await playSegment(`<div class="hl-speak">「所以看你的颜色，我就知道你走到哪一步了。」</div>`, 500);
+    await playSpeak('所以看你的颜色，我就知道你走到哪一步了。', '时雨');
     await playNarrative('她朝你眨眨眼。');
 
     await playNarrative('——');
-    await playSegment(`<div class="hl-speak">「现在——」</div>`, 450);
+    await playSpeak('现在——', '时雨');
     await playNarrative('她环视了一圈。');
-    await playSegment(`<div class="hl-speak">「你们几个刚觉醒。别急着想做什么大事。」</div>`, 550);
-    await playSegment(`<div class="hl-speak">「先去宿舍把东西放下。走廊很长，中间那间是你们的。」</div>`, 550);
+    await playSpeak('你们几个刚觉醒。别急着想做什么大事。', '时雨');
+    await playSpeak('先去宿舍把东西放下。走廊很长，中间那间是你们的。', '时雨');
     await playNarrative('她比了个方向。');
-    await playSegment(`<div class="hl-speak">「教室明天早上再找。开课的是高年级，看课表就行。」</div>`, 550);
-    await playSegment(`<div class="hl-speak">「剩下的——自己慢慢摸。」</div>`, 650);
+    await playSpeak('教室明天早上再找。开课的是高年级，看课表就行。', '时雨');
+    await playSpeak('剩下的——自己慢慢摸。', '时雨');
 
-    // 收尾：设置状态
     PLOT.history = [];
     PLOT.turn = 0;
     PLOT.isFirst = false;
     PLOT.summaryCounter = 0;
 
-    // 把这一段的玩家输入 & AI 文本记进 history（用于后续上下文）
     PLOT.history.push({role:"user", content:"（入学）"});
-    PLOT.history.push({role:"assistant", content:`你收到星辉信，来到梧桐街 47 号。在门厅里和宫守琴、燕无咎、神代彻、闻昼${gender==='女'?'、凯·伊森':'、薇尔伦蒂'}初次见面。术式觉醒——${arcane.name}。学姐时雨接待了你们，逐个叫出了所有人的名字，没有解释。她发给每人一枚手环，戴上手环，校服自动生成。她说先去宿舍。`});
+    PLOT.history.push({role:"assistant", content:`你收到星辉信，来到梧桐街 47 号。在门厅里和宫守琴、顾迟、裴野、神代灯、瑞恩·凯初次见面。术式觉醒——${arcane.name}。学姐时雨接待了你们，逐个叫出了所有人的名字，没有解释。她发给每人一枚手环，戴上手环，校服自动生成。她说先去宿舍。`});
 
     updateStatus();
     saveToPhone();
 
-    // 显示地点面板
     if(typeof renderPlacePanel === 'function') renderPlacePanel(true);
+
+    // 后台为玩家建档（不阻塞开场）
+    buildSelfProfile().catch(()=>{});
 
   } catch(e) {
     console.error(e);

@@ -1,4 +1,4 @@
-const C='twinkle-v13';
+const C='twinkle-v14';
 const ASSETS=['./','./index.html','./style.css','./rogue.css','./sound.js','./shared.js','./rpg-core.js','./rpg-ui.js','./rpg-save.js','./rpg-story.js','./rpg-awaken.js','./rogue.js','./manifest.json','./character.json','./icon-192.png','./icon-512.png','./media.json'];
 
 self.addEventListener('install', e => {

@@ -182,7 +182,14 @@ function rogueStartRun() {
       const data = JSON.parse(raw);
       const c = data.core || {};
       if (c.name) player.name = c.name;
-      const sp = c.mana || c.soulPower || 10;
+
+      // 从学期年级 + 术式形态数量推算强度
+      const termMap = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6};
+      const termMatch = String(c.term||'').match(/([一二三四五六])年级/);
+      const grade = termMatch ? (termMap[termMatch[1]] || 1) : 1;
+      const formCount = Array.isArray(c.forms) ? c.forms.length : 0;
+      const sp = 5 + grade * 5 + formCount * 5;
+
       player.soulPower = sp + (up.soul||0)*10;
       player.maxHp = 40 + sp * 8 + (up.hp||0)*20;
       player.hp = player.maxHp;

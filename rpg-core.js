@@ -36,6 +36,7 @@ const CORE={
   name:'', avatar:'', gender:'女', age:12, roleDesc:'',
   arcane:'未觉醒', arcaneDesc:'',
   forms:[],
+  selfProfile:null,
   npcs:[], flags:{}, summary:'',
   time:'入学第一天', term:'一年级上学期', weather:'',
   chapterNum:0, chapterTitle:'',
@@ -235,6 +236,7 @@ try{
     if(!CORE.gender)CORE.gender='女';
     if(!CORE.age)CORE.age=12;
     if(!CORE.arcaneDesc)CORE.arcaneDesc='';
+    if(CORE.selfProfile===undefined)CORE.selfProfile=null;
     if(!CORE.forms){
       CORE.forms = [];
       if(Array.isArray(CORE.marks)){
@@ -312,7 +314,7 @@ if(hasSave && (!CORE.name || CORE.arcane === '未觉醒')){
     localStorage.removeItem(slotKey());
     hasSave = false;
     const _keepAvatar2 = CORE.avatar || '';
-    Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0});
+    Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],selfProfile:null,npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0});
     Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 }
 
@@ -350,7 +352,7 @@ if(hasValidSave && !confirm("已有存档，开始新游戏会覆盖。确定？
 
 localStorage.removeItem(slotKey());
 const _keepAvatar = CORE.avatar || '';
-Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0});
+Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],selfProfile:null,npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0});
 Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 
 resetScene();

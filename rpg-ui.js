@@ -435,6 +435,14 @@ if (soulText.length > 8) {
     soulEl.onclick = null;
 }
 
+// 学期
+const termEl = document.getElementById('s-term');
+if(termEl){
+  let shortTerm = CORE.term || "一年级上学期";
+  if(shortTerm.length > 12) shortTerm = shortTerm.slice(0, 12) + '…';
+  termEl.innerHTML = icon('stage','#8b949e') + escapeHtml(shortTerm);
+}
+
 let shortTime = CORE.time || "未知";
 if(shortTime.length > 12) shortTime = shortTime.slice(0, 12) + '…';
 document.getElementById('s-time').innerHTML=icon('time','#8b949e')+escapeHtml(shortTime);
@@ -454,20 +462,61 @@ function showSoulDesc() {
 }
 
 // ============================================================
-//  人物弹窗
+//  人物弹窗（主角档案 + NPC 列表）
 // ============================================================
+function renderSelfProfileBlock(sp){
+  if(!sp) return '';
+  const app = sp.appearance || {};
+  let appLine = '';
+  if(app && typeof app === 'object'){
+    const parts = [];
+    if(app.hair) parts.push('发：' + app.hair);
+    if(app.eyes) parts.push('眼：' + app.eyes);
+    if(app.face) parts.push('脸：' + app.face);
+    if(app.height) parts.push('身高：' + app.height + 'cm');
+    if(app.build) parts.push('体型：' + app.build);
+    if(app.style) parts.push('穿搭：' + app.style);
+    appLine = parts.join(' · ');
+  } else if(typeof app === 'string'){ appLine = app; }
+  const arr = v => Array.isArray(v) ? v.join('、') : (v || '');
+  const rows = ['<div style="color:#4ade80;font-weight:600;margin-bottom:6px;">现役 · 主角</div>'];
+  rows.push(`<div>性别：${escapeHtml(sp.gender || CORE.gender || '?')}</div>`);
+  rows.push(`<div>年龄：${escapeHtml(String(sp.age || CORE.age || 12))}岁</div>`);
+  if(CORE.arcane && CORE.arcane !== '未觉醒') rows.push(`<div>本命术式：${escapeHtml(CORE.arcane)}</div>`);
+  if(appLine) rows.push(`<div style="margin-top:6px;">${escapeHtml(appLine)}</div>`);
+  const pers = arr(sp.personality); if(pers) rows.push(`<div>性格：${escapeHtml(pers)}</div>`);
+  if(sp.habits) rows.push(`<div>惯用动作：${escapeHtml(sp.habits)}</div>`);
+  const lk = arr(sp.likes); if(lk) rows.push(`<div>喜欢：${escapeHtml(lk)}</div>`);
+  const dl = arr(sp.dislikes); if(dl) rows.push(`<div>不喜欢：${escapeHtml(dl)}</div>`);
+  if(sp.attitude) rows.push(`<div>对人态度：${escapeHtml(sp.attitude)}</div>`);
+  if(sp.speech) rows.push(`<div>说话方式：${escapeHtml(sp.speech)}</div>`);
+  if(sp.origin) rows.push(`<div>出身：${escapeHtml(sp.origin)}</div>`);
+  if(sp.hiddenTalent) rows.push(`<div>隐藏特长：${escapeHtml(sp.hiddenTalent)}</div>`);
+  if(sp.aloneBehavior) rows.push(`<div>独处时：${escapeHtml(sp.aloneBehavior)}</div>`);
+  if(sp._raw) rows.push(`<div style="margin-top:6px;color:#8b949e;">${escapeHtml(sp._raw)}</div>`);
+  return `<div class="expandable-item" onclick="toggleExpand(this)" style="border-left:3px solid #4ade80;"><div class="expandable-header">${avatarHTML(CORE.name)}<span class="name" style="color:#4ade80;">${escapeHtml(CORE.name)}（你）</span></div><div class="expandable-detail">${rows.join('')}</div></div>`;
+}
+
 function openNPCs(){
-  renderExpandableList(document.getElementById('npcsContent'),CORE.npcs,{
-    emptyText:'暂无重要人物',
-    avatarFn:(n)=>avatarHTML(n.name),
-    removeFn:'removeNPCItem',
-    nameClassFn:(n)=>n.status==='archived'?'npc-archived':'',
-    detailFn:(n)=>{
-      const tag = n.status==='archived' ? `<span style="color:#a78bfa;">【已归档 · 定格于「${escapeHtml(n.archTime||'')}」】</span>` : `<span style="color:#4ade80;">【现役】</span>`;
-      const aff = typeof n.affinity === 'number' ? `<div>好感：<span style="color:${affinityColor(n.affinity)}">${n.affinity}</span> / 100</div>` : '';
-      return `${tag}<div style="margin-top:6px;">性别：${escapeHtml(n.gender||'?')}</div><div>年级：${escapeHtml(n.grade||n.term||'?')}</div><div>部门：${escapeHtml(n.dept||'无')}</div><div>术式：${escapeHtml(n.arcane||'?')}</div>${aff}<div>关系：${escapeHtml(n.relation||'?')}</div><div style="margin-top:6px;color:#c9d1d9;">${escapeHtml(n.desc||'')}</div>`;
-    }
-  });
+  const container = document.getElementById('npcsContent');
+  const selfHtml = CORE.selfProfile ? renderSelfProfileBlock(CORE.selfProfile) : '';
+  if(CORE.npcs.length === 0 && !selfHtml){
+    container.innerHTML = '暂无重要人物';
+  } else {
+    const tmp = document.createElement('div');
+    renderExpandableList(tmp, CORE.npcs, {
+      emptyText: '',
+      avatarFn: (n)=>avatarHTML(n.name),
+      removeFn: 'removeNPCItem',
+      nameClassFn: (n)=>n.status==='archived'?'npc-archived':'',
+      detailFn: (n)=>{
+        const tag = n.status==='archived' ? `<span style="color:#a78bfa;">【已归档 · 定格于「${escapeHtml(n.archTime||'')}」】</span>` : `<span style="color:#4ade80;">【现役】</span>`;
+        const aff = typeof n.affinity === 'number' ? `<div>好感：<span style="color:${affinityColor(n.affinity)}">${n.affinity}</span> / 100</div>` : '';
+        return `${tag}<div style="margin-top:6px;">性别：${escapeHtml(n.gender||'?')}</div><div>年级：${escapeHtml(n.grade||n.term||'?')}</div><div>部门：${escapeHtml(n.dept||'无')}</div><div>术式：${escapeHtml(n.arcane||'?')}</div>${aff}<div>关系：${escapeHtml(n.relation||'?')}</div><div style="margin-top:6px;color:#c9d1d9;">${escapeHtml(n.desc||'')}</div>`;
+      }
+    });
+    container.innerHTML = selfHtml + tmp.innerHTML;
+  }
   openModal('npcsModal');
 }
 function affinityColor(v){

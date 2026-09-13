@@ -64,7 +64,7 @@
 <button class="btn-primary" onclick="startNewGame()">开始新游戏</button>
 <button class="btn-secondary" onclick="resetSave()">重置存档</button>
 <div class="hint">有存档时显示"继续游戏"。输入 /测 xxx 可测资料库。</div>
-<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V10 · 若显示旧版请卸载 PWA 重装</div>
+<div class="hint" style="text-align:center;color:#4a5568;margin-top:14px;">版本 V11 · 若显示旧版请卸载 PWA 重装</div>
 </div>
 
 <div id="game-area">
@@ -80,10 +80,14 @@
 <span class="stat"><span class="stat-label">姓名</span> <span id="s-name" class="stat-value">-</span></span>
 <span class="stat"><span class="stat-label">年龄</span> <span id="s-age" class="stat-value">-</span></span>
 <span class="stat"><span class="stat-label">术式</span> <span id="s-soul" class="stat-value highlight">-</span></span>
+<span class="stat"><span class="stat-label">学期</span> <span id="s-term" class="stat-value">-</span></span>
 <span class="stat"><span class="stat-label">时间</span> <span id="s-time" class="stat-value">-</span></span>
 </div>
 <div id="scene-banner" class="hidden"></div>
+<div id="chat-wrap">
 <div id="chat-box"><div class="msg-sys">准备收到星辉信...</div></div>
+<div id="click-hint" class="click-hint">点击屏幕以继续</div>
+</div>
 <div id="options-area"></div>
 <div id="input-row">
 <input id="userInput" placeholder="输入动作，或 /测 ..." onkeydown="if(event.keyCode==13) sendAction()">

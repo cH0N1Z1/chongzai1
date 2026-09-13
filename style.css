@@ -64,15 +64,8 @@ body{background:#0b0e14;color:#d4d4d4;font-family:system-ui,-apple-system,sans-s
 .soul-clickable{cursor:pointer;border-bottom:1px dashed #8b949e;padding-bottom:1px}
 .soul-clickable:hover{color:#fbbf24}
 
-#chat-box{background:#161b22;border-radius:16px;padding:15px;flex:1;overflow-y:auto;border:2px solid #30363d;margin-bottom:8px;min-height:45vh;max-height:70vh;transition:border-color .6s ease;position:relative}
-#chat-box.scene-forest{border-color:#16a34a}
-#chat-box.scene-academy{border-color:#3b82f6}
-#chat-box.scene-palace{border-color:#d4af37}
-#chat-box.scene-night{border-color:#4338ca}
-#chat-box.scene-battle{border-color:#dc2626}
-#chat-box.scene-cave{border-color:#6b21a8}
-#chat-box.scene-water{border-color:#0891b2}
-#chat-box.scene-city{border-color:#b45309}
+#chat-wrap{flex:1;display:flex;flex-direction:column;min-height:45vh;max-height:70vh;margin-bottom:8px;position:relative}
+#chat-box{background:#161b22;border-radius:16px;padding:15px;flex:1;min-height:0;overflow-y:auto;border:2px solid #30363d;transition:border-color .6s ease;position:relative}
 
 /* ============================================================
    6. 消息行
@@ -364,16 +357,8 @@ body.theme-cute .setting-row select option{background:#3d1e3d;color:#ffb6c1}
 body.theme-cute .setting-row input[type=range]{accent-color:#ff8da1 !important}
 body.theme-cute .setting-row .ctrl-btn{background:#3d1e3d !important;color:#ffb6c1 !important;border:1px solid #ff8da1 !important}
 
-/* 可爱主题波浪蕾丝装饰 */
-body.theme-cute:not(.minimal-mode) #chat-box{position:relative;border:none;border-radius:20px;background:#2a162a;box-shadow:0 0 14px rgba(255,141,161,0.18)}
-body.theme-cute:not(.minimal-mode) #chat-box::before{content:'';position:absolute;inset:-14px;padding:14px;border-radius:34px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><path d='M0 10 a5 5 0 0 1 10 0 a5 5 0 0 1 10 0' fill='none' stroke='%23ff8da1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-size:20px 20px;background-repeat:repeat;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude;pointer-events:none;opacity:0.95;filter:drop-shadow(0 0 6px rgba(255,141,161,0.45))}
+/* 可爱主题装饰性补充（非 #chat-box / .modal-box 部分） */
 body.theme-cute:not(.minimal-mode) #game-area{padding:14px 4px 4px}
-body.theme-cute:not(.minimal-mode) .modal-box{position:relative;border:none;border-radius:20px;background:#2a162a;box-shadow:0 0 20px rgba(255,141,161,0.28)}
-body.theme-cute:not(.minimal-mode) .modal-box::before{content:'';position:absolute;inset:-7px;border-radius:28px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M0 8 a4 4 0 0 1 8 0 a4 4 0 0 1 8 0' fill='none' stroke='%23ffb6c1' stroke-width='2' stroke-linecap='round'/></svg>");background-size:16px 16px;background-repeat:repeat;pointer-events:none;z-index:0}
-body.theme-cute:not(.minimal-mode) .modal-box::after{content:'';position:absolute;inset:3px;border-radius:20px;background:#2a162a;pointer-events:none;z-index:1}
-body.theme-cute:not(.minimal-mode) .modal-box>*{position:relative;z-index:2}
-body.theme-cute:not(.minimal-mode) .modal-box h3::before{content:'🌸 '}
-body.theme-cute:not(.minimal-mode) .modal-box h3::after{content:' 🌸'}
 body.theme-cute:not(.minimal-mode) #status-bar{border:1px dashed #ffb6c1;box-shadow:0 0 10px rgba(255,141,161,0.15)}
 body.theme-cute:not(.minimal-mode) #status-bar .stat{position:relative;padding-right:16px}
 body.theme-cute:not(.minimal-mode) #status-bar .stat::after{content:'♡';position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:10px;color:#ff8da1;opacity:0.7}
@@ -492,6 +477,7 @@ body.theme-water .mode-title{color:#3b7fbf}
 body.theme-water .mode-desc{color:#6b8ba0}
 body.theme-water .mode-btn:not(.disabled) .mode-tag{background:linear-gradient(135deg,#a8d8ee,#7ec8e3);color:#ffffff}
 
+/* 水色主题装饰性补充 */
 body.theme-water:not(.minimal-mode) #chat-box{position:relative}
 body.theme-water:not(.minimal-mode) #chat-box::before{content:'';position:absolute;inset:-12px;border-radius:30px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><path d='M3 14 Q8 9 14 14 T25 14' fill='none' stroke='%237ec8e3' stroke-width='1.6' stroke-linecap='round' opacity='0.6'/></svg>");background-size:28px 28px;background-repeat:repeat;pointer-events:none;opacity:0.8}
 body.theme-water:not(.minimal-mode) #game-area{padding:14px 4px 4px}
@@ -521,6 +507,7 @@ body.minimal-mode .msg-ai .hl-speak,body.minimal-mode .msg-ai .hl-inner,body.min
 body.minimal-mode .msg-chapter{color:#9ca3af;border-color:#30363d;background:transparent;text-shadow:none;animation:none}
 body.minimal-mode #scene-banner{background:transparent;border-left-width:2px;padding-left:8px}
 body.minimal-mode .options-container,body.minimal-mode .option-btn{animation:none !important;transition:opacity .2s ease}
+
 /* ============================================================
    模块 49：可爱主题弹窗波浪跟随滚动
    ============================================================ */
@@ -568,6 +555,7 @@ body.theme-cute:not(.minimal-mode) #chat-box::after {
   content: none !important;
   display: none !important;
 }
+
 /* ============================================================
    模块 51：多存档槽选择器
    ============================================================ */
@@ -604,6 +592,7 @@ body.theme-water .slot-num{color:#5a8fa8;}
 body.theme-water .slot-item.active .slot-num{color:#3b7fbf;}
 body.theme-water .replay-item{background:#f4fbff;border-color:#b3dcef;color:#2c4a5c;}
 body.theme-water .replay-item:hover{background:#eaf6fc;border-color:#7ec8e3;}
+
 /* ============================================================
    模块 56：术式星图
    ============================================================ */
@@ -764,3 +753,44 @@ body.theme-cute .form-detail-desc{background:#1a0f1a;color:#ffb6c1}
 body.theme-water .form-detail-name{color:#3b7fbf}
 body.theme-water .form-detail-type{background:rgba(126,200,227,0.18);color:#5a8fa8}
 body.theme-water .form-detail-desc{background:#f4fbff;color:#2c4a5c}
+
+/* ============================================================
+   模块 60：点击继续提示 + 说话人标记
+   ============================================================ */
+.click-hint{
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #6b7280;
+  opacity: 0;
+  transition: opacity .4s ease;
+  pointer-events: none;
+  z-index: 2;
+  letter-spacing: 1px;
+}
+.click-hint.show{
+  opacity: 1;
+  animation: clickHintPulse 2s ease-in-out infinite;
+}
+@keyframes clickHintPulse{
+  0%,100%{ opacity: 0.55; }
+  50%{ opacity: 1; }
+}
+
+/* 聊天气泡内的说话人标记 */
+.speaker-tag{
+  display: inline-block;
+  font-size: 12px;
+  color: #a78bfa;
+  margin-bottom: 6px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.speaker-tag::after{
+  content: '：';
+}
+
+body.theme-cute .speaker-tag{ color: #ff8da1; }
+body.theme-water .speaker-tag{ color: #3b7fbf; }
