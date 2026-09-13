@@ -112,7 +112,11 @@
 </div>
 </div>
 
-<div class="modal-overlay" id="npcsModal"><div class="modal-box"><h3>重要人物</h3><div id="npcsContent" class="expandable-list">无</div><div class="btn-row"><button class="btn-close" onclick="closeModal('npcsModal')">关闭</button></div></div></div>
+<!-- 人物列表 -->
+<div class="modal-overlay" id="npcsModal"><div class="modal-box"><h3>重要人物</h3><div id="npcsContent" class="npc-list"></div><div class="btn-row"><button class="btn-close" onclick="closeModal('npcsModal')">关闭</button></div></div></div>
+
+<!-- 人物详情弹窗 -->
+<div class="modal-overlay" id="npcDetailModal"><div class="modal-box"><div id="npcDetailContent"></div><div class="btn-row"><button class="btn-close" onclick="closeModal('npcDetailModal')">关闭</button></div></div></div>
 
 <div class="modal-overlay" id="soulModal">
 <div class="modal-box">
@@ -260,6 +264,7 @@
 <script src="rpg-ui.js"></script>
 <script src="rpg-save.js"></script>
 <script src="rpg-story.js"></script>
+<script src="rpg-scene.js"></script>
 <script src="rpg-awaken.js"></script>
 <script src="rogue.js"></script>
 <script>

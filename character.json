@@ -1,5 +1,5 @@
 {
-  "_note": "星辉学院角色库 · 61届固定 5 名同届生。主角为第 6 人，性别不影响这 5 人。base + evolve 结构，evolve 目前只写一年级。",
+  "_note": "星辉学院角色库 · 61届固定 5 名同届生 + 四年级学姐 1 名。主角为第 6 人，性别不影响这 5 人。base + evolve 结构，evolve 目前只写一年级。",
   "classmates": [
     {
       "id": "gongshouqin",
@@ -33,7 +33,7 @@
       "origin": "从别的城市搬来的，搬来那年刚好 12 岁",
       "aloneBehavior": "一个人去天台，戴着耳机，不播放任何东西",
       "initialAttitude": {
-        "裴野": "太吵了",
+        "江野": "太吵了",
         "月见澄": "她也站在边上。但不一样。"
       },
       "commonPlaces": ["宿舍", "天台", "音乐室"],
@@ -48,7 +48,7 @@
     },
     {
       "id": "guchi",
-      "name": "顾 迟",
+      "name": "顾迟",
       "gender": "女",
       "age": 12,
       "grade": "一年级上",
@@ -78,8 +78,7 @@
       "origin": "本地人。家在学校对面那栋老楼里",
       "aloneBehavior": "一个人坐在楼梯间，听自己脚步声的回音",
       "initialAttitude": {
-        "宫守琴": "她也不急。",
-        "瑞恩·凯": "他太快了。跟不上。"
+        "宫守琴": "她也不急。"
       },
       "commonPlaces": ["宿舍", "教学楼", "天台"],
       "optionalFor": null,
@@ -93,7 +92,7 @@
     },
     {
       "id": "yuejiancheng",
-      "name": "月见 澄",
+      "name": "月见澄",
       "gender": "女",
       "age": 12,
       "grade": "一年级上",
@@ -123,7 +122,6 @@
       "origin": "父母是研究者。从小在实验室里长大",
       "aloneBehavior": "一个人在天台看云，什么也不做",
       "initialAttitude": {
-        "瑞恩·凯": "太吵。",
         "神代灯": "……还行。他不废话。"
       },
       "commonPlaces": ["天台", "图书馆", "教学楼"],
@@ -137,8 +135,8 @@
       }
     },
     {
-      "id": "peiye",
-      "name": "裴 野",
+      "id": "jiangye",
+      "name": "江野",
       "gender": "男",
       "age": 12,
       "grade": "一年级上",
@@ -183,7 +181,7 @@
     },
     {
       "id": "shendai-deng",
-      "name": "神代 灯",
+      "name": "神代灯",
       "gender": "男",
       "age": 12,
       "grade": "一年级上",
@@ -225,51 +223,46 @@
           "habits": "说话时会微微前倾"
         }
       }
-    },
-    {
-      "id": "ryan-kay",
-      "name": "瑞恩·凯",
-      "gender": "男",
-      "age": 12,
-      "grade": "一年级上",
-      "room": "106",
-      "dept": "无",
-      "appearance": {
-        "hair": "浅棕发，微卷，总有一撮翘起来",
-        "eyes": "浅灰色眼睛，笑的时候弯成月牙",
-        "face": "脸型偏圆，脸颊有肉。左耳一颗小痣",
-        "height": 175,
-        "build": "匀称，手脚灵活，坐不住",
-        "style": "校服永远少一颗扣子。袖子卷到手肘"
-      },
-      "personality": ["散漫", "爱笑", "自来熟", "藏不住"],
-      "habits": "笑的时候会晃脑袋；避开话题时会站起来走两步",
-      "likes": ["说话", "凑热闹"],
-      "dislikes": ["安静的房间"],
-      "attitude": "对谁都聊得来，但没人真的了解他",
-      "arcane": "风蚀",
-      "arcaneImage": "风、蚀、消磨",
-      "secret": "他的术式在侵蚀他自己",
-      "speech": "语速快，爱开玩笑，正经起来声音会低下去",
-      "roleInGroup": "小太阳",
-      "initialAffinity": 40,
-      "fear": "一个人",
-      "hiddenTalent": "什么都学得快。学什么会什么",
-      "origin": "家里有三个姐姐",
-      "aloneBehavior": "他不会独处。会去找人。没人的话，就去便利店跟店长聊天。",
-      "initialAttitude": {
-        "月见澄": "她好冷啊哈哈。",
-        "顾迟": "她看我像看电影。有点吓人。"
-      },
-      "commonPlaces": ["便利店", "食堂", "训练场"],
-      "optionalFor": null,
-      "evolve": {
-        "1": {
-          "personality": ["散漫", "爱笑", "自来熟", "藏不住"],
-          "attitude": "对谁都聊得来，但没人真的了解他",
-          "habits": "笑的时候会晃脑袋"
-        }
-      }
     }
-  ]
+  ],
+  "seniors": [
+    {
+      "id": "shiyuqing",
+      "name": "时雨晴",
+      "gender": "女",
+      "age": 15,
+      "grade": "四年级上",
+      "room": "",
+      "dept": "学生会",
+      "relation": "学姐",
+      "appearance": {
+        "hair": "短发，发尾微微翘，随意",
+        "eyes": "眼睛很亮，笑起来弯成月牙",
+        "face": "脸型偏圆，笑起来很大",
+        "height": 160,
+        "build": "偏瘦，动作快，跑上跑下不带喘",
+        "style": "校服穿得随意，袖子常卷到手肘"
+      },
+      "personality": ["语速快", "自来熟", "话多", "不拘小节"],
+      "habits": "说话时会比手势；笑的时候整个人往后仰",
+      "likes": ["热闹", "跟人讲话", "跑上跑下"],
+      "dislikes": ["安静的房间"],
+      "attitude": "对谁都很自然，见到新人先伸手握手",
+      "arcane": "灯芯",
+      "arcaneImage": "灯、芯、一点温度",
+      "secret": "无。她就是个轮到这一次接待的学姐。",
+      "speech": "语速快，句子短，爱用感叹号",
+      "roleInGroup": "接待者",
+      "initialAffinity": 25,
+      "fear": "无",
+      "hiddenTalent": "把人名和脸对上特别快",
+      "origin": "本地学生，四年级在读",
+      "aloneBehavior": "一个人在学生会馆整理名单",
+      "initialAttitude": {},
+      "commonPlaces": ["食堂", "便利店", "教学楼"],
+      "optionalFor": null,
+      "evolve": {}
+    }
+  ],
+  "juniors": []
 }

@@ -92,6 +92,7 @@ function registerNpcFromLibrary(npc){
   if(exist){
     if(CORE.term) exist.term = CORE.term;
     if(m.grade) exist.grade = m.grade;
+    if(m.relation) exist.relation = m.relation;
     return exist;
   }
 
@@ -104,7 +105,7 @@ function registerNpcFromLibrary(npc){
     name: m.name,
     gender: m.gender || '未知',
     arcane: m.arcane || '未知',
-    relation: '同届生',
+    relation: m.relation || '同届生',
     grade: m.grade || '一年级上',
     dept: m.dept || '无',
     desc: parts.join('。') || '',
