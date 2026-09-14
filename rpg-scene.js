@@ -2,6 +2,7 @@
 //  rpg-scene.js - 固定剧情引擎
 //  依赖：shared.js → rpg-core.js
 //  读取 story.json，按节点播放。
+//  支持「自动」与「跳过」。
 // ============================================================
 
 // ============================================================
@@ -31,6 +32,47 @@ function fillVars(text, vars){
 }
 
 // ============================================================
+//  播放控制：自动 / 跳过
+// ============================================================
+let _skipRequested = false;
+let _autoMode = false;
+let _autoTimer = null;
+let _playingScene = false;
+
+function showPlayControls(){
+  const el = document.getElementById('play-controls');
+  if(el) el.classList.remove('hidden');
+}
+function hidePlayControls(){
+  const el = document.getElementById('play-controls');
+  if(el) el.classList.add('hidden');
+}
+function updatePlayControls(){
+  const autoBtn = document.getElementById('btnAuto');
+  const skipBtn = document.getElementById('btnSkip');
+  if(autoBtn) autoBtn.classList.toggle('active', _autoMode);
+  if(skipBtn) skipBtn.classList.toggle('active', _skipRequested);
+}
+function toggleAuto(){
+  _autoMode = !_autoMode;
+  updatePlayControls();
+  if(_autoMode && _awaitingClick){
+    const fn = _awaitingClick;
+    _awaitingClick = null;
+    fn();
+  }
+}
+function toggleSkip(){
+  _skipRequested = true;
+  updatePlayControls();
+  if(_awaitingClick){
+    const fn = _awaitingClick;
+    _awaitingClick = null;
+    fn();
+  }
+}
+
+// ============================================================
 //  点击推进
 // ============================================================
 let _awaitingClick = null;
@@ -49,16 +91,30 @@ function resetClickHint(){ _clickHintEverShown = false; }
 
 function awaitClick(){
   return new Promise(resolve => {
-    _awaitingClick = () => {
-      hideClickHint();
+    if(_skipRequested){ resolve(); return; }
+
+    let done = false;
+    const finish = () => {
+      if(done) return;
+      done = true;
+      if(_autoTimer){ clearTimeout(_autoTimer); _autoTimer = null; }
       if(_clickHintTimer){ clearTimeout(_clickHintTimer); _clickHintTimer = null; }
+      if(_awaitingClick === finish) _awaitingClick = null;
+      hideClickHint();
       resolve();
     };
-    if(!_clickHintEverShown){
-      _clickHintEverShown = true;
-      showClickHint();
+
+    _awaitingClick = finish;
+
+    if(_autoMode){
+      _autoTimer = setTimeout(finish, 2200);
     } else {
-      _clickHintTimer = setTimeout(showClickHint, 2500);
+      if(!_clickHintEverShown){
+        _clickHintEverShown = true;
+        showClickHint();
+      } else {
+        _clickHintTimer = setTimeout(showClickHint, 2500);
+      }
     }
   });
 }
@@ -181,8 +237,6 @@ async function runBattleStep(step, vars){
     console.warn('战斗配置生成失败：' + enemyName);
     return null;
   }
-  chatBox.innerHTML += `<div class="msg-sys">⚔ 遭遇：${escapeHtml(enemyName)}${count>1 ? ' × '+count : ''}</div>`;
-  chatBox.scrollTop = chatBox.scrollHeight;
   const result = await new Promise(resolve => {
     cfg.onEnd = (r) => resolve(r);
     startBattle(cfg);
@@ -201,25 +255,51 @@ async function playScene(sceneId, vars){
     console.warn('剧情不存在：' + sceneId);
     return false;
   }
-  const steps = Array.isArray(scene.steps) ? scene.steps : [];
-  for(const step of steps){
-    const type = step.type || 'narrate';
-    if(type === 'narrate'){
-      await playNarrative(fillVars(step.text, vars));
-    } else if(type === 'speak'){
-      await playSpeak(fillVars(step.text, vars), fillVars(step.speaker, vars));
-    } else if(type === 'card'){
-      await playSegment(buildCardHtml(fillVars(step.title, vars), fillVars(step.sub, vars)));
-    } else if(type === 'fx'){
-      await playSegment(buildFxHtml(step.style, fillVars(step.text, vars)));
-    } else if(type === 'pause'){
-      await awaitClick();
-    } else if(type === 'battle'){
-      const result = await runBattleStep(step, vars);
-      const branch = result === 'win' ? step.onWin : step.onLose;
-      if(branch){
-        await playScene(branch, vars);
+
+  const isRoot = !_playingScene;
+  if(isRoot){
+    _playingScene = true;
+    _skipRequested = false;
+    _autoMode = false;
+    updatePlayControls();
+    showPlayControls();
+  }
+
+  try {
+    const steps = Array.isArray(scene.steps) ? scene.steps : [];
+    for(const step of steps){
+      const type = step.type || 'narrate';
+
+      // 跳过模式：跳过 narrate / speak / card / fx / pause，但战斗仍然要打
+      if(_skipRequested && type !== 'battle'){
+        continue;
       }
+
+      if(type === 'narrate'){
+        await playNarrative(fillVars(step.text, vars));
+      } else if(type === 'speak'){
+        await playSpeak(fillVars(step.text, vars), fillVars(step.speaker, vars));
+      } else if(type === 'card'){
+        await playSegment(buildCardHtml(fillVars(step.title, vars), fillVars(step.sub, vars)));
+      } else if(type === 'fx'){
+        await playSegment(buildFxHtml(step.style, fillVars(step.text, vars)));
+      } else if(type === 'pause'){
+        await awaitClick();
+      } else if(type === 'battle'){
+        const result = await runBattleStep(step, vars);
+        const branch = result === 'win' ? step.onWin : step.onLose;
+        if(branch){
+          await playScene(branch, vars);
+        }
+      }
+    }
+  } finally {
+    if(isRoot){
+      _playingScene = false;
+      _skipRequested = false;
+      _autoMode = false;
+      hidePlayControls();
+      updatePlayControls();
     }
   }
   return true;

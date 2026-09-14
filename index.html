@@ -87,6 +87,10 @@
 <div id="chat-wrap">
 <div id="chat-box"><div class="msg-sys">准备收到星辉信...</div></div>
 <div id="click-hint" class="click-hint">点击屏幕以继续</div>
+<div id="play-controls" class="hidden">
+  <button id="btnAuto" class="play-ctrl-btn" onclick="toggleAuto()">自动</button>
+  <button id="btnSkip" class="play-ctrl-btn" onclick="toggleSkip()">跳过</button>
+</div>
 </div>
 <div id="options-area"></div>
 <div id="input-row">
@@ -117,6 +121,15 @@
 
 <!-- 人物详情弹窗 -->
 <div class="modal-overlay" id="npcDetailModal"><div class="modal-box"><div id="npcDetailContent"></div><div class="btn-row"><button class="btn-close" onclick="closeModal('npcDetailModal')">关闭</button></div></div></div>
+
+<!-- 战斗窗口 -->
+<div class="modal-overlay" id="battleModal">
+<div class="modal-box battle-box">
+<h3>⚔ 战斗</h3>
+<div id="battleLogArea" class="battle-log"></div>
+<div id="battleSkillArea" class="battle-skills"></div>
+</div>
+</div>
 
 <div class="modal-overlay" id="soulModal">
 <div class="modal-box">

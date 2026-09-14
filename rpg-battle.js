@@ -1,6 +1,7 @@
 // ============================================================
 //  rpg-battle.js - 回合制战斗（纯代码，AI 不参与）
 //  依赖：shared.js → rpg-core.js → rpg-story.js
+//  战斗界面在独立窗口 #battleModal
 // ============================================================
 
 const BATTLE = {
@@ -54,14 +55,15 @@ function makeUnit(cfg){
   };
 }
 
+// 战斗日志写进独立窗口
 function battleLog(text, cls){
+  const area = document.getElementById('battleLogArea');
+  if(!area) return;
   const div = document.createElement('div');
-  div.className = cls || 'msg-sys';
-  div.style.textAlign = 'left';
-  div.style.whiteSpace = 'pre-wrap';
+  div.className = cls || 'battle-line';
   div.textContent = text;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
 }
 
 function hpBar(u){
@@ -72,7 +74,7 @@ function hpBar(u){
 function renderBattleStatus(){
   const a = '我方：' + BATTLE.allies.filter(u=>u.hp>0).map(hpBar).join(' ｜ ');
   const e = '敌方：' + BATTLE.enemies.filter(u=>u.hp>0).map(hpBar).join(' ｜ ');
-  battleLog(a + '\n' + e, 'msg-power');
+  battleLog(a + '\n' + e, 'battle-status');
 }
 
 async function startBattle(config){
@@ -85,7 +87,14 @@ async function startBattle(config){
   BATTLE.turnIndex = 0;
   BATTLE.waiting = false;
   BATTLE.onEnd = config.onEnd || null;
-  chatBox.innerHTML += `<div class="msg-sys">⚔ 战斗开始</div>`;
+
+  const logArea = document.getElementById('battleLogArea');
+  if(logArea) logArea.innerHTML = '';
+  const skillArea = document.getElementById('battleSkillArea');
+  if(skillArea) skillArea.innerHTML = '';
+
+  openModal('battleModal');
+  battleLog('⚔ 战斗开始');
   sortOrder();
   renderBattleStatus();
   nextTurn();
@@ -141,11 +150,16 @@ function nextTurn(){
 }
 
 function showSkillOptions(unit){
-  const opts = unit.skills.map((s, i) => ({
-    text: `${s.name}${s.cost ? '（'+s.cost+'星尘）' : ''}`,
-    onClick: () => playerChooseSkill(i)
-  }));
-  appendOptions(opts);
+  const area = document.getElementById('battleSkillArea');
+  if(!area) return;
+  area.innerHTML = '';
+  unit.skills.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'battle-skill-btn';
+    btn.textContent = `${s.name}${s.cost ? '（'+s.cost+'星尘）' : ''}`;
+    btn.onclick = () => playerChooseSkill(i);
+    area.appendChild(btn);
+  });
 }
 
 function playerChooseSkill(index){
@@ -153,8 +167,13 @@ function playerChooseSkill(index){
   const unit = BATTLE.order[BATTLE.turnIndex];
   const skill = unit.skills[index];
   if(!skill) return;
-  if((skill.cost||0) > unit.stardust){ battleLog('星尘不足，无法释放'); return; }
+  if((skill.cost||0) > unit.stardust){
+    battleLog('星尘不足，无法释放');
+    return;
+  }
   BATTLE.waiting = false;
+  const area = document.getElementById('battleSkillArea');
+  if(area) area.innerHTML = '';
   doSkill(unit, skill);
   BATTLE.turnIndex++;
   setTimeout(nextTurn, 800);
@@ -169,7 +188,7 @@ function pickSkill(unit){
 function doSkill(unit, skill){
   if(!skill) return;
   unit.stardust = Math.max(0, unit.stardust - (skill.cost||0));
-  battleLog(`✦ ${unit.name} 使用「${skill.name}」`, 'msg-skill');
+  battleLog(`✦ ${unit.name} 使用「${skill.name}」`);
   const targets = pickTargets(unit, skill);
   targets.forEach(t => {
     if(skill.power > 0){
@@ -179,7 +198,12 @@ function doSkill(unit, skill){
     }
     if(skill.effect === 'stun' && Math.random() < (skill.effectChance||0)){
       t.stun = (t.stun||0) + (skill.effectDuration||1);
-      battleLog(`  ${t.name} 被眩晕！`, 'msg-ring');
+      battleLog(`  ${t.name} 被眩晕！`);
+    }
+    if(skill.effect === 'heal' && skill.effectValue){
+      const heal = Math.min(skill.effectValue, t.maxHp - t.hp);
+      t.hp += heal;
+      battleLog(`  ${t.name} 恢复 ${heal} 生命`);
     }
   });
   renderBattleStatus();
@@ -190,6 +214,7 @@ function pickTargets(unit, skill){
   const alive = opposite.filter(u => u.hp > 0);
   if(alive.length === 0) return [];
   if(skill.target === 'all') return alive;
+  if(skill.target === 'self') return [unit];
   return [alive[Math.floor(Math.random()*alive.length)]];
 }
 
@@ -207,6 +232,10 @@ function endBattle(result){
   if(!BATTLE.active) return;
   BATTLE.active = false;
   BATTLE.waiting = false;
+
+  const skillArea = document.getElementById('battleSkillArea');
+  if(skillArea) skillArea.innerHTML = '';
+
   let text = '';
   if(result === 'win') text = '★ 战斗胜利';
   else if(result === 'lose') text = '✕ 战斗失败';
@@ -216,6 +245,12 @@ function endBattle(result){
     result = allyPct >= enemyPct ? 'win' : 'lose';
     text = `回合上限 · ${allyPct >= enemyPct ? '我方占优' : '敌方占优'}`;
   }
-  battleLog(`—— ${text} ——`, result === 'win' ? 'msg-gain' : 'msg-lose');
+  battleLog(`—— ${text} ——`, result === 'win' ? 'battle-win' : 'battle-lose');
+
   if(typeof BATTLE.onEnd === 'function') BATTLE.onEnd(result);
+
+  // 延迟关窗，让玩家看完结果
+  setTimeout(() => {
+    if(!BATTLE.active) closeModal('battleModal');
+  }, 1800);
 }
