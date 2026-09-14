@@ -53,21 +53,31 @@ function updatePlayControls(){
   if(autoBtn) autoBtn.classList.toggle('active', _autoMode);
   if(skipBtn) skipBtn.classList.toggle('active', _skipRequested);
 }
+
 function toggleAuto(){
   _autoMode = !_autoMode;
   updatePlayControls();
-  if(_autoMode && _awaitingClick){
-    const fn = _awaitingClick;
-    _awaitingClick = null;
-    fn();
+  if(_autoMode){
+    // 打开自动：若正卡在等待点击，立刻放行，进入下一段
+    if(_awaitingClick){
+      const fn = _awaitingClick;
+      _awaitingClick = null;
+      if(_autoTimer){ clearTimeout(_autoTimer); _autoTimer = null; }
+      fn();
+    }
+  } else {
+    // 关闭自动：清掉排队中的自动定时器，让等待恢复成手动点击
+    if(_autoTimer){ clearTimeout(_autoTimer); _autoTimer = null; }
   }
 }
+
 function toggleSkip(){
   _skipRequested = true;
   updatePlayControls();
   if(_awaitingClick){
     const fn = _awaitingClick;
     _awaitingClick = null;
+    if(_autoTimer){ clearTimeout(_autoTimer); _autoTimer = null; }
     fn();
   }
 }
@@ -91,6 +101,7 @@ function resetClickHint(){ _clickHintEverShown = false; }
 
 function awaitClick(){
   return new Promise(resolve => {
+    // 跳过模式：不等，立刻放行（但剧情照常播）
     if(_skipRequested){ resolve(); return; }
 
     let done = false;
@@ -123,6 +134,7 @@ function triggerClick(){
   if(_awaitingClick){
     const fn = _awaitingClick;
     _awaitingClick = null;
+    if(_autoTimer){ clearTimeout(_autoTimer); _autoTimer = null; }
     fn();
   }
 }
@@ -270,11 +282,6 @@ async function playScene(sceneId, vars){
     for(const step of steps){
       const type = step.type || 'narrate';
 
-      // 跳过模式：跳过 narrate / speak / card / fx / pause，但战斗仍然要打
-      if(_skipRequested && type !== 'battle'){
-        continue;
-      }
-
       if(type === 'narrate'){
         await playNarrative(fillVars(step.text, vars));
       } else if(type === 'speak'){
@@ -286,7 +293,11 @@ async function playScene(sceneId, vars){
       } else if(type === 'pause'){
         await awaitClick();
       } else if(type === 'battle'){
+        // 战斗不进快速跳过，正常打开战斗窗口
+        const wasSkip = _skipRequested;
+        _skipRequested = false;
         const result = await runBattleStep(step, vars);
+        _skipRequested = wasSkip;
         const branch = result === 'win' ? step.onWin : step.onLose;
         if(branch){
           await playScene(branch, vars);
@@ -298,6 +309,7 @@ async function playScene(sceneId, vars){
       _playingScene = false;
       _skipRequested = false;
       _autoMode = false;
+      if(_autoTimer){ clearTimeout(_autoTimer); _autoTimer = null; }
       hidePlayControls();
       updatePlayControls();
     }
