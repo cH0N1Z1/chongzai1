@@ -94,6 +94,7 @@ ${desc}`
 
 // ============================================================
 //  随机术式池（name + image + role + desc）
+//  注意：不能跟 NPC 的术式撞名
 // ============================================================
 const RANDOM_ARCANES = [
   {name:'霜织', image:'冰、霜、凝', role:'输出', desc:'操控冰霜，指尖凝出细霜，随时间凝结成冰棱、雪幕。'},
@@ -102,7 +103,6 @@ const RANDOM_ARCANES = [
   {name:'糖霜', image:'甜、愈、糖', role:'辅助', desc:'制造甜味与治愈，尝到的东西会变甜，伤口会愈合得更快。'},
   {name:'拾星录', image:'记、光、星', role:'辅助', desc:'以旧笔记为媒介记录光。写下的东西会在纸页上发光。'},
   {name:'镜廊', image:'镜、影、迷', role:'特殊', desc:'映像与迷宫。能照出别人的样子，也能照出自己的。'},
-  {name:'弦余', image:'音、共振、余', role:'控制', desc:'音、共振、残余。弹响过的音会留下一点不散的东西。'},
   {name:'日蚀', image:'光、遮、临界', role:'特殊', desc:'光、遮蔽、临界。能感知到别人术式的临界点。'},
   {name:'余烬', image:'燃、烬、温', role:'输出', desc:'燃烧、残留、温度。烧过之后剩下的那一点热。'},
   {name:'节理', image:'结构、纹、裂', role:'控制', desc:'结构、纹理、裂缝。看得见事物内部的纹理与薄弱处。'},
@@ -113,8 +113,28 @@ const RANDOM_ARCANES = [
   {name:'雾隐', image:'雾、隐、谜', role:'控制', desc:'雾、隐、谜。让一些东西在视线里慢慢淡下去。'},
 ];
 
+// 收集所有 NPC 已占用的术式名（防撞）
+function getUsedArcaneNames(){
+  const used = new Set();
+  if(typeof CHARACTERS !== 'undefined'){
+    const lists = [CHARACTERS.classmates, CHARACTERS.seniors, CHARACTERS.juniors];
+    lists.forEach(list => {
+      if(!Array.isArray(list)) return;
+      list.forEach(c => { if(c && c.arcane) used.add(c.arcane); });
+    });
+  }
+  return used;
+}
+
+// 抽随机术式：跳过跟 NPC 撞名的
 function rollRandomArcane(){
-  return RANDOM_ARCANES[Math.floor(Math.random() * RANDOM_ARCANES.length)];
+  const used = getUsedArcaneNames();
+  const pool = RANDOM_ARCANES.filter(a => !used.has(a.name));
+  if(pool.length === 0) {
+    // 全撞了（不可能），退回全池
+    return RANDOM_ARCANES[Math.floor(Math.random() * RANDOM_ARCANES.length)];
+  }
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 // ============================================================
@@ -152,13 +172,14 @@ function extractJsonArray(text){
 }
 
 // 把 AI 返回的形态整理成 CORE.forms 结构
+// 第 1 形态强制 cost=0（基础形态不消耗星尘）
 function normalizeForms(rawList, baseName){
   const arr = Array.isArray(rawList) ? rawList : [];
   return arr.map((f, i) => {
     const out = {
       name: f.name || (i === 0 ? baseName : baseName + '·' + (f.suffix || i)),
       type: Array.isArray(f.type) ? f.type : ['攻击'],
-      cost: (typeof f.cost === 'number') ? f.cost : 0,
+      cost: (i === 0) ? 0 : ((typeof f.cost === 'number') ? f.cost : 0),
       power: (typeof f.power === 'number') ? f.power : 0,
       target: f.target || 'one',
       desc: f.desc || '',
@@ -175,7 +196,7 @@ function normalizeForms(rawList, baseName){
 // 兜底形态（AI 生成失败时用）
 function fallbackForms(name){
   return [
-    { name: name, type: ['攻击'], cost: 10, power: 70, target: 'one', desc: '术式觉醒的本能一击。', unlocked: true },
+    { name: name, type: ['攻击'], cost: 0, power: 70, target: 'one', desc: '术式觉醒的本能一击。', unlocked: true },
     { name: name + '·未名', type: ['攻击'], cost: 20, power: 90, target: 'one', desc: '尚未成形的力量。', unlocked: false },
     { name: name + '·未名', type: ['辅助'], cost: 20, power: 0, target: 'self', effect: 'heal', effectValue: 100, desc: '尚未成形的力量。', unlocked: false }
   ];
@@ -314,7 +335,7 @@ async function awakenArcane(){
     CORE.forms = [{
       name: arcane.name,
       type: ['攻击'],
-      cost: 10,
+      cost: 0,
       power: 70,
       target: 'one',
       desc: arcane.desc || '',
