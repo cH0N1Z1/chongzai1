@@ -1,5 +1,5 @@
 {
-  "_note": "星辉学院固定剧情库。scenes 下每个 key 是一个场景。step 类型：narrate / speak / card / fx / pause / battle。占位符 {name} {uniform} {arcane} 由代码替换。",
+  "_note": "星辉学院固定剧情库。scenes 下每个 key 是一个场景。step 类型：narrate / speak / card / fx / pause / battle。battle step 可带 field（场地效果）。占位符 {name} {uniform} {arcane} 由代码替换。",
   "scenes": {
     "prologue": {
       "id": "prologue",
@@ -14,7 +14,7 @@
 
         { "type": "narrate", "text": "——" },
         { "type": "narrate", "text": "第二天，你去找了那条街。" },
-        { "type": "narrate", "text": "梧桐街。你在这个城市住了十二年，从没听说过。" },
+        { "type": "narrate", "text": "梧桐街。你在这个城市住了十五年，从没听说过。" },
         { "type": "narrate", "text": "导航上没有。地图上没有。问了便利店老板，问了路边等公交的阿姨，问了午休的上班族——所有人都在摇头。" },
         { "type": "narrate", "text": "但你顺着邮件里那个隐形的方向走。" },
         { "type": "narrate", "text": "越走越远。" },
@@ -51,7 +51,7 @@
         { "type": "narrate", "text": "她停在你面前，上下看了你一眼。" },
         { "type": "speak", "speaker": "时雨晴", "text": "你是最后一个。" },
         { "type": "narrate", "text": "她伸出手，非常自然地握了握你的。" },
-        { "type": "speak", "speaker": "时雨晴", "text": "我叫时雨晴。四年级。学生会接待。今天专门等你们的。" },
+        { "type": "speak", "speaker": "时雨晴", "text": "我叫时雨晴。二年级。学生会接待。今天专门等你们的。" },
         { "type": "narrate", "text": "她语速很快，像是一整天终于有人可以说话了。" },
         { "type": "speak", "speaker": "时雨晴", "text": "别紧张——虽然我第一天来的时候也紧张得不行。" },
 
@@ -142,6 +142,35 @@
         { "type": "fx", "style": "purple", "text": "不敌" },
         { "type": "narrate", "text": "你退回了灯边。雾没退。" },
         { "type": "narrate", "text": "手环闪了一下。明天还能再来。" }
+      ]
+    },
+
+    "testFog": {
+      "id": "testFog",
+      "title": "测试 · 雾中",
+      "steps": [
+        { "type": "narrate", "text": "这次你走得更远。灯落在身后，雾漫到腰际。" },
+        { "type": "narrate", "text": "视野发白，你看不太清。" },
+        { "type": "narrate", "text": "雾里有东西在靠近。" },
+        { "type": "battle", "enemy": "影犬", "count": 1, "field": { "fog": true }, "onWin": "testFogWin", "onLose": "testFogLose" }
+      ]
+    },
+
+    "testFogWin": {
+      "id": "testFogWin",
+      "title": "雾中 · 胜",
+      "steps": [
+        { "type": "fx", "style": "gold", "text": "击退" },
+        { "type": "narrate", "text": "雾退了一线。你看清了自己站着的地方。" }
+      ]
+    },
+
+    "testFogLose": {
+      "id": "testFogLose",
+      "title": "雾中 · 负",
+      "steps": [
+        { "type": "fx", "style": "purple", "text": "不敌" },
+        { "type": "narrate", "text": "你退回了灯边。" }
       ]
     }
   }

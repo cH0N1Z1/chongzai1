@@ -26,7 +26,7 @@ function openProfileEditor(){
   const g = id => document.getElementById(id);
   if(!g('profileModal')) return;
   g('pfName').value = CORE.name || '';
-  g('pfAge').value = CORE.age || 12;
+  g('pfAge').value = CORE.age || 15;
   g('pfSoul').value = (CORE.arcane && CORE.arcane !== '未觉醒') ? CORE.arcane : '';
   g('pfSoulDesc').value = CORE.arcaneDesc || '';
   openModal('profileModal');
@@ -34,7 +34,7 @@ function openProfileEditor(){
 function saveProfileEdit(){
   const g = id => document.getElementById(id);
   const name = g('pfName').value.trim();
-  const age = Math.min(Math.max(parseInt(g('pfAge').value) || CORE.age || 12, 12), 18);
+  const age = Math.min(Math.max(parseInt(g('pfAge').value) || CORE.age || 15, 15), 18);
   const soul = g('pfSoul').value.trim();
   const soulDesc = g('pfSoulDesc').value.trim();
   if(name) CORE.name = name;
@@ -107,7 +107,8 @@ function openArcane(){
 function renderArcanePanel(){
   const container = document.getElementById('arcaneContent');
   if(!container) return;
-  container.innerHTML = renderStarMap(CORE.forms, CORE.arcane || '未觉醒');
+  const unlocked = (CORE.forms || []).filter(f => f && f.unlocked !== false);
+  container.innerHTML = renderStarMap(unlocked, CORE.arcane || '未觉醒');
 }
 
 function renderStarMap(forms, arcaneName){
@@ -179,6 +180,101 @@ function openFormDetail(idx){
 }
 
 // ============================================================
+//  技能查看
+// ============================================================
+let _SKILL_DATA_CACHE = null;
+
+async function loadSkillData(){
+  if(_SKILL_DATA_CACHE) return _SKILL_DATA_CACHE;
+  try {
+    const r = await fetch('./battle.json');
+    _SKILL_DATA_CACHE = await r.json();
+  } catch(e){
+    _SKILL_DATA_CACHE = { skills:{} };
+  }
+  return _SKILL_DATA_CACHE;
+}
+
+function describeSkill(s){
+  if(!s) return '暂无描述';
+  const parts = [];
+
+  if(s.power > 0){
+    const tgt = s.target === 'all' ? '全体' : '单体';
+    parts.push(`${tgt}伤害 ${s.power}`);
+  }
+
+  const pct = (s.effectChance != null) ? Math.round(s.effectChance * 100) + '% 概率 ' : '';
+  const v = s.effectValue || 0;
+  const d = s.effectDuration || 0;
+
+  switch(s.effect){
+    case 'dispelFog': parts.push('驱散场地迷雾'); break;
+    case 'heal':      parts.push(`回复 ${v} 生命`); break;
+    case 'stun':      parts.push(`${pct}降命中 ${v}%（${d}回合）`); break;
+    case 'slow':      parts.push(`${pct}降速 ${v}%（${d}回合）`); break;
+    case 'atkUp':     parts.push(`加攻 +${v}%（${d}回合）`); break;
+    case 'defUp':     parts.push(`加防 +${v}%（${d}回合）`); break;
+    case 'speedUp':   parts.push(`加速 +${v}%（${d}回合）`); break;
+    case 'critUp':    parts.push(`加暴击 +${v}%（${d}回合）`); break;
+  }
+
+  return parts.length ? parts.join(' · ') : '暂无效果';
+}
+
+function skillTargetLabel(t){
+  if(t === 'all') return '全体';
+  if(t === 'self') return '自身';
+  return '单体';
+}
+
+async function openSkillDetail(skillNames, ownerName){
+  const data = await loadSkillData();
+  const skills = data.skills || {};
+  const container = document.getElementById('skillModalContent');
+  if(!container) return;
+
+  if(!skillNames || skillNames.length === 0){
+    container.innerHTML = '<div style="text-align:center;color:#8b949e;padding:20px;font-size:13px;">暂无技能</div>';
+    openModal('skillModal');
+    return;
+  }
+
+  let html = '';
+  if(ownerName){
+    html += `<div style="font-size:12px;color:#8b949e;margin-bottom:10px;">${escapeHtml(ownerName)} 的技能</div>`;
+  }
+
+  skillNames.forEach(name => {
+    const s = skills[name];
+    if(!s){
+      html += `<div class="skill-item">
+        <div class="skill-item-name">${escapeHtml(name)}</div>
+        <div class="skill-item-effect">（数据缺失）</div>
+      </div>`;
+      return;
+    }
+    const typeStr = Array.isArray(s.type) ? s.type.join('·') : (s.type || '');
+    const cost = (s.cost > 0) ? `消耗 ${s.cost} 星尘` : '消耗 0';
+    html += `<div class="skill-item">
+      <div class="skill-item-name">${escapeHtml(s.name || name)}</div>
+      <div class="skill-item-meta">${escapeHtml(typeStr)} · ${skillTargetLabel(s.target)} · ${cost}</div>
+      <div class="skill-item-effect">${escapeHtml(describeSkill(s))}</div>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+  openModal('skillModal');
+}
+
+function openSkillDetailFromBtn(btn){
+  let skills = [];
+  try { skills = JSON.parse(btn.dataset.skills || '[]'); } catch(e){}
+  const owner = btn.dataset.owner || '';
+  openSkillDetail(skills, owner);
+}
+
+// ============================================================
 //  场景氛围
 // ============================================================
 const SCENE_PLACES = [
@@ -213,8 +309,8 @@ const SCENE_TYPES = [
 // ============================================================
 function getSeason(term){
   const t = String(term||'');
-  if(/一年级上|二年级上|三年级上|四年级上|五年级上|六年级上/.test(t)){ return '秋'; }
-  if(/一年级下|二年级下|三年级下|四年级下|五年级下|六年级下/.test(t)){ return '春'; }
+  if(/一年级上|二年级上|三年级上/.test(t)){ return '秋'; }
+  if(/一年级下|二年级下|三年级下/.test(t)){ return '春'; }
   return '秋';
 }
 function rollWeather(term){
@@ -348,6 +444,26 @@ function addForm(name, type, desc){
 
 function deleteForm(name){ CORE.forms = CORE.forms.filter(f => f.name !== name); }
 
+// 解锁一个术式形态：亮星图 + 进战斗技能
+function unlockForm(name){
+  if(!name) return false;
+  if(!CORE.forms) CORE.forms = [];
+  const f = CORE.forms.find(x => x && x.name === name);
+  if(!f) return false;
+  if(f.unlocked !== false) return false;
+  f.unlocked = true;
+
+  if(!CORE.battle) CORE.battle = {};
+  if(!Array.isArray(CORE.battle.skills)) CORE.battle.skills = [];
+  if(!CORE.battle.skills.includes(name)) CORE.battle.skills.push(name);
+
+  chatBox.innerHTML += `<div class="msg-ring">解锁形态：${escapeHtml(name)}</div>`;
+  chatBox.scrollTop = chatBox.scrollHeight;
+  if(typeof soundRing==='function') soundRing('关键');
+  if(typeof saveToPhone==='function') saveToPhone();
+  return true;
+}
+
 function addNPC(name, gender, arcane, relation, grade, dept, desc, affinity){
   if(!CORE.npcs) CORE.npcs=[];
   const exist = CORE.npcs.find(n=>n.name === name);
@@ -468,9 +584,29 @@ function normName(s){ return String(s||'').replace(/\s+/g,''); }
 
 function findLibraryNpc(name){
   if(!CHARACTERS || !CHARACTERS.loaded) return null;
-  const list = CHARACTERS.classmates || [];
   const target = normName(name);
-  return list.find(c => normName(c.name) === target) || null;
+  const all = [
+    ...(CHARACTERS.classmates || []),
+    ...(CHARACTERS.seniors || []),
+    ...(CHARACTERS.juniors || [])
+  ];
+  return all.find(c => normName(c.name) === target) || null;
+}
+
+function getNpcOwnGradeKey(lib){
+  if(!lib) return '1';
+  const t = String(lib.grade || '');
+  const m = t.match(/([一二三])年级/);
+  const map = {'一':'1','二':'2','三':'3'};
+  return m ? (map[m[1]] || '1') : '1';
+}
+
+function pickNpcBattleData(lib){
+  if(!lib || !lib.battle) return null;
+  const gk = getNpcOwnGradeKey(lib);
+  if(lib.battle[gk]) return lib.battle[gk];
+  const keys = Object.keys(lib.battle);
+  return keys.length ? lib.battle[keys[0]] : null;
 }
 
 function affinityColor(v){
@@ -543,7 +679,7 @@ function renderSelfDetail(){
   const sp = CORE.selfProfile || {};
   const name = CORE.name || '未命名';
   const gender = sp.gender || CORE.gender || '?';
-  const age = sp.age || CORE.age || 12;
+  const age = sp.age || CORE.age || 15;
   const arcane = CORE.arcane || '未觉醒';
   const arcaneDesc = CORE.arcaneDesc || '';
 
@@ -560,19 +696,26 @@ function renderSelfDetail(){
     appRows.push(`<div class="kv"><span class="v">${escapeHtml(sp.appearance)}</span></div>`);
   }
 
+  // 主角技能按钮
+  const skillNames = (CORE.battle && Array.isArray(CORE.battle.skills)) ? CORE.battle.skills : [];
+  const skillBtn = `<div class="npc-detail-actions" style="margin-top:10px;padding-top:10px;">
+    <button class="btn-skill" data-skills='${escapeHtml(JSON.stringify(skillNames))}' data-owner='${escapeHtml(name)}' onclick="openSkillDetailFromBtn(this)">查看技能</button>
+  </div>`;
+
   return buildDetailHTML({
     name, gender, age,
     tags: [
       { text: gender, cls: '' },
       { text: age + '岁', cls: '' },
-      { text: '一年级上', cls: '' },
+      { text: CORE.term || '一年级上', cls: '' },
       { text: '106', cls: '' },
       { text: '主角', cls: 'self' }
     ],
     isSelf: true,
     arcane, arcaneDesc,
     affinity: null,
-    sections: buildSelfSections(sp, appRows)
+    sections: buildSelfSections(sp, appRows),
+    extraHtml: skillBtn
   });
 }
 
@@ -620,7 +763,7 @@ function buildSelfSections(sp, appRows){
 function renderNpcDetail(n, idx){
   const lib = findLibraryNpc(n.name);
   const gender = n.gender || (lib && lib.gender) || '?';
-  const age = (lib && lib.age) || 12;
+  const age = (lib && lib.age) || 15;
   const grade = n.grade || (lib && lib.grade) || '一年级上';
   const dept = n.dept || (lib && lib.dept) || '无';
   const room = (lib && lib.room) || '';
@@ -636,6 +779,15 @@ function renderNpcDetail(n, idx){
   if(n.relation && n.relation !== '同届生') tags.push({ text: n.relation, cls: 'accent' });
   if(n.status === 'archived') tags.push({ text: '已归档', cls: 'archived' });
 
+  // NPC 技能按钮
+  let skillBtn = '';
+  const bd = pickNpcBattleData(lib);
+  if(bd && Array.isArray(bd.skills) && bd.skills.length > 0){
+    skillBtn = `<div class="npc-detail-actions" style="margin-top:10px;padding-top:10px;border-top:none;">
+      <button class="btn-skill" data-skills='${escapeHtml(JSON.stringify(bd.skills))}' data-owner='${escapeHtml(n.name)}' onclick="openSkillDetailFromBtn(this)">查看技能</button>
+    </div>`;
+  }
+
   return buildDetailHTML({
     name: n.name,
     gender, age,
@@ -645,7 +797,8 @@ function renderNpcDetail(n, idx){
     arcane, arcaneDesc: arcaneImage ? arcaneImage : (n.desc || ''),
     affinity,
     sections: buildNpcSections(n, lib),
-    deleteIdx: idx
+    deleteIdx: idx,
+    extraHtml: skillBtn
   });
 }
 
@@ -720,6 +873,10 @@ function buildDetailHTML(o){
     html += `<div class="npc-section-body"><div class="kv"><span class="k">本命</span><span class="v" style="color:#f0883e;font-weight:600;">${escapeHtml(o.arcane)}</span></div>`;
     if(o.arcaneDesc) html += `<div class="kv"><span class="k">意象</span><span class="v">${escapeHtml(o.arcaneDesc)}</span></div>`;
     html += '</div></div>';
+  }
+
+  if(o.extraHtml){
+    html += o.extraHtml;
   }
 
   if(typeof o.affinity === 'number'){

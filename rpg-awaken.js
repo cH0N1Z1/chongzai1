@@ -93,28 +93,120 @@ ${desc}`
 }
 
 // ============================================================
-//  随机术式池
+//  随机术式池（name + image + role + desc）
 // ============================================================
 const RANDOM_ARCANES = [
-  {name:'霜织', desc:'操控冰霜，指尖凝出细霜，随时间凝结成冰棱、雪幕。'},
-  {name:'回声', desc:'记录并重放声音，曾经响起过的，都能再响起一次。'},
-  {name:'断章', desc:'将事物斩断。手掌划过的地方，会沿着一条看不见的线分开。'},
-  {name:'糖霜', desc:'制造甜味与治愈，尝到的东西会变甜，伤口会愈合得更快。'},
-  {name:'拾星录', desc:'以旧笔记为媒介记录光。写下的东西会在纸页上发光。'},
-  {name:'镜廊', desc:'映像与迷宫。能照出别人的样子，也能照出自己的。'},
-  {name:'弦余', desc:'音、共振、残余。弹响过的音会留下一点不散的东西。'},
-  {name:'日蚀', desc:'光、遮蔽、临界。能感知到别人术式的临界点。'},
-  {name:'余烬', desc:'燃烧、残留、温度。烧过之后剩下的那一点热。'},
-  {name:'节理', desc:'结构、纹理、裂缝。看得见事物内部的纹理与薄弱处。'},
-  {name:'薄明', desc:'光、边界、微明。让事物在将亮未亮之间露一点真形。'},
-  {name:'晦', desc:'暗、薄暮、不可见。让被照到的东西短暂地隐去。'},
-  {name:'隙', desc:'缝隙、刹那、突破。在一瞬间里，找到那条最短的路。'},
-  {name:'拾遗', desc:'遗忘、拾回、残片。能把丢下的东西捡回来——有时是记忆。'},
-  {name:'雾隐', desc:'雾、隐、谜。让一些东西在视线里慢慢淡下去。'},
+  {name:'霜织', image:'冰、霜、凝', role:'输出', desc:'操控冰霜，指尖凝出细霜，随时间凝结成冰棱、雪幕。'},
+  {name:'回声', image:'声、回、记', role:'特殊', desc:'记录并重放声音，曾经响起过的，都能再响起一次。'},
+  {name:'断章', image:'断、斩、线', role:'输出', desc:'将事物斩断。手掌划过的地方，会沿着一条看不见的线分开。'},
+  {name:'糖霜', image:'甜、愈、糖', role:'辅助', desc:'制造甜味与治愈，尝到的东西会变甜，伤口会愈合得更快。'},
+  {name:'拾星录', image:'记、光、星', role:'辅助', desc:'以旧笔记为媒介记录光。写下的东西会在纸页上发光。'},
+  {name:'镜廊', image:'镜、影、迷', role:'特殊', desc:'映像与迷宫。能照出别人的样子，也能照出自己的。'},
+  {name:'弦余', image:'音、共振、余', role:'控制', desc:'音、共振、残余。弹响过的音会留下一点不散的东西。'},
+  {name:'日蚀', image:'光、遮、临界', role:'特殊', desc:'光、遮蔽、临界。能感知到别人术式的临界点。'},
+  {name:'余烬', image:'燃、烬、温', role:'输出', desc:'燃烧、残留、温度。烧过之后剩下的那一点热。'},
+  {name:'节理', image:'结构、纹、裂', role:'控制', desc:'结构、纹理、裂缝。看得见事物内部的纹理与薄弱处。'},
+  {name:'薄明', image:'光、边、明', role:'辅助', desc:'光、边界、微明。让事物在将亮未亮之间露一点真形。'},
+  {name:'晦', image:'暗、暮、隐', role:'控制', desc:'暗、薄暮、不可见。让被照到的东西短暂地隐去。'},
+  {name:'隙', image:'缝、刹、突', role:'输出', desc:'缝隙、刹那、突破。在一瞬间里，找到那条最短的路。'},
+  {name:'拾遗', image:'忘、拾、残', role:'辅助', desc:'遗忘、拾回、残片。能把丢下的东西捡回来——有时是记忆。'},
+  {name:'雾隐', image:'雾、隐、谜', role:'控制', desc:'雾、隐、谜。让一些东西在视线里慢慢淡下去。'},
 ];
 
 function rollRandomArcane(){
   return RANDOM_ARCANES[Math.floor(Math.random() * RANDOM_ARCANES.length)];
+}
+
+// ============================================================
+//  术式库加载（arcane.json）
+// ============================================================
+const ARCANE_DATA = { loaded: false, templates: {}, prompt: '', presets: {} };
+
+async function loadArcaneData(){
+  if(ARCANE_DATA.loaded) return ARCANE_DATA;
+  try {
+    const r = await fetch('./arcane.json');
+    const data = await r.json();
+    ARCANE_DATA.templates = data.templates || {};
+    ARCANE_DATA.prompt = data.prompt || '';
+    ARCANE_DATA.presets = data.presets || {};
+  } catch(e) {
+    console.warn('术式库加载失败', e);
+  }
+  ARCANE_DATA.loaded = true;
+  return ARCANE_DATA;
+}
+
+// ============================================================
+//  形态生成（按模板调 AI）
+// ============================================================
+function extractJsonArray(text){
+  if(!text) return null;
+  let s = String(text).trim();
+  s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+  const start = s.indexOf('[');
+  const end = s.lastIndexOf(']');
+  if(start === -1 || end === -1 || end <= start) return null;
+  try { return JSON.parse(s.slice(start, end + 1)); }
+  catch(e){ return null; }
+}
+
+// 把 AI 返回的形态整理成 CORE.forms 结构
+function normalizeForms(rawList, baseName){
+  const arr = Array.isArray(rawList) ? rawList : [];
+  return arr.map((f, i) => {
+    const out = {
+      name: f.name || (i === 0 ? baseName : baseName + '·' + (f.suffix || i)),
+      type: Array.isArray(f.type) ? f.type : ['攻击'],
+      cost: (typeof f.cost === 'number') ? f.cost : 0,
+      power: (typeof f.power === 'number') ? f.power : 0,
+      target: f.target || 'one',
+      desc: f.desc || '',
+      unlocked: i === 0
+    };
+    if(f.effect) out.effect = f.effect;
+    if(typeof f.effectValue === 'number') out.effectValue = f.effectValue;
+    if(typeof f.effectChance === 'number') out.effectChance = f.effectChance;
+    if(typeof f.effectDuration === 'number') out.effectDuration = f.effectDuration;
+    return out;
+  });
+}
+
+// 兜底形态（AI 生成失败时用）
+function fallbackForms(name){
+  return [
+    { name: name, type: ['攻击'], cost: 10, power: 70, target: 'one', desc: '术式觉醒的本能一击。', unlocked: true },
+    { name: name + '·未名', type: ['攻击'], cost: 20, power: 90, target: 'one', desc: '尚未成形的力量。', unlocked: false },
+    { name: name + '·未名', type: ['辅助'], cost: 20, power: 0, target: 'self', effect: 'heal', effectValue: 100, desc: '尚未成形的力量。', unlocked: false }
+  ];
+}
+
+async function generateFormsFromTemplate(name, image, role){
+  await loadArcaneData();
+  const tmpl = ARCANE_DATA.templates[role] || ARCANE_DATA.templates['特殊'] || {};
+  const guide = tmpl.guide || '';
+  const promptTpl = ARCANE_DATA.prompt || '';
+  if(!promptTpl){
+    console.warn('arcane.json 里没有 prompt，跳过 AI 生成');
+    return fallbackForms(name);
+  }
+  const prompt = promptTpl
+    .replace(/\{name\}/g, name)
+    .replace(/\{image\}/g, image || name)
+    .replace(/\{role\}/g, role || '特殊')
+    .replace(/\{guide\}/g, guide);
+
+  try {
+    const raw = await callDeepSeekStream([{role:'user', content: prompt}], ()=>{});
+    const arr = extractJsonArray(raw);
+    if(!Array.isArray(arr) || arr.length === 0) throw new Error('AI 未返回有效形态');
+    const forms = normalizeForms(arr, name);
+    if(forms.length === 0) throw new Error('形态为空');
+    return forms;
+  } catch(e) {
+    console.warn('形态生成失败，用兜底', e);
+    return fallbackForms(name);
+  }
 }
 
 // ============================================================
@@ -127,7 +219,7 @@ async function buildSelfProfile(){
     const prompt = `把下面的角色设定文本整理成 JSON。缺失字段留空或空数组，不要捏造原文没有的具体数字。
 
 字段结构：
-{"name":"","gender":"","age":12,"appearance":{"hair":"","eyes":"","face":"","height":0,"build":"","style":""},"personality":[],"habits":"","likes":[],"dislikes":[],"attitude":"","speech":"","origin":"","hiddenTalent":"","aloneBehavior":""}
+{"name":"","gender":"","age":15,"appearance":{"hair":"","eyes":"","face":"","height":0,"build":"","style":""},"personality":[],"habits":"","likes":[],"dislikes":[],"attitude":"","speech":"","origin":"","hiddenTalent":"","aloneBehavior":""}
 
 原文：
 ${roleDesc}
@@ -137,13 +229,13 @@ ${roleDesc}
     const parsed = JSON.parse(raw);
     parsed.name = parsed.name || CORE.name;
     parsed.gender = parsed.gender || CORE.gender;
-    parsed.age = parsed.age || CORE.age || 12;
+    parsed.age = parsed.age || CORE.age || 15;
     CORE.selfProfile = parsed;
     saveToPhone();
   }catch(e){
     console.warn('主角建档失败', e);
     CORE.selfProfile = {
-      name: CORE.name, gender: CORE.gender, age: CORE.age || 12,
+      name: CORE.name, gender: CORE.gender, age: CORE.age || 15,
       personality: [], habits: '', likes: [], dislikes: [],
       attitude: '', speech: '', origin: '', hiddenTalent: '', aloneBehavior: '',
       _raw: roleDesc
@@ -169,7 +261,7 @@ async function awakenArcane(){
 
   CORE.name = name;
   CORE.gender = gender;
-  CORE.age = 12;
+  CORE.age = 15;
   CORE.roleDesc = roleDesc || "无详细设定";
   CORE.summary = '';
   CORE.forms = [];
@@ -184,16 +276,52 @@ async function awakenArcane(){
   CORE.slot = 0;
   updateAvatarPreview();
 
+  // 术式选择
+  await loadArcaneData();
   const soulChoice = document.querySelector('input[name="soulChoice"]:checked').value;
   let arcane;
+  let presetForms = null;
+
   if(soulChoice === 'custom'){
     const c = document.getElementById('customSoul').value.trim();
-    arcane = { name: c || '未知术式', desc: '尚未描述。' };
+    const preset = ARCANE_DATA.presets[c];
+    if(preset){
+      // 命中预设（比如流明）
+      arcane = { name: preset.name, image: preset.image, role: preset.role, desc: (preset.forms[0] && preset.forms[0].desc) || '' };
+      presetForms = (preset.forms || []).map((f, i) => Object.assign({ unlocked: i === 0 }, f));
+    } else {
+      // 自选但没预设，走 AI 生成
+      arcane = { name: c || '未知术式', image: c || '未名', role: '特殊', desc: '尚未描述。' };
+    }
   } else {
+    // 随机
     arcane = rollRandomArcane();
+    // 随机也可能撞上预设名，检查一下
+    const preset = ARCANE_DATA.presets[arcane.name];
+    if(preset){
+      presetForms = (preset.forms || []).map((f, i) => Object.assign({ unlocked: i === 0 }, f));
+    }
   }
   CORE.arcane = arcane.name;
   CORE.arcaneDesc = arcane.desc;
+
+  // 初始化 forms
+  let needAiGen = false;
+  if(presetForms && presetForms.length > 0){
+    CORE.forms = presetForms;
+  } else {
+    needAiGen = true;
+    CORE.forms = [{
+      name: arcane.name,
+      type: ['攻击'],
+      cost: 10,
+      power: 70,
+      target: 'one',
+      desc: arcane.desc || '',
+      unlocked: true
+    }];
+  }
+  CORE.battle.skills = [CORE.forms[0].name];
 
   const uniform = gender === '女'
     ? '藏青色的短外套，白衬衫，深蓝色的细丝带，下面是一条灰色的百褶裙'
@@ -234,6 +362,22 @@ async function awakenArcane(){
     if(typeof renderPlacePanel === 'function') renderPlacePanel(true);
 
     buildSelfProfile().catch(()=>{});
+
+    // 随机术式：异步生成形态（不阻塞开场）
+    if(needAiGen){
+      chatBox.innerHTML += `<div class="msg-sys">术式的形态在慢慢成形…</div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+      generateFormsFromTemplate(arcane.name, arcane.image, arcane.role).then(forms => {
+        if(!forms || forms.length === 0) return;
+        CORE.forms = forms;
+        CORE.battle.skills = [forms[0].name];
+        saveToPhone();
+        chatBox.innerHTML += `<div class="msg-ring">术式形态已成形（${forms.length}个）</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }).catch(e => {
+        console.warn('异步形态生成失败', e);
+      });
+    }
 
   } catch(e) {
     console.error(e);

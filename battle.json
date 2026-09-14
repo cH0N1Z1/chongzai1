@@ -1,5 +1,6 @@
 {
   "_note": "战斗数据。技能效果 + 敌人模板。主角/NPC 数值存在 character.json 或存档里。",
+  "_effects": "支持 effect：stun(降命中40%/2回合) / slow(降速) / heal / atkUp / defUp / speedUp / critUp / dispelFog(驱散迷雾)",
 
   "skills": {
     "流明": {
@@ -8,7 +9,7 @@
       "cost": 0,
       "power": 0,
       "target": "self",
-      "effect": "light"
+      "effect": "dispelFog"
     },
     "流明·闪耀": {
       "name": "流明·闪耀",
@@ -17,8 +18,9 @@
       "power": 50,
       "target": "all",
       "effect": "stun",
+      "effectValue": 40,
       "effectChance": 0.4,
-      "effectDuration": 1
+      "effectDuration": 2
     },
     "弦余": {
       "name": "弦余",
@@ -27,8 +29,9 @@
       "power": 70,
       "target": "one",
       "effect": "stun",
+      "effectValue": 40,
       "effectChance": 0.2,
-      "effectDuration": 1
+      "effectDuration": 2
     },
     "迟响": {
       "name": "迟响",
@@ -37,8 +40,9 @@
       "power": 0,
       "target": "one",
       "effect": "slow",
+      "effectValue": 10,
       "effectChance": 0.6,
-      "effectDuration": 1
+      "effectDuration": 3
     },
     "澄月": {
       "name": "澄月",
@@ -62,6 +66,32 @@
       "target": "self",
       "effect": "heal",
       "effectValue": 120
+    },
+    "灯芯": {
+      "name": "灯芯",
+      "type": ["辅助"],
+      "cost": 15,
+      "power": 0,
+      "target": "self",
+      "effect": "heal",
+      "effectValue": 100
+    },
+    "灯芯·温度": {
+      "name": "灯芯·温度",
+      "type": ["辅助"],
+      "cost": 20,
+      "power": 0,
+      "target": "self",
+      "effect": "atkUp",
+      "effectValue": 20,
+      "effectDuration": 3
+    },
+    "灯芯·燃": {
+      "name": "灯芯·燃",
+      "type": ["攻击"],
+      "cost": 25,
+      "power": 100,
+      "target": "one"
     }
   },
 
@@ -88,7 +118,7 @@
       "maxStardust": 40,
       "skills": [
         { "name": "镜像", "type": ["攻击"], "cost": 0, "power": 55, "target": "one" },
-        { "name": "折射", "type": ["特殊"], "cost": 20, "power": 0, "target": "all", "effect": "stun", "effectChance": 0.25, "effectDuration": 1 }
+        { "name": "折射", "type": ["特殊"], "cost": 20, "power": 0, "target": "all", "effect": "stun", "effectValue": 40, "effectChance": 0.25, "effectDuration": 2 }
       ]
     }
   },
@@ -104,7 +134,7 @@
       "stardust": 60,
       "maxStardust": 60,
       "skills": [
-        { "name": "弦余", "type": ["攻击", "特殊"], "cost": 20, "power": 70, "target": "one" }
+        { "name": "弦余", "type": ["攻击", "特殊"], "cost": 20, "power": 70, "target": "one", "effect": "stun", "effectValue": 40, "effectChance": 0.2, "effectDuration": 2 }
       ]
     }
   }

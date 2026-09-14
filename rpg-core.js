@@ -15,7 +15,7 @@ const FIXED_WORLD=`人类迁到这颗行星之后，只剩一座城。
 
 星辉学院建在灯塔之下。学院为守灯而建。学生进来，学的是怎么让灯亮着；术式就是守灯的本事。这件事，学生不知道。他们只知道，自己收到了一封星辉信，来到一所没有教师的学校，学着一种叫「术式」的能力。
 
-学院共六个年级，12 岁入学，18 岁毕业，每届 6 名学生。没有教师，学生自治，课程由学生开设。戴上手环，校服自动生成。
+学院共三个年级，15 岁入学，18 岁毕业，每届 6 名学生。没有教师，学生自治，课程由学生开设。戴上手环，校服自动生成。
 
 星辉塔就在学院正中——塔顶那盏灯，就是灯塔。塔顶只发任务，不解释、不接触、不参与管理。
 
@@ -31,7 +31,7 @@ const FIXED_WORLD=`人类迁到这颗行星之后，只剩一座城。
 //  核心数据
 // ============================================================
 const CORE={
-  name:'', avatar:'', gender:'女', age:12, roleDesc:'',
+  name:'', avatar:'', gender:'女', age:15, roleDesc:'',
   arcane:'未觉醒', arcaneDesc:'',
   forms:[],
   selfProfile:null,
@@ -118,11 +118,11 @@ function registerNpcFromLibrary(npc){
   return entry;
 }
 
-// 当前学期对应的年级 key（'1' ~ '6'）
+// 当前学期对应的年级 key（'1' ~ '3'）
 function getCurrentGradeKey(){
   const t = String(CORE.term || '一年级上学期');
-  const m = t.match(/([一二三四五六])年级/);
-  const map = {'一':'1','二':'2','三':'3','四':'4','五':'5','六':'6'};
+  const m = t.match(/([一二三])年级/);
+  const map = {'一':'1','二':'2','三':'3'};
   return m ? (map[m[1]] || '1') : '1';
 }
 
@@ -135,7 +135,7 @@ function buildNpcBlock(npc){
   const m = Object.assign({}, npc, evo);
 
   let s = '\n## 本场景出场人物\n';
-  s += `姓名：${m.name}（${m.gender}，${m.age||12}岁）\n`;
+  s += `姓名：${m.name}（${m.gender}，${m.age||15}岁）\n`;
   s += `年级：${m.grade||'一年级上'}\n`;
 
   if(m.appearance){
@@ -172,11 +172,17 @@ let isGenerating=false;
 // ============================================================
 //  工具函数
 // ============================================================
+// 形态颜色：按技能 type 上色（攻击=红 / 辅助=绿 / 特殊=紫），旧存档的等级名也兼容
 function getFormColorHex(type){
-  if(type==='传说') return '#ef4444';
-  if(type==='稀有') return '#fbbf24';
-  if(type==='关键') return '#a855f7';
-  if(type==='成长') return '#60a5fa';
+  const t = Array.isArray(type) ? type.join('') : String(type||'');
+  if(t.includes('攻击')) return '#ef4444';
+  if(t.includes('辅助')) return '#4ade80';
+  if(t.includes('特殊')) return '#a855f7';
+  // 兼容旧存档（形态按等级命名）
+  if(t === '传说') return '#ef4444';
+  if(t === '稀有') return '#fbbf24';
+  if(t === '关键') return '#a855f7';
+  if(t === '成长') return '#60a5fa';
   return '#a8d8ee';
 }
 function getFormColorClass(type){
@@ -185,6 +191,11 @@ function getFormColorClass(type){
   if(type==='关键') return 'ring-purple';
   if(type==='成长') return 'ring-yellow';
   return 'ring-white';
+}
+
+// 已解锁的形态
+function getUnlockedForms(){
+  return (CORE.forms || []).filter(f => f && f.unlocked !== false);
 }
 
 // ============================================================
@@ -272,7 +283,7 @@ try{
     const data=JSON.parse(raw);
     Object.assign(CORE,data.core);
     if(!CORE.gender)CORE.gender='女';
-    if(!CORE.age)CORE.age=12;
+    if(!CORE.age)CORE.age=15;
     if(!CORE.arcaneDesc)CORE.arcaneDesc='';
     if(CORE.selfProfile===undefined)CORE.selfProfile=null;
     if(!CORE.forms){
@@ -280,11 +291,16 @@ try{
       if(Array.isArray(CORE.marks)){
         CORE.marks.forEach(m=>{
           const name = typeof m === 'string' ? m : (m.name||'');
-          if(name) CORE.forms.push({name, type:'觉醒', desc:(m.desc||'')});
+          if(name) CORE.forms.push({name, type:'觉醒', desc:(m.desc||''), unlocked:true});
         });
       }
       delete CORE.marks;
     }
+    // forms 兼容：每个形态补 unlocked（老的默认解锁）
+    CORE.forms = (CORE.forms || []).map(f => {
+      if(typeof f === 'string') return { name: f, type: '觉醒', desc: '', unlocked: true };
+      return Object.assign({ unlocked: true }, f);
+    });
     delete CORE.arts;
     if(!CORE.npcs)CORE.npcs=[];
     if(!CORE.time)CORE.time='入学第一天';
@@ -358,7 +374,7 @@ if(hasSave && (!CORE.name || CORE.arcane === '未觉醒')){
     localStorage.removeItem(slotKey());
     hasSave = false;
     const _keepAvatar2 = CORE.avatar || '';
-    Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],selfProfile:null,npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0,battle:{hp:1000,maxHp:1000,atk:0,def:0,speed:0,stardust:100,maxStardust:100,skills:[]}});
+    Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:15,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],selfProfile:null,npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0,battle:{hp:1000,maxHp:1000,atk:0,def:0,speed:0,stardust:100,maxStardust:100,skills:[]}});
     Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 }
 
@@ -396,7 +412,7 @@ if(hasValidSave && !confirm("已有存档，开始新游戏会覆盖。确定？
 
 localStorage.removeItem(slotKey());
 const _keepAvatar = CORE.avatar || '';
-Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],selfProfile:null,npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0,battle:{hp:1000,maxHp:1000,atk:0,def:0,speed:0,stardust:100,maxStardust:100,skills:[]}});
+Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:15,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],selfProfile:null,npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0,battle:{hp:1000,maxHp:1000,atk:0,def:0,speed:0,stardust:100,maxStardust:100,skills:[]}});
 Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 
 resetScene();

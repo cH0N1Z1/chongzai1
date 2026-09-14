@@ -1,11 +1,11 @@
 {
-  "_note": "星辉学院角色库 · 61届固定 5 名同届生 + 四年级学姐 1 名。主角为第 6 人，性别不影响这 5 人。base + evolve 结构，evolve 目前只写一年级。battle 为战斗数值，按年级分。",
+  "_note": "星辉学院角色库 · 61届固定 5 名同届生 + 二年级学姐 1 名。主角为第 6 人，性别不影响这 5 人。base + evolve 结构，evolve 目前只写一年级。battle 为战斗数值，按年级分。",
   "classmates": [
     {
       "id": "gongshouqin",
       "name": "宫守琴",
       "gender": "女",
-      "age": 12,
+      "age": 15,
       "grade": "一年级上",
       "room": "101",
       "dept": "无",
@@ -30,7 +30,7 @@
       "initialAffinity": 10,
       "fear": "被问'你在想什么'",
       "hiddenTalent": "听一遍旋律就能复现",
-      "origin": "从别的城市搬来的，搬来那年刚好 12 岁",
+      "origin": "从别的城市搬来的，搬来那年刚好 15 岁",
       "aloneBehavior": "一个人去天台，戴着耳机，不播放任何东西",
       "initialAttitude": {
         "江野": "太吵了",
@@ -53,7 +53,7 @@
       "id": "guchi",
       "name": "顾迟",
       "gender": "女",
-      "age": 12,
+      "age": 15,
       "grade": "一年级上",
       "room": "102",
       "dept": "无",
@@ -100,7 +100,7 @@
       "id": "yuejiancheng",
       "name": "月见澄",
       "gender": "女",
-      "age": 12,
+      "age": 15,
       "grade": "一年级上",
       "room": "103",
       "dept": "无",
@@ -147,7 +147,7 @@
       "id": "jiangye",
       "name": "江野",
       "gender": "男",
-      "age": 12,
+      "age": 15,
       "grade": "一年级上",
       "room": "104",
       "dept": "无",
@@ -195,7 +195,7 @@
       "id": "shendai-deng",
       "name": "神代灯",
       "gender": "男",
-      "age": 12,
+      "age": 15,
       "grade": "一年级上",
       "room": "105",
       "dept": "无",
@@ -214,7 +214,7 @@
       "attitude": "对谁都好，但从不说自己",
       "arcane": "灯守",
       "arcaneImage": "灯、火、守护",
-      "secret": "他有个没告诉任何人的哥哥，曾经也是星辉学生",
+      "secret": "他的术式不能造成任何伤害——他从不主动提这件事，只是理性地站在别人身边。",
       "speech": "语气平缓，句子完整，很少用语气词",
       "roleInGroup": "粘合剂",
       "initialAffinity": 20,
@@ -245,8 +245,8 @@
       "id": "shiyuqing",
       "name": "时雨晴",
       "gender": "女",
-      "age": 15,
-      "grade": "四年级上",
+      "age": 16,
+      "grade": "二年级上",
       "room": "",
       "dept": "学生会",
       "relation": "学姐",
@@ -271,12 +271,15 @@
       "initialAffinity": 25,
       "fear": "无",
       "hiddenTalent": "把人名和脸对上特别快",
-      "origin": "本地学生，四年级在读",
+      "origin": "本地学生，二年级在读",
       "aloneBehavior": "一个人在学生会馆整理名单",
       "initialAttitude": {},
       "commonPlaces": ["食堂", "便利店", "教学楼"],
       "optionalFor": null,
-      "evolve": {}
+      "evolve": {},
+      "battle": {
+        "2": { "hp": 900, "atk": 85, "def": 65, "speed": 100, "maxStardust": 70, "skills": ["灯芯", "灯芯·温度", "灯芯·燃"] }
+      }
     }
   ],
   "juniors": []

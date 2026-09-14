@@ -49,7 +49,7 @@ function extractOptions(text){
 // ============================================================
 function buildCoreSummary(){
   let s = '';
-  s += `姓名：${CORE.name}（${CORE.gender}），${CORE.age||12}岁。\n`;
+  s += `姓名：${CORE.name}（${CORE.gender}），${CORE.age||15}岁。\n`;
 
   if(CORE.selfProfile){
     const sp = CORE.selfProfile;
@@ -183,6 +183,9 @@ async function enterPlace(placeId){
 
   _currentPlace = placeId;
   renderPlacePanel(false);   // 隐藏地点按钮
+
+  // 回到学院，星尘补满（日常去 AI 化后，这个挂点要跟着挪）
+  if(CORE.battle) CORE.battle.stardust = CORE.battle.maxStardust || 100;
 
   const place = PLACES.find(p => p.id === placeId);
   const npc = findNpcAt(placeId);

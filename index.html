@@ -122,6 +122,15 @@
 <!-- 人物详情弹窗 -->
 <div class="modal-overlay" id="npcDetailModal"><div class="modal-box"><div id="npcDetailContent"></div><div class="btn-row"><button class="btn-close" onclick="closeModal('npcDetailModal')">关闭</button></div></div></div>
 
+<!-- 技能详情弹窗 -->
+<div class="modal-overlay" id="skillModal">
+<div class="modal-box">
+<h3>技能</h3>
+<div id="skillModalContent"></div>
+<div class="btn-row"><button class="btn-close" onclick="closeModal('skillModal')">关闭</button></div>
+</div>
+</div>
+
 <!-- 战斗窗口 -->
 <div class="modal-overlay" id="battleModal">
 <div class="modal-box battle-box">
@@ -244,7 +253,7 @@
 <label>姓名</label>
 <input id="pfName" placeholder="角色名">
 <label>年龄</label>
-<input id="pfAge" type="number" min="12" max="18">
+<input id="pfAge" type="number" min="15" max="18">
 <label>本命术式</label>
 <input id="pfSoul" placeholder="术式名称">
 <label>术式描述</label>

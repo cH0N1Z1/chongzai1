@@ -1,0 +1,66 @@
+{
+  "_note": "星辉学院术式库。templates 是按定位分的生成规格，prompt 是给 AI 的总指令，presets 是写好的预设术式。",
+
+  "templates": {
+    "输出": {
+      "desc": "偏攻击，伤害高，效果少",
+      "guide": "第1形态：纯攻击，单体，power 70-90，不带效果。第2形态：攻击，单体或群攻，power 80-100，可带 1 个减益（stun/slow）。第3形态：攻击，单体或群攻，power 100-120，可带 1 个增益（atkUp/critUp）或减益。"
+    },
+    "辅助": {
+      "desc": "偏增益或回复，伤害低或不打",
+      "guide": "第1形态：辅助，自身，heal 或 defUp。第2形态：辅助，自身，atkUp 或 speedUp 或 critUp。第3形态：辅助或攻击，自身或单体，可以是复合效果，或一个中等伤害的攻击（power 80-100）。"
+    },
+    "控制": {
+      "desc": "偏减益，伤害中等",
+      "guide": "第1形态：特殊，单体，slow 或 stun，不带伤害。第2形态：特殊，单体或群攻，带减益（stun/slow）。第3形态：攻击，单体，power 90-110，可带 1 个减益。"
+    },
+    "特殊": {
+      "desc": "不以伤害或增益为主，走特殊路子",
+      "guide": "第1形态：特殊，自身，任意 1 个效果（heal/defUp/atkUp/speedUp/critUp/dispelFog）。第2形态：特殊或辅助，自身或单体，任意 1 个效果。第3形态：攻击或辅助，单体或自身，power 80-110 或 0，可带 1 个效果。"
+    }
+  },
+
+  "prompt": "你为星辉学院生成一个术式的三个形态。\n\n【术式】\n名称：{name}\n意象：{image}\n定位：{role}\n\n【规则】\n- 第 1 形态：术式本名，无后缀\n- 第 2 形态：本名 + \"·\" + 一个意象词\n- 第 3 形态：本名 + \"·\" + 另一个意象词\n- 意象词从「意象」里选，要贴切、不重复\n- 第 1 最简单，第 3 最强\n\n【定位说明】\n{guide}\n\n【格式】\n输出 JSON 数组，不要 markdown 包裹。每个形态字段：\nname（字符串）\ntype（数组，可选：攻击/辅助/特殊）\ncost（数字，0-40）\npower（数字，0 表示无伤害）\ntarget（\"one\" / \"all\" / \"self\"）\neffect（字符串，可省略）\neffectValue（数字，可省略）\neffectChance（0-1，可省略）\neffectDuration（数字，可省略）\ndesc（一句话，12 字以内）\n\n【可用效果】\ndispelFog（驱散场地迷雾）\nheal（回复生命，需 effectValue）\nstun（降命中，需 effectValue/effectChance/effectDuration）\nslow（降速，需 effectValue/effectChance/effectDuration）\natkUp / defUp / speedUp / critUp（增益，需 effectValue/effectDuration）\n\n示例：\n[\n  {\"name\":\"霜织\",\"type\":[\"攻击\"],\"cost\":20,\"power\":75,\"target\":\"one\",\"desc\":\"指尖凝霜，一线成刃。\"},\n  {\"name\":\"霜织·凝棱\",\"type\":[\"攻击\"],\"cost\":25,\"power\":90,\"target\":\"one\",\"effect\":\"slow\",\"effectValue\":10,\"effectChance\":0.5,\"effectDuration\":3,\"desc\":\"冰棱钉住脚步。\"},\n  {\"name\":\"霜织·雪幕\",\"type\":[\"攻击\"],\"cost\":35,\"power\":60,\"target\":\"all\",\"effect\":\"stun\",\"effectValue\":40,\"effectChance\":0.3,\"effectDuration\":2,\"desc\":\"雪幕落下，视野尽白。\"}\n]\n\n只输出 JSON 数组，不要解释。",
+
+  "presets": {
+    "流明": {
+      "name": "流明",
+      "image": "光、照明、驱散",
+      "role": "辅助",
+      "forms": [
+        {
+          "name": "流明",
+          "type": ["辅助"],
+          "cost": 0,
+          "power": 0,
+          "target": "self",
+          "effect": "dispelFog",
+          "desc": "一点光。照到的地方，雾会退开。"
+        },
+        {
+          "name": "流明·闪耀",
+          "type": ["攻击", "特殊"],
+          "cost": 30,
+          "power": 50,
+          "target": "all",
+          "effect": "stun",
+          "effectValue": 40,
+          "effectChance": 0.4,
+          "effectDuration": 2,
+          "desc": "光炸开。所有人都被晃了一下。"
+        },
+        {
+          "name": "流明·长明",
+          "type": ["辅助"],
+          "cost": 25,
+          "power": 0,
+          "target": "self",
+          "effect": "atkUp",
+          "effectValue": 20,
+          "effectDuration": 3,
+          "desc": "光稳住了。手里握着的，像是一盏不会灭的灯。"
+        }
+      ]
+    }
+  }
+}

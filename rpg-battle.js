@@ -13,7 +13,8 @@ const BATTLE = {
   round: 0,
   maxRounds: 30,
   waiting: false,
-  onEnd: null
+  onEnd: null,
+  field: null            // 场地效果 { fog: true }
 };
 
 let BATTLE_DATA = null;
@@ -47,12 +48,56 @@ function makeUnit(cfg){
     atk: cfg.atk,
     def: cfg.def,
     speed: cfg.speed,
+    critRate: 5,               // 基础暴击率 %
     stardust: cfg.stardust || 0,
     maxStardust: cfg.maxStardust || 0,
     skills: (cfg.skills || []).slice(),
-    stun: 0,
+    buffs: [],                 // [{type, value, turns}]
+    stun: 0,                   // 保留：跳过行动（旧机制，暂未使用）
     isPlayer: !!cfg.isPlayer
   };
+}
+
+// ---- 当前数值（基础值 + buff） ----
+function getCurrentStat(unit, stat){
+  let v = unit[stat] || 0;
+  unit.buffs.forEach(b => {
+    if(b.type === 'atkUp'   && stat === 'atk')   v *= (1 + b.value/100);
+    if(b.type === 'defUp'   && stat === 'def')   v *= (1 + b.value/100);
+    if(b.type === 'speedUp' && stat === 'speed') v *= (1 + b.value/100);
+    if(b.type === 'slow'    && stat === 'speed') v *= (1 - b.value/100);
+  });
+  return v;
+}
+
+function getCurrentCrit(unit){
+  let c = unit.critRate || 5;
+  unit.buffs.forEach(b => {
+    if(b.type === 'critUp') c += b.value;
+  });
+  return c;
+}
+
+function getCurrentHit(unit){
+  let h = 100;
+  // 场地：迷雾
+  if(BATTLE.field && BATTLE.field.fog) h -= 20;
+  // 自身命中下降 buff（晕眩）
+  unit.buffs.forEach(b => {
+    if(b.type === 'hitDown') h -= b.value;
+  });
+  return Math.max(0, h);
+}
+
+// ---- 命中 / 暴击判定 ----
+function rollHit(attacker){
+  const rate = getCurrentHit(attacker);
+  return Math.random() * 100 < rate;
+}
+
+function rollCrit(attacker){
+  const rate = getCurrentCrit(attacker);
+  return Math.random() * 100 < rate;
 }
 
 // 战斗日志写进独立窗口
@@ -87,6 +132,7 @@ async function startBattle(config){
   BATTLE.turnIndex = 0;
   BATTLE.waiting = false;
   BATTLE.onEnd = config.onEnd || null;
+  BATTLE.field = config.field ? Object.assign({}, config.field) : null;
 
   const logArea = document.getElementById('battleLogArea');
   if(logArea) logArea.innerHTML = '';
@@ -95,6 +141,9 @@ async function startBattle(config){
 
   openModal('battleModal');
   battleLog('⚔ 战斗开始');
+  if(BATTLE.field && BATTLE.field.fog){
+    battleLog('🌫 迷雾笼罩，命中率下降');
+  }
   sortOrder();
   renderBattleStatus();
   nextTurn();
@@ -102,7 +151,7 @@ async function startBattle(config){
 
 function sortOrder(){
   const all = [...BATTLE.allies, ...BATTLE.enemies].filter(u => u.hp > 0);
-  all.sort((a,b) => b.speed - a.speed);
+  all.sort((a,b) => getCurrentStat(b,'speed') - getCurrentStat(a,'speed'));
   BATTLE.order = all;
 }
 
@@ -115,9 +164,10 @@ function nextTurn(){
   }
 
   if(BATTLE.turnIndex >= BATTLE.order.length){
+    // 回合结束 → buff 结算
+    endRound();
     BATTLE.round++;
     if(BATTLE.round >= BATTLE.maxRounds){ endBattle('timeout'); return; }
-    BATTLE.order.forEach(u => { if(u.stun > 0) u.stun--; });
     sortOrder();
     BATTLE.turnIndex = 0;
     while(BATTLE.turnIndex < BATTLE.order.length && BATTLE.order[BATTLE.turnIndex].hp <= 0){
@@ -147,6 +197,16 @@ function nextTurn(){
       setTimeout(nextTurn, 800);
     }, 700);
   }
+}
+
+// 回合结束：所有 buff 剩余回合 -1，到期的清掉
+function endRound(){
+  const all = [...BATTLE.allies, ...BATTLE.enemies];
+  all.forEach(u => {
+    if(!u.buffs || u.buffs.length === 0) return;
+    u.buffs.forEach(b => { b.turns--; });
+    u.buffs = u.buffs.filter(b => b.turns > 0);
+  });
 }
 
 function showSkillOptions(unit){
@@ -189,24 +249,89 @@ function doSkill(unit, skill){
   if(!skill) return;
   unit.stardust = Math.max(0, unit.stardust - (skill.cost||0));
   battleLog(`✦ ${unit.name} 使用「${skill.name}」`);
+
+  // 场地驱散（流明）
+  if(skill.effect === 'dispelFog'){
+    if(BATTLE.field && BATTLE.field.fog){
+      BATTLE.field.fog = false;
+      battleLog('  🌤 迷雾散去，命中恢复');
+    } else {
+      battleLog('  但没有迷雾可散');
+    }
+    renderBattleStatus();
+    return;
+  }
+
   const targets = pickTargets(unit, skill);
   targets.forEach(t => {
+    const isHostile = unit.side !== t.side;
+
+    // 命中判定（只对敌方目标）
+    if(isHostile){
+      if(!rollHit(unit)){
+        battleLog(`  ${t.name} 闪开了（未命中）`);
+        return;
+      }
+    }
+
+    // 伤害
     if(skill.power > 0){
-      const dmg = calcDamage(unit.atk, t.def, skill.power);
+      const curAtk = getCurrentStat(unit, 'atk');
+      const curDef = getCurrentStat(t, 'def');
+      let dmg = calcDamage(curAtk, curDef, skill.power);
+      if(rollCrit(unit)){
+        dmg = Math.round(dmg * 1.5);
+        battleLog(`  💥 暴击！`);
+      }
       t.hp = Math.max(0, t.hp - dmg);
       battleLog(`  ${t.name} 受到 ${dmg} 伤害`);
     }
-    if(skill.effect === 'stun' && Math.random() < (skill.effectChance||0)){
-      t.stun = (t.stun||0) + (skill.effectDuration||1);
-      battleLog(`  ${t.name} 被眩晕！`);
-    }
+
+    // 效果挂载
     if(skill.effect === 'heal' && skill.effectValue){
       const heal = Math.min(skill.effectValue, t.maxHp - t.hp);
       t.hp += heal;
       battleLog(`  ${t.name} 恢复 ${heal} 生命`);
     }
+
+    if(skill.effect === 'stun' && Math.random() < (skill.effectChance||0)){
+      const v = skill.effectValue || 40;
+      const d = skill.effectDuration || 2;
+      addBuff(t, 'hitDown', v, d);
+      battleLog(`  ${t.name} 命中下降 ${v}%（${d}回合）`);
+    }
+
+    if(skill.effect === 'slow' && Math.random() < (skill.effectChance||1)){
+      const v = skill.effectValue || 10;
+      const d = skill.effectDuration || 3;
+      addBuff(t, 'slow', v, d);
+      battleLog(`  ${t.name} 速度下降 ${v}%（${d}回合）`);
+    }
+
+    if(skill.effect === 'atkUp' || skill.effect === 'defUp' || skill.effect === 'speedUp' || skill.effect === 'critUp'){
+      const v = skill.effectValue || 20;
+      const d = skill.effectDuration || 3;
+      addBuff(t, skill.effect, v, d);
+      const label = {
+        atkUp: '攻击提升', defUp: '防御提升',
+        speedUp: '速度提升', critUp: '暴击提升'
+      }[skill.effect];
+      battleLog(`  ${t.name} ${label} ${v}%（${d}回合）`);
+    }
   });
   renderBattleStatus();
+}
+
+// 挂 buff：同类叠加回合数，取较大值
+function addBuff(unit, type, value, turns){
+  if(!unit.buffs) unit.buffs = [];
+  const exist = unit.buffs.find(b => b.type === type);
+  if(exist){
+    exist.value = Math.max(exist.value, value);
+    exist.turns = Math.max(exist.turns, turns);
+  } else {
+    unit.buffs.push({ type, value, turns });
+  }
 }
 
 function pickTargets(unit, skill){
@@ -246,6 +371,13 @@ function endBattle(result){
     text = `回合上限 · ${allyPct >= enemyPct ? '我方占优' : '敌方占优'}`;
   }
   battleLog(`—— ${text} ——`, result === 'win' ? 'battle-win' : 'battle-lose');
+
+  // 主角剩余星尘写回存档（血量每场满，不写回）
+  const _me = BATTLE.allies.find(u => u.isPlayer);
+  if(_me && typeof CORE !== 'undefined' && CORE.battle){
+    CORE.battle.stardust = _me.stardust;
+    if(typeof saveToPhone === 'function') saveToPhone();
+  }
 
   if(typeof BATTLE.onEnd === 'function') BATTLE.onEnd(result);
 

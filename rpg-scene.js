@@ -205,7 +205,7 @@ function buildFxHtml(style, text){
 // ============================================================
 //  战斗 · 组装配置
 // ============================================================
-async function buildBattleConfig(enemyName, count){
+async function buildBattleConfig(enemyName, count, field){
   await loadBattleData();
   const data = BATTLE_DATA || { skills:{}, enemies:{} };
   const tpl = data.enemies && data.enemies[enemyName];
@@ -223,8 +223,25 @@ async function buildBattleConfig(enemyName, count){
   const cb = CORE.battle || {};
   const skills = [];
   (cb.skills || []).forEach(name => {
+    // 优先从 battle.json 找
     const s = data.skills && data.skills[name];
-    if(s) skills.push(Object.assign({}, s));
+    if(s){ skills.push(Object.assign({}, s)); return; }
+    // 找不到就从 CORE.forms 找（AI 生成的形态）
+    const f = (CORE.forms || []).find(x => x && x.name === name && x.unlocked !== false);
+    if(f){
+      const out = {
+        name: f.name,
+        type: f.type || ['攻击'],
+        cost: f.cost || 0,
+        power: f.power || 0,
+        target: f.target || 'one'
+      };
+      if(f.effect) out.effect = f.effect;
+      if(typeof f.effectValue === 'number') out.effectValue = f.effectValue;
+      if(typeof f.effectChance === 'number') out.effectChance = f.effectChance;
+      if(typeof f.effectDuration === 'number') out.effectDuration = f.effectDuration;
+      skills.push(out);
+    }
   });
   if(skills.length === 0){
     skills.push({ name: '普通攻击', type: ['攻击'], cost: 0, power: 50, target: 'one' });
@@ -239,19 +256,20 @@ async function buildBattleConfig(enemyName, count){
     atk: cb.atk || 50,
     def: cb.def || 30,
     speed: cb.speed || 100,
-    stardust: cb.maxStardust || 100,
+    stardust: (typeof cb.stardust === 'number') ? cb.stardust : (cb.maxStardust || 100),
     maxStardust: cb.maxStardust || 100,
     skills: skills
   };
 
-  return { allies: [player], enemies: enemies };
+  return { allies: [player], enemies: enemies, field: field || null };
 }
 
 // 跑一场战斗，等它结束
 async function runBattleStep(step, vars){
   const enemyName = fillVars(step.enemy, vars);
   const count = step.count || 1;
-  const cfg = await buildBattleConfig(enemyName, count);
+  const field = step.field || null;
+  const cfg = await buildBattleConfig(enemyName, count, field);
   if(!cfg){
     console.warn('战斗配置生成失败：' + enemyName);
     return null;

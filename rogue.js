@@ -184,8 +184,8 @@ function rogueStartRun() {
       if (c.name) player.name = c.name;
 
       // 从学期年级 + 术式形态数量推算强度
-      const termMap = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6};
-      const termMatch = String(c.term||'').match(/([一二三四五六])年级/);
+      const termMap = {'一':1,'二':2,'三':3};
+      const termMatch = String(c.term||'').match(/([一二三])年级/);
       const grade = termMatch ? (termMap[termMatch[1]] || 1) : 1;
       const formCount = Array.isArray(c.forms) ? c.forms.length : 0;
       const sp = 5 + grade * 5 + formCount * 5;
