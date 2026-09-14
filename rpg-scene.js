@@ -101,7 +101,6 @@ function resetClickHint(){ _clickHintEverShown = false; }
 
 function awaitClick(){
   return new Promise(resolve => {
-    // 跳过模式：不等，立刻放行（但剧情照常播）
     if(_skipRequested){ resolve(); return; }
 
     let done = false;
@@ -145,10 +144,18 @@ function setupClickToContinue(){
   if(area._clickBound) return;
   area._clickBound = true;
   area.addEventListener('click', function(e){
-    if(!_awaitingClick) return;
     const t = e.target;
+    // 按钮 / 输入框不算
     if(t && t.closest && t.closest('button, input, textarea, select, a, .option-btn')) return;
-    triggerClick();
+
+    // 点聊天框 → 自动模式关掉
+    if(_autoMode){
+      _autoMode = false;
+      if(_autoTimer){ clearTimeout(_autoTimer); _autoTimer = null; }
+      updatePlayControls();
+    }
+
+    if(_awaitingClick) triggerClick();
   });
 }
 
