@@ -844,7 +844,7 @@ body.theme-water .speaker-tag{ color: #3b7fbf; }
 .npc-list-item:nth-child(7){animation-delay:.26s;}
 
 /* ---------------- 详情弹窗 ---------------- */
-#npcDetailModal .modal-box{padding:0;overflow:hidden;}
+#npcDetailModal .modal-box{padding:0;overflow-y:auto;overflow-x:hidden;}
 
 .npc-detail{padding:22px 20px 18px;}
 

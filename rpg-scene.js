@@ -72,11 +72,16 @@ function triggerClick(){
 }
 
 function setupClickToContinue(){
-  const area = document.getElementById('chat-box');
+  const area = document.getElementById('chat-wrap') || document.getElementById('chat-box');
   if(!area) return;
   if(area._clickBound) return;
   area._clickBound = true;
-  area.addEventListener('click', triggerClick);
+  area.addEventListener('click', function(e){
+    if(!_awaitingClick) return;
+    const t = e.target;
+    if(t && t.closest && t.closest('button, input, textarea, select, a, .option-btn')) return;
+    triggerClick();
+  });
 }
 
 // ============================================================

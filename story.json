@@ -100,7 +100,6 @@
         { "type": "narrate", "text": "手腕一凉。" },
         { "type": "narrate", "text": "再低头——一套校服已经贴在你身上了。{uniform}。自动合身，好像它本来就是你穿的。" },
         { "type": "speak", "speaker": "时雨晴", "text": "手环颜色对应当前术式的最高形态色，" },
-        { "type": "narrate", "text": "时雨晴说。" },
         { "type": "speak", "speaker": "时雨晴", "text": "所以看你的颜色，我就知道你走到哪一步了。" },
         { "type": "narrate", "text": "她朝你眨眨眼。" },
 
