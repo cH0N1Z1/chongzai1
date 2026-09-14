@@ -1,5 +1,5 @@
 {
-  "_note": "星辉学院固定剧情库。scenes 下每个 key 是一个场景。step 类型：narrate / speak / card / fx / pause。占位符 {name} {uniform} {arcane} 由代码替换。",
+  "_note": "星辉学院固定剧情库。scenes 下每个 key 是一个场景。step 类型：narrate / speak / card / fx / pause / battle。占位符 {name} {uniform} {arcane} 由代码替换。",
   "scenes": {
     "prologue": {
       "id": "prologue",
@@ -112,6 +112,37 @@
         { "type": "narrate", "text": "她比了个方向。" },
         { "type": "speak", "speaker": "时雨晴", "text": "教室明天早上再找。开课的是高年级，看课表就行。" },
         { "type": "speak", "speaker": "时雨晴", "text": "剩下的——自己慢慢摸。" }
+      ]
+    },
+
+    "testBattle": {
+      "id": "testBattle",
+      "title": "测试 · 雾边",
+      "steps": [
+        { "type": "narrate", "text": "灯边。塔的光落在你脚边，前面三步就是雾。" },
+        { "type": "narrate", "text": "雾里有什么东西在动。" },
+        { "type": "narrate", "text": "它出来了——一只影犬。身影像被水泡过，边缘在雾里化开。" },
+        { "type": "battle", "enemy": "影犬", "count": 1, "onWin": "testBattleWin", "onLose": "testBattleLose" }
+      ]
+    },
+
+    "testBattleWin": {
+      "id": "testBattleWin",
+      "title": "雾边 · 胜",
+      "steps": [
+        { "type": "fx", "style": "gold", "text": "击退" },
+        { "type": "narrate", "text": "影犬散了。雾往后退了一寸。" },
+        { "type": "narrate", "text": "灯边，多了一小块干地。" }
+      ]
+    },
+
+    "testBattleLose": {
+      "id": "testBattleLose",
+      "title": "雾边 · 负",
+      "steps": [
+        { "type": "fx", "style": "purple", "text": "不敌" },
+        { "type": "narrate", "text": "你退回了灯边。雾没退。" },
+        { "type": "narrate", "text": "手环闪了一下。明天还能再来。" }
       ]
     }
   }

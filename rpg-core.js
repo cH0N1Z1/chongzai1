@@ -7,25 +7,23 @@
 // ============================================================
 //  固定世界观
 // ============================================================
-const FIXED_WORLD=`现代都市 · 星辉学院时代。
+const FIXED_WORLD=`人类迁到这颗行星之后，只剩一座城。
 
-城市被迷雾包围。城市内部偶尔形成「迷雾街区」。城市分第一层和第二层，普通人看不见第二层。
+城被迷雾罩着。迷雾是这颗行星本来就有的东西——它挡在外面，让外面看不见这座城。雾里有外星生物，它们从更远的地方来，被雾拦着，也被雾喂着。
 
-星辉学院在第二层，是这座城市最前沿的地方。只有收到「星辉信」的人才能看见校门。每届 6 名学生，6 个年级，12 岁入学，18 岁毕业。没有教师，学生自治，课程由学生开设。戴上手环，校服自动生成。
+城正中立着一座灯塔。灯塔亮着，灯照到的地方，是人能住的地方。灯照不到的地方，全是雾。往外推一寸，城就大一寸——这是这座城活着的方式。
 
-学院正中是星辉塔。塔顶只发任务，不解释、不接触、不参与管理。
+星辉学院建在灯塔之下。学院为守灯而建。学生进来，学的是怎么让灯亮着；术式就是守灯的本事。这件事，学生不知道。他们只知道，自己收到了一封星辉信，来到一所没有教师的学校，学着一种叫「术式」的能力。
 
-学院没有任命制度，靠学生之间的认可。学生会只是习惯性称呼。
+学院共六个年级，12 岁入学，18 岁毕业，每届 6 名学生。没有教师，学生自治，课程由学生开设。戴上手环，校服自动生成。
 
-18 岁毕业可以离开学院，也可以选择留校。未修满的学生走不掉——这是学院唯一的强制。
-
-学院集中了外面拿不到的东西：术式形态的演化、迷雾街区实习、塔顶任务、第二层的真相。资源、权力、真相、神秘，外面都没有。
-
-氛围：秩序由学生自己维持。礼貌但不多话，每个人身上都有不想被问的事。日常明亮，但安静的地方特别安静。
+星辉塔就在学院正中——塔顶那盏灯，就是灯塔。塔顶只发任务，不解释、不接触、不参与管理。
 
 术式是本命能力，随成长演化出「形态」——觉醒、成长、关键、稀有、传说。形态是成长的唯一体现。
 
-塔顶发布学院任务和个人任务。个人任务未完成则重修回一年级。学期按上下学期推进。
+18 岁毕业可以离开学院，也可以留校。未修满的学生走不掉——这是学院唯一的强制。
+
+氛围：秩序由学生自己维持。礼貌但不多话，每个人身上都有不想被问的事。日常明亮，但安静的地方特别安静。
 
 具体设定见资料库。`;
 
@@ -40,7 +38,8 @@ const CORE={
   npcs:[], flags:{}, summary:'',
   time:'入学第一天', term:'一年级上学期', weather:'',
   chapterNum:0, chapterTitle:'',
-  day:1, slot:0
+  day:1, slot:0,
+  battle:{ hp:1000, maxHp:1000, atk:0, def:0, speed:0, stardust:100, maxStardust:100, skills:[] }
 };
 
 // ============================================================
@@ -296,6 +295,12 @@ try{
     if(CORE.chapterTitle===undefined)CORE.chapterTitle='';
     if(typeof CORE.day !== 'number') CORE.day = 1;
     if(typeof CORE.slot !== 'number') CORE.slot = 0;
+    if(!CORE.battle) CORE.battle = { hp:1000, maxHp:1000, atk:0, def:0, speed:0, stardust:100, maxStardust:100, skills:[] };
+    if(typeof CORE.battle.hp !== 'number') CORE.battle.hp = CORE.battle.maxHp || 1000;
+    if(typeof CORE.battle.maxHp !== 'number') CORE.battle.maxHp = 1000;
+    if(typeof CORE.battle.stardust !== 'number') CORE.battle.stardust = CORE.battle.maxStardust || 100;
+    if(typeof CORE.battle.maxStardust !== 'number') CORE.battle.maxStardust = 100;
+    if(!Array.isArray(CORE.battle.skills)) CORE.battle.skills = [];
     CORE.npcs.forEach(n=>{
       if(!n.status)n.status='active';
       if(n.term===undefined)n.term='一年级上学期';
@@ -306,7 +311,7 @@ try{
       if(n.grade===undefined)n.grade=n.term||'一年级上学期';
       if(n.dept===undefined)n.dept='无';
     });
-    delete CORE.hp;delete CORE.maxHp;delete CORE.inventory;
+    delete CORE.inventory;
     delete CORE.traits;
     delete CORE.aptitude;delete CORE.mana;
     CORE.npcs.forEach(n=>{ delete n.mana; });
@@ -353,7 +358,7 @@ if(hasSave && (!CORE.name || CORE.arcane === '未觉醒')){
     localStorage.removeItem(slotKey());
     hasSave = false;
     const _keepAvatar2 = CORE.avatar || '';
-    Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],selfProfile:null,npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0});
+    Object.assign(CORE, {name:'',avatar:_keepAvatar2,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],selfProfile:null,npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0,battle:{hp:1000,maxHp:1000,atk:0,def:0,speed:0,stardust:100,maxStardust:100,skills:[]}});
     Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 }
 
@@ -391,7 +396,7 @@ if(hasValidSave && !confirm("已有存档，开始新游戏会覆盖。确定？
 
 localStorage.removeItem(slotKey());
 const _keepAvatar = CORE.avatar || '';
-Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],selfProfile:null,npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0});
+Object.assign(CORE, {name:roleName,avatar:_keepAvatar,gender:'女',age:12,roleDesc:'',arcane:'未觉醒',arcaneDesc:'',forms:[],selfProfile:null,npcs:[],flags:{},summary:'',time:'入学第一天',term:'一年级上学期',weather:'',chapterNum:0,chapterTitle:'',day:1,slot:0,battle:{hp:1000,maxHp:1000,atk:0,def:0,speed:0,stardust:100,maxStardust:100,skills:[]}});
 Object.assign(PLOT, {history:[],turn:0,isFirst:true,summaryCounter:0});
 
 resetScene();

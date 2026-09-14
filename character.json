@@ -1,5 +1,5 @@
 {
-  "_note": "星辉学院角色库 · 61届固定 5 名同届生 + 四年级学姐 1 名。主角为第 6 人，性别不影响这 5 人。base + evolve 结构，evolve 目前只写一年级。",
+  "_note": "星辉学院角色库 · 61届固定 5 名同届生 + 四年级学姐 1 名。主角为第 6 人，性别不影响这 5 人。base + evolve 结构，evolve 目前只写一年级。battle 为战斗数值，按年级分。",
   "classmates": [
     {
       "id": "gongshouqin",
@@ -44,6 +44,9 @@
           "attitude": "对谁都保持距离，但记住的东西比谁都多",
           "habits": "想事情时单手转笔"
         }
+      },
+      "battle": {
+        "1": { "hp": 800, "atk": 100, "def": 60, "speed": 90, "maxStardust": 60, "skills": ["弦余"] }
       }
     },
     {
@@ -88,6 +91,9 @@
           "attitude": "话不多，但每次开口都很准",
           "habits": "听人说话时会微微歪头"
         }
+      },
+      "battle": {
+        "1": { "hp": 850, "atk": 80, "def": 70, "speed": 110, "maxStardust": 50, "skills": ["迟响"] }
       }
     },
     {
@@ -132,6 +138,9 @@
           "attitude": "说话直接，不绕弯。常常得罪人，但自己不觉得",
           "habits": "说话时眼睛不看你"
         }
+      },
+      "battle": {
+        "1": { "hp": 780, "atk": 110, "def": 50, "speed": 100, "maxStardust": 70, "skills": ["澄月"] }
       }
     },
     {
@@ -177,6 +186,9 @@
           "attitude": "对所有人都是'兄弟'叫法，但对女生会突然客气起来",
           "habits": "发火时会先挠后脑勺"
         }
+      },
+      "battle": {
+        "1": { "hp": 1000, "atk": 105, "def": 80, "speed": 70, "maxStardust": 40, "skills": ["野烧"] }
       }
     },
     {
@@ -222,6 +234,9 @@
           "attitude": "对谁都好，但从不说自己",
           "habits": "说话时会微微前倾"
         }
+      },
+      "battle": {
+        "1": { "hp": 900, "atk": 75, "def": 75, "speed": 85, "maxStardust": 80, "skills": ["灯守"] }
       }
     }
   ],

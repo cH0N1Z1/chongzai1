@@ -123,6 +123,70 @@ function buildFxHtml(style, text){
 }
 
 // ============================================================
+//  战斗 · 组装配置
+// ============================================================
+async function buildBattleConfig(enemyName, count){
+  await loadBattleData();
+  const data = BATTLE_DATA || { skills:{}, enemies:{} };
+  const tpl = data.enemies && data.enemies[enemyName];
+  if(!tpl) return null;
+
+  const enemies = [];
+  const n = Math.max(1, count || 1);
+  for(let i = 0; i < n; i++){
+    enemies.push(Object.assign({}, tpl, {
+      side: 'enemy',
+      name: n > 1 ? (enemyName + ' ' + (i+1)) : enemyName
+    }));
+  }
+
+  const cb = CORE.battle || {};
+  const skills = [];
+  (cb.skills || []).forEach(name => {
+    const s = data.skills && data.skills[name];
+    if(s) skills.push(Object.assign({}, s));
+  });
+  if(skills.length === 0){
+    skills.push({ name: '普通攻击', type: ['攻击'], cost: 0, power: 50, target: 'one' });
+  }
+
+  const player = {
+    name: CORE.name || '你',
+    side: 'ally',
+    isPlayer: true,
+    hp: cb.maxHp || 1000,
+    maxHp: cb.maxHp || 1000,
+    atk: cb.atk || 50,
+    def: cb.def || 30,
+    speed: cb.speed || 100,
+    stardust: cb.maxStardust || 100,
+    maxStardust: cb.maxStardust || 100,
+    skills: skills
+  };
+
+  return { allies: [player], enemies: enemies };
+}
+
+// 跑一场战斗，等它结束
+async function runBattleStep(step, vars){
+  const enemyName = fillVars(step.enemy, vars);
+  const count = step.count || 1;
+  const cfg = await buildBattleConfig(enemyName, count);
+  if(!cfg){
+    console.warn('战斗配置生成失败：' + enemyName);
+    return null;
+  }
+  chatBox.innerHTML += `<div class="msg-sys">⚔ 遭遇：${escapeHtml(enemyName)}${count>1 ? ' × '+count : ''}</div>`;
+  chatBox.scrollTop = chatBox.scrollHeight;
+  const result = await new Promise(resolve => {
+    cfg.onEnd = (r) => resolve(r);
+    startBattle(cfg);
+  });
+  if(vars) vars.battleResult = result;
+  return result;
+}
+
+// ============================================================
 //  播放一个场景
 // ============================================================
 async function playScene(sceneId, vars){
@@ -145,6 +209,12 @@ async function playScene(sceneId, vars){
       await playSegment(buildFxHtml(step.style, fillVars(step.text, vars)));
     } else if(type === 'pause'){
       await awaitClick();
+    } else if(type === 'battle'){
+      const result = await runBattleStep(step, vars);
+      const branch = result === 'win' ? step.onWin : step.onLose;
+      if(branch){
+        await playScene(branch, vars);
+      }
     }
   }
   return true;

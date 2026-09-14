@@ -296,6 +296,15 @@ async function sendAction(forcedAction){
     return;
   }
 
+  if(action.startsWith('/战')){
+    chatBox.innerHTML += userMsgHtml(action, true);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    const id = action.replace(/^\/战\s*/, '').trim() || 'testBattle';
+    playScene(id).catch(e => console.error(e));
+    userInput.focus();
+    return;
+  }
+
   // 手动输入不消耗时段，只让 AI 写一段自由行动
   chatBox.innerHTML += userMsgHtml(action, false);
   chatBox.scrollTop = chatBox.scrollHeight;

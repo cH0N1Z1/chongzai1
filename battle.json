@@ -1,0 +1,111 @@
+{
+  "_note": "战斗数据。技能效果 + 敌人模板。主角/NPC 数值存在 character.json 或存档里。",
+
+  "skills": {
+    "流明": {
+      "name": "流明",
+      "type": ["辅助"],
+      "cost": 0,
+      "power": 0,
+      "target": "self",
+      "effect": "light"
+    },
+    "流明·闪耀": {
+      "name": "流明·闪耀",
+      "type": ["攻击", "特殊"],
+      "cost": 30,
+      "power": 50,
+      "target": "all",
+      "effect": "stun",
+      "effectChance": 0.4,
+      "effectDuration": 1
+    },
+    "弦余": {
+      "name": "弦余",
+      "type": ["攻击", "特殊"],
+      "cost": 20,
+      "power": 70,
+      "target": "one",
+      "effect": "stun",
+      "effectChance": 0.2,
+      "effectDuration": 1
+    },
+    "迟响": {
+      "name": "迟响",
+      "type": ["特殊"],
+      "cost": 15,
+      "power": 0,
+      "target": "one",
+      "effect": "slow",
+      "effectChance": 0.6,
+      "effectDuration": 1
+    },
+    "澄月": {
+      "name": "澄月",
+      "type": ["攻击"],
+      "cost": 25,
+      "power": 90,
+      "target": "one"
+    },
+    "野烧": {
+      "name": "野烧",
+      "type": ["攻击"],
+      "cost": 20,
+      "power": 75,
+      "target": "all"
+    },
+    "灯守": {
+      "name": "灯守",
+      "type": ["辅助"],
+      "cost": 20,
+      "power": 0,
+      "target": "self",
+      "effect": "heal",
+      "effectValue": 120
+    }
+  },
+
+  "enemies": {
+    "影犬": {
+      "name": "影犬",
+      "hp": 300,
+      "atk": 80,
+      "def": 40,
+      "speed": 110,
+      "stardust": 0,
+      "maxStardust": 0,
+      "skills": [
+        { "name": "撕咬", "type": ["攻击"], "cost": 0, "power": 60, "target": "one" }
+      ]
+    },
+    "镜妖": {
+      "name": "镜妖",
+      "hp": 420,
+      "atk": 70,
+      "def": 60,
+      "speed": 95,
+      "stardust": 40,
+      "maxStardust": 40,
+      "skills": [
+        { "name": "镜像", "type": ["攻击"], "cost": 0, "power": 55, "target": "one" },
+        { "name": "折射", "type": ["特殊"], "cost": 20, "power": 0, "target": "all", "effect": "stun", "effectChance": 0.25, "effectDuration": 1 }
+      ]
+    }
+  },
+
+  "duel": {
+    "_note": "学院切磋。NPC 数值按年级取，这是一年级示例。",
+    "宫守琴": {
+      "name": "宫守琴",
+      "hp": 800,
+      "atk": 100,
+      "def": 60,
+      "speed": 90,
+      "stardust": 60,
+      "maxStardust": 60,
+      "skills": [
+        { "name": "弦余", "type": ["攻击", "特殊"], "cost": 20, "power": 70, "target": "one" }
+      ]
+    }
+  }
+}
