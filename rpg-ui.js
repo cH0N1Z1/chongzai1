@@ -1031,6 +1031,34 @@ function renderPlacePanel(show){
   });
   panel.innerHTML = html;
 }
+// ============================================================
+//  开发者面板
+// ============================================================
+function openDevPanel(){
+  closeModal('settingsModal');
+  const el = document.getElementById('devPanelContent');
+  if(!el) return;
+  const commands = [
+    { label: '⚔ 测试战斗 · 影犬 ×2', scene: 'testBattle' },
+    { label: '🌫 测试战斗 · 迷雾', scene: 'testFog' },
+    { label: '📜 重播序幕', scene: 'prologue' },
+    { label: '✔ 胜利分支', scene: 'testBattleWin' },
+    { label: '✕ 失败分支', scene: 'testBattleLose' },
+    { label: '✔ 迷雾胜利', scene: 'testFogWin' },
+    { label: '✕ 迷雾失败', scene: 'testFogLose' }
+  ];
+  el.innerHTML = commands.map(c =>
+    `<button class="dev-cmd-btn" onclick="devRunScene('${c.scene}')">${c.label}</button>`
+  ).join('');
+  openModal('devModal');
+}
+
+function devRunScene(sceneId){
+  closeModal('devModal');
+  if(typeof playScene === 'function'){
+    playScene(sceneId).catch(e => console.error(e));
+  }
+}
 
 // ============================================================
 //  Token 面板

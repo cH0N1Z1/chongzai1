@@ -1383,3 +1383,91 @@ body.theme-water .battle-skill-btn{ background:linear-gradient(135deg,#ffffff,#f
 body.theme-water .battle-skill-btn:hover{ background:linear-gradient(135deg,#a8d8ee,#7ec8e3); color:#fff; }
 body.theme-water .battle-flee-btn{ background:linear-gradient(135deg,#7ec8e3,#5eb8d8); color:#fff; }
 body.theme-water .battle-return-btn{ background:#d4ecf7; color:#3b7fbf; }
+/* ============================================================
+   模块 66：战斗底部图标按钮
+   ============================================================ */
+.battle-footer{
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  min-height: 44px;
+  margin-top: 8px;
+}
+.battle-icon-btn{
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1.5px solid #30363d;
+  background: #1f2937;
+  color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .2s;
+  padding: 0;
+}
+.battle-icon-btn:hover{ background: #30363d; border-color: #58a6ff; color: #58a6ff; }
+.battle-icon-btn:active{ transform: scale(.9); }
+.battle-icon-btn.confirm{ border-color: #238636; color: #4ade80; }
+.battle-icon-btn.confirm:hover{ background: rgba(35,134,54,0.2); border-color: #4ade80; color: #4ade80; }
+.battle-icon-btn.hidden{ display: none; }
+
+/* 逃跑按钮改成圆形图标 */
+.battle-flee-btn{
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all .2s;
+}
+.battle-flee-btn:hover{ background: #ef4444; }
+.battle-flee-btn:active{ transform: scale(.9); }
+
+body.theme-cute .battle-icon-btn{ background:#3d1e3d; border-color:#ff8da1; color:#ffb6c1; }
+body.theme-cute .battle-icon-btn:hover{ background:#ff8da1; color:#1a0f1a; }
+body.theme-cute .battle-icon-btn.confirm{ border-color:#6ee7a8; color:#6ee7a8; }
+body.theme-cute .battle-flee-btn{ background:#ff8da1; color:#1a0f1a; }
+body.theme-water .battle-icon-btn{ background:#f4fbff; border-color:#b3dcef; color:#3b7fbf; }
+body.theme-water .battle-icon-btn:hover{ background:#7ec8e3; color:#fff; }
+body.theme-water .battle-icon-btn.confirm{ border-color:#3b7fbf; color:#3b7fbf; }
+body.theme-water .battle-flee-btn{ background:linear-gradient(135deg,#ff9ba8,#ff7a8a); color:#fff; }
+
+/* ============================================================
+   模块 67：星尘显示 + 开发者面板
+   ============================================================ */
+.unit-dust{
+  font-size: 11px;
+  color: #a78bfa;
+  margin-top: 1px;
+}
+
+.dev-cmd-btn{
+  background: #1f2937;
+  border: 1px solid #374151;
+  color: #e5e7eb;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: all .2s;
+}
+.dev-cmd-btn:hover{ background: #30363d; border-color: #58a6ff; color: #fff; }
+.dev-cmd-btn:active{ transform: scale(.97); }
+
+body.theme-cute .dev-cmd-btn{ background:#3d1e3d; border-color:#ff8da1; color:#ffb6c1; }
+body.theme-cute .dev-cmd-btn:hover{ background:#ff8da1; color:#1a0f1a; }
+body.theme-cute .unit-dust{ color:#ff8da1; }
+body.theme-water .dev-cmd-btn{ background:#f4fbff; border-color:#b3dcef; color:#3b7fbf; }
+body.theme-water .dev-cmd-btn:hover{ background:#7ec8e3; color:#fff; }
+body.theme-water .unit-dust{ color:#8b6bc9; }

@@ -137,7 +137,9 @@
   <div class="battle-top">
     <div id="battleRound" class="battle-round">回合 1</div>
     <div id="battleField" class="battle-field">场地：无</div>
-    <button class="battle-flee-btn" onclick="battleFlee()">逃</button>
+    <button class="battle-flee-btn" onclick="battleFlee()" title="逃跑" aria-label="逃跑">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg>
+    </button>
   </div>
   <div id="battleSpeedBar" class="battle-speed-bar"></div>
   <div class="battle-arena">
@@ -147,7 +149,12 @@
   <div id="battleLogArea" class="battle-log"></div>
   <div id="battleSkillArea" class="battle-skills"></div>
   <div class="battle-footer">
-    <button id="battleReturnBtn" class="battle-return-btn hidden" onclick="battleReturn()">返回</button>
+    <button id="battleReturnBtn" class="battle-icon-btn hidden" onclick="battleReturn()" title="返回" aria-label="返回">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+    </button>
+    <button id="battleConfirmBtn" class="battle-icon-btn confirm hidden" onclick="battleConfirm()" title="确定" aria-label="确定">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>
   </div>
 </div>
 </div>
@@ -243,6 +250,10 @@
 <div class="setting-label"><div class="setting-title">简洁模式</div><div class="setting-desc">一键关闭所有装饰，纯文字体验</div></div>
 <label class="switch"><input type="checkbox" id="setMinimal" onchange="toggleMinimalMode(this.checked)"><span class="slider"></span></label>
 </div>
+<div class="setting-row">
+<div class="setting-label"><div class="setting-title">开发者</div><div class="setting-desc">测试指令快捷按钮</div></div>
+<button type="button" class="ctrl-btn" onclick="openDevPanel()" style="padding:6px 12px;font-size:13px;">打开</button>
+</div>
 <div class="btn-row"><button class="btn-close" onclick="closeModal('settingsModal')">完成</button></div>
 </div>
 </div>
@@ -287,6 +298,14 @@
 </div>
 </div>
 </div>
+<div class="modal-overlay" id="devModal">
+<div class="modal-box">
+<h3>开发者</h3>
+<div id="devPanelContent" style="display:flex;flex-direction:column;gap:8px;margin-top:10px;"></div>
+<div class="btn-row"><button class="btn-close" onclick="closeModal('devModal')">关闭</button></div>
+</div>
+</div>
+
 <div class="modal-overlay" id="replayModal"></div>
 <div class="modal-overlay" id="exportModal"></div>
 <div class="modal-overlay" id="importModal"></div>
@@ -327,10 +346,22 @@ document.addEventListener('click', function(e){
 })();
 
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
-  navigator.serviceWorker.register('./sw.js').then(function(reg){
-    setInterval(function(){ reg.update(); }, 10 * 60 * 1000);
-    reg.update();
-  });
+  const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.startsWith('192.168.');
+  if(isLocal){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(r){ r.unregister(); });
+    });
+    if(window.caches){
+      caches.keys().then(function(keys){
+        keys.forEach(function(k){ caches.delete(k); });
+      });
+    }
+  } else {
+    navigator.serviceWorker.register('./sw.js').then(function(reg){
+      setInterval(function(){ reg.update(); }, 10 * 60 * 1000);
+      reg.update();
+    });
+  }
 }
 </script>
 </body>

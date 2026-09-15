@@ -25,7 +25,7 @@
     "弦余": {
       "name": "弦余",
       "type": ["攻击", "特殊"],
-      "cost": 20,
+      "cost": 0,
       "power": 70,
       "target": "one",
       "effect": "stun",

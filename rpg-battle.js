@@ -1,6 +1,6 @@
 // ============================================================
 //  rpg-battle.js - 回合制战斗（重写版）
-//  流程：全部选行动 → 按规则排序 → 统一播放
+//  流程：逐个选技能+目标（自动确认）→ 最后一个角色出现确定 → 播放
 //  依赖：shared.js → rpg-core.js → rpg-story.js
 // ============================================================
 
@@ -15,12 +15,12 @@ const BATTLE = {
   waiting: false,
   onEnd: null,
   field: null,
-  phase: 'idle',           // 'select' | 'execute' | 'idle'
-  selectIndex: 0,          // 当前正在选行动的我方单位索引
-  selectingTarget: false,  // 是否正在选目标
-  pendingSkill: null,      // 当前待选目标的技能
-  pendingUnit: null,       // 当前待选目标的单位
-  actions: []              // [{ unit, skill, target }]
+  phase: 'idle',
+  selectIndex: 0,
+  selectingTarget: false,
+  pendingUnit: null,
+  pendingSkill: null,
+  pendingTarget: null
 };
 
 let BATTLE_DATA = null;
@@ -48,7 +48,7 @@ function makeUnit(cfg, side, index){
     id: cfg.id || cfg.name,
     name: cfg.name,
     side: side,
-    index: index,            // 队伍内编号（1 开始）
+    index: index,
     hp: cfg.hp,
     maxHp: cfg.hp,
     atk: cfg.atk,
@@ -62,7 +62,7 @@ function makeUnit(cfg, side, index){
     stun: 0,
     isPlayer: !!cfg.isPlayer,
     avatar: cfg.avatar || '',
-    action: null             // { skill, target }
+    action: null
   };
 }
 
@@ -93,6 +93,16 @@ function getCurrentHit(unit){
 function rollHit(attacker){ return Math.random() * 100 < getCurrentHit(attacker); }
 function rollCrit(attacker){ return Math.random() * 100 < getCurrentCrit(attacker); }
 
+function isHostileSkill(skill){
+  if(!skill) return false;
+  if(skill.target === 'self') return false;
+  if(skill.effect === 'heal' || skill.effect === 'atkUp' || skill.effect === 'defUp' ||
+     skill.effect === 'speedUp' || skill.effect === 'critUp'){
+    return false;
+  }
+  return true;
+}
+
 function battleLog(text, cls){
   const area = document.getElementById('battleLogArea');
   if(!area) return;
@@ -120,9 +130,9 @@ async function startBattle(config){
   BATTLE.phase = 'select';
   BATTLE.selectIndex = 0;
   BATTLE.selectingTarget = false;
-  BATTLE.pendingSkill = null;
   BATTLE.pendingUnit = null;
-  BATTLE.actions = [];
+  BATTLE.pendingSkill = null;
+  BATTLE.pendingTarget = null;
   BATTLE.order = [];
 
   const logArea = document.getElementById('battleLogArea');
@@ -145,36 +155,38 @@ async function startBattle(config){
 function startSelectPhase(){
   BATTLE.phase = 'select';
   BATTLE.selectIndex = 0;
-  BATTLE.actions = [];
+  BATTLE.selectingTarget = false;
+  BATTLE.pendingUnit = null;
+  BATTLE.pendingSkill = null;
+  BATTLE.pendingTarget = null;
   BATTLE.waiting = true;
-  // 清空所有单位的行动
   [...BATTLE.allies, ...BATTLE.enemies].forEach(u => u.action = null);
   renderBattleStatus();
   selectNextAlly();
 }
 
 function selectNextAlly(){
-  // 跳过死亡单位
   while(BATTLE.selectIndex < BATTLE.allies.length && BATTLE.allies[BATTLE.selectIndex].hp <= 0){
     BATTLE.selectIndex++;
   }
   if(BATTLE.selectIndex >= BATTLE.allies.length){
-    // 全部选完，进入执行阶段
     executePhase();
     return;
   }
-  const unit = BATTLE.allies[BATTLE.selectIndex];
-  BATTLE.pendingUnit = unit;
-  showSkillOptions(unit);
+  BATTLE.pendingUnit = BATTLE.allies[BATTLE.selectIndex];
+  BATTLE.pendingSkill = null;
+  BATTLE.pendingTarget = null;
+  BATTLE.selectingTarget = false;
+  showSkillOptions(BATTLE.pendingUnit);
+  renderBattleStatus();
+  updateFooterButtons();
 }
 
 function showSkillOptions(unit){
   const area = document.getElementById('battleSkillArea');
   if(!area) return;
   area.innerHTML = '';
-  const returnBtn = document.getElementById('battleReturnBtn');
-  if(returnBtn) returnBtn.classList.add('hidden');
-
+  if(!unit) return;
   unit.skills.forEach((s, i) => {
     const btn = document.createElement('button');
     btn.className = 'battle-skill-btn';
@@ -182,7 +194,47 @@ function showSkillOptions(unit){
     btn.onclick = () => playerChooseSkill(i);
     area.appendChild(btn);
   });
-  renderBattleStatus();
+}
+
+// 判断当前选中的角色是不是最后一个活着的我方单位
+function isLastSelectableAlly(){
+  for(let i = BATTLE.selectIndex + 1; i < BATTLE.allies.length; i++){
+    if(BATTLE.allies[i].hp > 0) return false;
+  }
+  return true;
+}
+
+function updateFooterButtons(){
+  const returnBtn = document.getElementById('battleReturnBtn');
+  const confirmBtn = document.getElementById('battleConfirmBtn');
+  const inSelect = (BATTLE.phase === 'select');
+
+  const canReturn = inSelect && (
+    BATTLE.pendingSkill || BATTLE.selectingTarget || BATTLE.pendingTarget ||
+    BATTLE.selectIndex > 0
+  );
+
+  const needTarget = BATTLE.pendingSkill && BATTLE.pendingSkill.target === 'one';
+  const canConfirm = inSelect && isLastSelectableAlly() && BATTLE.pendingSkill &&
+                     (!needTarget || BATTLE.pendingTarget);
+
+  if(returnBtn) returnBtn.classList.toggle('hidden', !canReturn);
+  if(confirmBtn) confirmBtn.classList.toggle('hidden', !canConfirm);
+}
+
+// 当前角色的行动存入，切换到下一个
+function autoConfirmCurrent(){
+  const unit = BATTLE.pendingUnit;
+  const skill = BATTLE.pendingSkill;
+  if(!unit || !skill) return;
+  unit.action = { skill: skill, target: BATTLE.pendingTarget };
+  unit.stardust -= (skill.cost || 0);
+  BATTLE.pendingUnit = null;
+  BATTLE.pendingSkill = null;
+  BATTLE.pendingTarget = null;
+  BATTLE.selectingTarget = false;
+  BATTLE.selectIndex++;
+  selectNextAlly();
 }
 
 function playerChooseSkill(index){
@@ -195,61 +247,101 @@ function playerChooseSkill(index){
     battleLog('星尘不足，无法释放');
     return;
   }
+  BATTLE.pendingSkill = skill;
+  BATTLE.pendingTarget = null;
 
-  // 如果是单体技能，需要选目标
   if(skill.target === 'one'){
-    BATTLE.pendingSkill = skill;
     BATTLE.selectingTarget = true;
     const area = document.getElementById('battleSkillArea');
     if(area) area.innerHTML = '';
-    const returnBtn = document.getElementById('battleReturnBtn');
-    if(returnBtn) returnBtn.classList.remove('hidden');
     battleLog(`请选择「${skill.name}」的目标`);
     renderBattleStatus();
-    return;
+    updateFooterButtons();
+  } else {
+    BATTLE.selectingTarget = false;
+    if(isLastSelectableAlly()){
+      renderBattleStatus();
+      updateFooterButtons();
+    } else {
+      autoConfirmCurrent();
+    }
   }
-
-  // 群体/自身技能直接确认
-  unit.action = { skill: skill, target: null };
-  unit.stardust -= (skill.cost || 0);
-  BATTLE.selectIndex++;
-  BATTLE.pendingSkill = null;
-  BATTLE.selectingTarget = false;
-  selectNextAlly();
 }
 
+function clickAllyTarget(idx){
+  if(!BATTLE.selectingTarget) return;
+  const target = BATTLE.allies[idx];
+  if(!target || target.hp <= 0) return;
+  if(isHostileSkill(BATTLE.pendingSkill)) return;
+  confirmTarget(target);
+}
+
+function clickEnemyTarget(idx){
+  if(!BATTLE.selectingTarget) return;
+  const target = BATTLE.enemies[idx];
+  if(!target || target.hp <= 0) return;
+  if(!isHostileSkill(BATTLE.pendingSkill)) return;
+  confirmTarget(target);
+}
+
+function confirmTarget(target){
+  BATTLE.pendingTarget = target;
+  BATTLE.selectingTarget = false;
+  battleLog(`目标：${target.name}`);
+  renderBattleStatus();
+
+  if(isLastSelectableAlly()){
+    updateFooterButtons();
+  } else {
+    autoConfirmCurrent();
+  }
+}
+
+// 点确定 → 播放回合
+function battleConfirm(){
+  if(!BATTLE.active || BATTLE.phase !== 'select') return;
+  const unit = BATTLE.pendingUnit;
+  const skill = BATTLE.pendingSkill;
+  if(!unit || !skill) return;
+  if(skill.target === 'one' && !BATTLE.pendingTarget) return;
+  unit.action = { skill: skill, target: BATTLE.pendingTarget };
+  unit.stardust -= (skill.cost || 0);
+  executePhase();
+}
+
+// 点返回
 function battleReturn(){
-  if(!BATTLE.waiting) return;
-  if(BATTLE.selectingTarget){
-    // 取消选目标，回到技能列表
-    BATTLE.selectingTarget = false;
+  if(!BATTLE.active || BATTLE.phase !== 'select') return;
+
+  if(BATTLE.pendingSkill || BATTLE.selectingTarget || BATTLE.pendingTarget){
     BATTLE.pendingSkill = null;
-    const returnBtn = document.getElementById('battleReturnBtn');
-    if(returnBtn) returnBtn.classList.add('hidden');
+    BATTLE.pendingTarget = null;
+    BATTLE.selectingTarget = false;
     showSkillOptions(BATTLE.pendingUnit);
     renderBattleStatus();
+    updateFooterButtons();
     return;
   }
-  // 回到上一个队友重新选
+
   if(BATTLE.selectIndex > 0){
     BATTLE.selectIndex--;
-    // 清掉上一个队友的行动
     const prev = BATTLE.allies[BATTLE.selectIndex];
     if(prev && prev.action){
-      // 返还星尘
       prev.stardust += (prev.action.skill.cost || 0);
       prev.action = null;
     }
+    BATTLE.pendingUnit = null;
     selectNextAlly();
   }
 }
 
+// ============================================================
+//  渲染
+// ============================================================
 function renderBattleStatus(){
-  // 回合数
   const roundEl = document.getElementById('battleRound');
   if(roundEl) roundEl.textContent = '回合 ' + BATTLE.round;
 
-  // 场地效果
   const fieldEl = document.getElementById('battleField');
   if(fieldEl){
     if(BATTLE.field && BATTLE.field.fog){
@@ -261,7 +353,6 @@ function renderBattleStatus(){
     }
   }
 
-  // 速度条（选行动阶段显示我方编号顺序；执行阶段显示出手顺序）
   const speedBar = document.getElementById('battleSpeedBar');
   if(speedBar){
     let units = [];
@@ -278,76 +369,49 @@ function renderBattleStatus(){
     }).join('');
   }
 
-  // 我方角色
   const alliesEl = document.getElementById('battleAllies');
   if(alliesEl){
     alliesEl.innerHTML = BATTLE.allies.map((u, i) => {
       const dead = u.hp <= 0 ? 'dead' : '';
       const acting = (BATTLE.phase === 'select' && i === BATTLE.selectIndex) ? 'current-acting' : '';
+      const selected = (BATTLE.pendingTarget === u) ? 'selected-target' : '';
+      let selectable = '';
+      if(BATTLE.selectingTarget && u.hp > 0 && !isHostileSkill(BATTLE.pendingSkill)){
+        selectable = 'selectable';
+      }
       const avatar = u.avatar ? `<img src="${u.avatar}">` : escapeHtml(u.name.charAt(0));
-      const isSelectable = (BATTLE.selectingTarget && u.hp > 0 && BATTLE.pendingSkill &&
-        (BATTLE.pendingSkill.effect === 'heal' || BATTLE.pendingSkill.effect === 'atkUp' ||
-         BATTLE.pendingSkill.effect === 'defUp' || BATTLE.pendingSkill.effect === 'speedUp' ||
-         BATTLE.pendingSkill.effect === 'critUp' || BATTLE.pendingSkill.target === 'self')) ? 'selectable' : '';
-      return `<div class="battle-unit ${dead} ${acting} ${isSelectable}" onclick="clickAllyTarget(${i})">
+      const dustLine = (u.maxStardust > 0) ? `<div class="unit-dust">✦ ${u.stardust}/${u.maxStardust}</div>` : '';
+      return `<div class="battle-unit ${dead} ${acting} ${selected} ${selectable}" onclick="clickAllyTarget(${i})">
         <div class="unit-avatar">${avatar}</div>
         <div class="unit-info">
           <div class="unit-name-box">${escapeHtml(u.name)}</div>
           <div class="unit-hp">${u.hp}/${u.maxHp}</div>
+          ${dustLine}
         </div>
       </div>`;
     }).join('');
   }
 
-  // 敌方角色
   const enemiesEl = document.getElementById('battleEnemies');
   if(enemiesEl){
     enemiesEl.innerHTML = BATTLE.enemies.map((u, i) => {
       const dead = u.hp <= 0 ? 'dead' : '';
-      const isSelectable = (BATTLE.selectingTarget && u.hp > 0 && BATTLE.pendingSkill &&
-        BATTLE.pendingSkill.target === 'one' &&
-        BATTLE.pendingSkill.effect !== 'heal' &&
-        BATTLE.pendingSkill.effect !== 'atkUp' &&
-        BATTLE.pendingSkill.effect !== 'defUp' &&
-        BATTLE.pendingSkill.effect !== 'speedUp' &&
-        BATTLE.pendingSkill.effect !== 'critUp') ? 'selectable' : '';
-      return `<div class="battle-unit enemy ${dead} ${isSelectable}" onclick="clickEnemyTarget(${i})">
+      const selected = (BATTLE.pendingTarget === u) ? 'selected-target' : '';
+      let selectable = '';
+      if(BATTLE.selectingTarget && u.hp > 0 && isHostileSkill(BATTLE.pendingSkill)){
+        selectable = 'selectable';
+      }
+      const dustLine = (u.maxStardust > 0) ? `<div class="unit-dust">✦ ${u.stardust}/${u.maxStardust}</div>` : '';
+      return `<div class="battle-unit enemy ${dead} ${selected} ${selectable}" onclick="clickEnemyTarget(${i})">
         <div class="unit-avatar">?</div>
         <div class="unit-info">
           <div class="unit-name-box">${escapeHtml(u.name)}</div>
           <div class="unit-hp">${u.hp}/${u.maxHp}</div>
+          ${dustLine}
         </div>
       </div>`;
     }).join('');
   }
-}
-
-function clickAllyTarget(idx){
-  if(!BATTLE.selectingTarget) return;
-  const target = BATTLE.allies[idx];
-  if(!target || target.hp <= 0) return;
-  confirmTarget(target);
-}
-
-function clickEnemyTarget(idx){
-  if(!BATTLE.selectingTarget) return;
-  const target = BATTLE.enemies[idx];
-  if(!target || target.hp <= 0) return;
-  confirmTarget(target);
-}
-
-function confirmTarget(target){
-  const unit = BATTLE.pendingUnit;
-  const skill = BATTLE.pendingSkill;
-  if(!unit || !skill) return;
-  unit.action = { skill: skill, target: target };
-  unit.stardust -= (skill.cost || 0);
-  BATTLE.selectingTarget = false;
-  BATTLE.pendingSkill = null;
-  BATTLE.selectIndex++;
-  const returnBtn = document.getElementById('battleReturnBtn');
-  if(returnBtn) returnBtn.classList.add('hidden');
-  selectNextAlly();
 }
 
 // ============================================================
@@ -360,8 +424,9 @@ function executePhase(){
   if(area) area.innerHTML = '';
   const returnBtn = document.getElementById('battleReturnBtn');
   if(returnBtn) returnBtn.classList.add('hidden');
+  const confirmBtn = document.getElementById('battleConfirmBtn');
+  if(confirmBtn) confirmBtn.classList.add('hidden');
 
-  // 敌方随机选行动
   BATTLE.enemies.forEach(u => {
     if(u.hp <= 0) return;
     const skill = pickSkill(u);
@@ -373,7 +438,6 @@ function executePhase(){
     u.action = { skill: skill, target: target };
   });
 
-  // 计算出手顺序
   computeOrder();
   BATTLE.turnIndex = 0;
   renderBattleStatus();
@@ -392,11 +456,9 @@ function computeOrder(){
       const aSpd = getCurrentStat(ally, 'speed');
       const eSpd = getCurrentStat(enemy, 'speed');
       if(aSpd >= eSpd){
-        order.push(ally);
-        order.push(enemy);
+        order.push(ally); order.push(enemy);
       } else {
-        order.push(enemy);
-        order.push(ally);
+        order.push(enemy); order.push(ally);
       }
     } else if(aAlive){
       order.push(ally);
@@ -426,7 +488,6 @@ function nextAction(){
   const unit = BATTLE.order[BATTLE.turnIndex];
   renderBattleStatus();
 
-  // 如果有眩晕跳过（保留旧机制）
   if(unit.stun > 0){
     battleLog(`${unit.name} 被眩晕，跳过行动`);
     BATTLE.turnIndex++;
@@ -441,7 +502,6 @@ function nextAction(){
     return;
   }
 
-  // 执行技能
   doSkill(unit, act.skill, act.target);
   BATTLE.turnIndex++;
   setTimeout(nextAction, 800);
@@ -451,7 +511,6 @@ function doSkill(unit, skill, target){
   if(!skill) return;
   battleLog(`✦ ${unit.name} 使用「${skill.name}」`);
 
-  // 场地驱散
   if(skill.effect === 'dispelFog'){
     if(BATTLE.field && BATTLE.field.fog){
       BATTLE.field.fog = false;
@@ -462,7 +521,6 @@ function doSkill(unit, skill, target){
     return;
   }
 
-  // 确定目标列表
   let targets = [];
   if(skill.target === 'all'){
     const opposite = unit.side === 'ally' ? BATTLE.enemies : BATTLE.allies;
@@ -470,11 +528,9 @@ function doSkill(unit, skill, target){
   } else if(skill.target === 'self'){
     targets = [unit];
   } else {
-    // 单体
     if(target && target.hp > 0){
       targets = [target];
     } else {
-      // 目标已死，随机换一个
       const opposite = unit.side === 'ally' ? BATTLE.enemies : BATTLE.allies;
       const alive = opposite.filter(u => u.hp > 0);
       if(alive.length) targets = [alive[Math.floor(Math.random() * alive.length)]];
@@ -488,7 +544,6 @@ function doSkill(unit, skill, target){
   targets.forEach(t => {
     const isHostile = unit.side !== t.side;
 
-    // 命中判定
     if(isHostile){
       if(!rollHit(unit)){
         battleLog(`  ${t.name} 闪开了（未命中）`);
@@ -496,7 +551,6 @@ function doSkill(unit, skill, target){
       }
     }
 
-    // 伤害
     if(skill.power > 0){
       const curAtk = getCurrentStat(unit, 'atk');
       const curDef = getCurrentStat(t, 'def');
@@ -509,7 +563,6 @@ function doSkill(unit, skill, target){
       battleLog(`  ${t.name} 受到 ${dmg} 伤害`);
     }
 
-    // 效果
     if(skill.effect === 'heal' && skill.effectValue){
       const heal = Math.min(skill.effectValue, t.maxHp - t.hp);
       t.hp += heal;
@@ -594,8 +647,6 @@ function battleFlee(){
     battleLog('逃跑失败！本回合放弃行动。');
     BATTLE.waiting = false;
     BATTLE.phase = 'execute';
-    // 直接跳过选行动，进入执行（我方无行动，敌方正常）
-    BATTLE.actions = [];
     BATTLE.allies.forEach(u => u.action = null);
     executePhase();
   }
@@ -611,6 +662,8 @@ function endBattle(result){
   if(skillArea) skillArea.innerHTML = '';
   const returnBtn = document.getElementById('battleReturnBtn');
   if(returnBtn) returnBtn.classList.add('hidden');
+  const confirmBtn = document.getElementById('battleConfirmBtn');
+  if(confirmBtn) confirmBtn.classList.add('hidden');
 
   let text = '';
   if(result === 'win') text = '★ 战斗胜利';
