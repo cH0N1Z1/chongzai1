@@ -58,7 +58,6 @@ function toggleAuto(){
   _autoMode = !_autoMode;
   updatePlayControls();
   if(_autoMode){
-    // 打开自动：若正卡在等待点击，立刻放行，进入下一段
     if(_awaitingClick){
       const fn = _awaitingClick;
       _awaitingClick = null;
@@ -66,7 +65,6 @@ function toggleAuto(){
       fn();
     }
   } else {
-    // 关闭自动：清掉排队中的自动定时器，让等待恢复成手动点击
     if(_autoTimer){ clearTimeout(_autoTimer); _autoTimer = null; }
   }
 }
@@ -145,10 +143,8 @@ function setupClickToContinue(){
   area._clickBound = true;
   area.addEventListener('click', function(e){
     const t = e.target;
-    // 按钮 / 输入框不算
     if(t && t.closest && t.closest('button, input, textarea, select, a, .option-btn')) return;
 
-    // 点聊天框 → 自动模式关掉
     if(_autoMode){
       _autoMode = false;
       if(_autoTimer){ clearTimeout(_autoTimer); _autoTimer = null; }
@@ -258,10 +254,43 @@ async function buildBattleConfig(enemyName, count, field){
     speed: cb.speed || 100,
     stardust: (typeof cb.stardust === 'number') ? cb.stardust : (cb.maxStardust || 100),
     maxStardust: cb.maxStardust || 100,
-    skills: skills
+    skills: skills,
+    avatar: CORE.avatar || ''
   };
 
-  return { allies: [player], enemies: enemies, field: field || null };
+  const allies = [player];
+
+  // 宫守琴固定入队（测试用）
+  if(typeof CHARACTERS !== 'undefined' && Array.isArray(CHARACTERS.classmates)){
+    const qin = CHARACTERS.classmates.find(c => c.name === '宫守琴');
+    if(qin && qin.battle && qin.battle['1']){
+      const bd = qin.battle['1'];
+      const qinSkills = [];
+      (bd.skills || []).forEach(name => {
+        const s = data.skills && data.skills[name];
+        if(s) qinSkills.push(Object.assign({}, s));
+      });
+      if(qinSkills.length === 0){
+        qinSkills.push({ name: '普通攻击', type: ['攻击'], cost: 0, power: 50, target: 'one' });
+      }
+      allies.push({
+        name: qin.name,
+        side: 'ally',
+        isPlayer: false,
+        hp: bd.hp,
+        maxHp: bd.hp,
+        atk: bd.atk,
+        def: bd.def,
+        speed: bd.speed,
+        stardust: bd.maxStardust || 60,
+        maxStardust: bd.maxStardust || 60,
+        skills: qinSkills,
+        avatar: ''
+      });
+    }
+  }
+
+  return { allies: allies, enemies: enemies, field: field || null };
 }
 
 // 跑一场战斗，等它结束

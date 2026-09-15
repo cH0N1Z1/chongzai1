@@ -134,9 +134,21 @@
 <!-- 战斗窗口 -->
 <div class="modal-overlay" id="battleModal">
 <div class="modal-box battle-box">
-<h3>⚔ 战斗</h3>
-<div id="battleLogArea" class="battle-log"></div>
-<div id="battleSkillArea" class="battle-skills"></div>
+  <div class="battle-top">
+    <div id="battleRound" class="battle-round">回合 1</div>
+    <div id="battleField" class="battle-field">场地：无</div>
+    <button class="battle-flee-btn" onclick="battleFlee()">逃</button>
+  </div>
+  <div id="battleSpeedBar" class="battle-speed-bar"></div>
+  <div class="battle-arena">
+    <div id="battleAllies" class="battle-side allies"></div>
+    <div id="battleEnemies" class="battle-side enemies"></div>
+  </div>
+  <div id="battleLogArea" class="battle-log"></div>
+  <div id="battleSkillArea" class="battle-skills"></div>
+  <div class="battle-footer">
+    <button id="battleReturnBtn" class="battle-return-btn hidden" onclick="battleReturn()">返回</button>
+  </div>
 </div>
 </div>
 

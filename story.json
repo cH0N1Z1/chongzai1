@@ -120,8 +120,8 @@
       "steps": [
         { "type": "narrate", "text": "灯边。塔的光落在你脚边，前面三步就是雾。" },
         { "type": "narrate", "text": "雾里有什么东西在动。" },
-        { "type": "narrate", "text": "它出来了——一只影犬。身影像被水泡过，边缘在雾里化开。" },
-        { "type": "battle", "enemy": "影犬", "count": 1, "onWin": "testBattleWin", "onLose": "testBattleLose" }
+        { "type": "narrate", "text": "它出来了——两只影犬。身影像被水泡过，边缘在雾里化开。" },
+        { "type": "battle", "enemy": "影犬", "count": 2, "onWin": "testBattleWin", "onLose": "testBattleLose" }
       ]
     },
 
@@ -152,7 +152,7 @@
         { "type": "narrate", "text": "这次你走得更远。灯落在身后，雾漫到腰际。" },
         { "type": "narrate", "text": "视野发白，你看不太清。" },
         { "type": "narrate", "text": "雾里有东西在靠近。" },
-        { "type": "battle", "enemy": "影犬", "count": 1, "field": { "fog": true }, "onWin": "testFogWin", "onLose": "testFogLose" }
+        { "type": "battle", "enemy": "影犬", "count": 2, "field": { "fog": true }, "onWin": "testFogWin", "onLose": "testFogLose" }
       ]
     },
 
